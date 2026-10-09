@@ -40,19 +40,30 @@ function message(error: unknown, fallback: string): string {
   if (e.code === 'USER_ALREADY_EXISTS' || e.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL')
     return '이미 가입한 이메일이에요. 로그인해 주세요.'
   if (e.code === 'PASSWORD_TOO_SHORT') return '비밀번호를 8자 이상으로 정해 주세요.'
+  if (e.status === 403 || /origin/i.test(e.message ?? '')) return '지금은 로그인할 수 없어요. 잠시 뒤 다시 시도해 주세요.'
   return e.message || fallback
+}
+
+// Better Auth는 오류를 { error }로 돌려주기도 하고 예외로 던지기도 한다 (예: Invalid origin 403)
+async function attempt(run: () => Promise<{ error: unknown }>, fallback: string): Promise<string | null> {
+  try {
+    const { error } = await run()
+    return error ? message(error, fallback) : null
+  } catch (e) {
+    return message(e, fallback)
+  }
 }
 
 export async function signIn(email: string, password: string): Promise<string | null> {
   if (!authClient) return null
-  const { error } = await authClient.signIn.email({ email, password })
-  return error ? message(error, '로그인하지 못했어요.') : null
+  const client = authClient
+  return attempt(() => client.signIn.email({ email, password }), '로그인하지 못했어요.')
 }
 
 export async function signUp(name: string, email: string, password: string): Promise<string | null> {
   if (!authClient) return null
-  const { error } = await authClient.signUp.email({ email, password, name })
-  return error ? message(error, '가입하지 못했어요.') : null
+  const client = authClient
+  return attempt(() => client.signUp.email({ email, password, name }), '가입하지 못했어요.')
 }
 
 export async function signOut(): Promise<void> {
