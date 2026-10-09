@@ -3,7 +3,7 @@
 > 매 세션 시작 시 여기서 현재 위치를 확인한다. Phase 프롬프트 원문은 `docs/claude-code-guide.md` 12장.
 > 로드맵(기획안 13장): 1~2주 프롬프트 검증 → 3~6주 MVP(Phase 0~7) → 7~8주 베타 → 9~12주 v0.2
 
-**현재 위치: 준비 완료 → Step 1(프롬프트 검증) 시작 전**
+**현재 위치: Step 2 MVP 개발 진행 중 (Step 1 프롬프트 검증은 보류, 개발과 병행 가능)**
 
 ---
 
@@ -14,8 +14,8 @@
 - [x] 문서 간 불일치 정리 → `docs/open-questions.md`
 - [x] `.gitignore`, `.env.example`, `git init`
 - [x] 개발 도구 확인: Python 3.11.9, Node 24, npm 10, git, uv
-- [ ] `ANTHROPIC_API_KEY` 발급 후 `.env`에 넣기 (Phase 3 전까지 필수)
-- [ ] 첫 커밋
+- [x] `ANTHROPIC_API_KEY` 발급 후 `.env`에 넣기
+- [x] 첫 커밋
 
 ## Step 1. 프롬프트 검증 (1~2주) — 코드 없이
 목표: **질문만으로 글이 나오는가?** 자세한 방법은 `experiments/prompt-validation/README.md`
@@ -30,7 +30,7 @@
 
 | Phase | 내용 | 착수 전 결정 (open-questions) | 상태 |
 |---|---|---|---|
-| 0 | 저장소 뼈대, FastAPI 헬스체크, Vite React TS | — | ☐ |
+| 0 | 저장소 뼈대, FastAPI 헬스체크, Vite React TS | — | ✅ 2026-10-09 |
 | 1 | 데이터 모델, 세션 API(`/sessions`, `/advance`, `/back`) | B2 사용자·인증 | ☐ |
 | 2 | SKILL.md → `prompts/*.md`, `cliches.yaml` | — | ☐ |
 | 3 | 대화 엔진(추출·질문·검수·단계 판정), SSE, golden 테스트 | B1, B3, B4 / API 키 | ☐ |

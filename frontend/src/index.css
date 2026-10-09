@@ -1,0 +1,38 @@
+/* 디자인 토큰: docs/design/design-spec.md */
+:root {
+  --ink: #16213a;
+  --ink-2: #34405e;
+  --muted: #5b6272;
+  --muted-2: #8a91a0;
+  --on-ink-sub: #c4cad8;
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --line: #e1e2dc;
+  --line-2: #d5d8de;
+  --mark: #b5372b;
+  --mark-bg: #f4e4e1;
+
+  --serif: 'Noto Serif KR', 'Nanum Myeongjo', 'AppleMyungjo', serif;
+  --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+#root {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 24px 20px;
+}

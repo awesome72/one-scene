@@ -1,0 +1,32 @@
+[project]
+name = "one-scene-backend"
+version = "0.1.0"
+description = "한 장면 — 묻는 AI, 쓰는 사람"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=1.12.1",
+    "fastapi[standard]>=0.143.0",
+    "pydantic>=2",
+    "pydantic-settings>=2.15.0",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2",
+]
+
+[tool.fastapi]
+entrypoint = "app.main:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+]

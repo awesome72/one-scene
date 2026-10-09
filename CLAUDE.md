@@ -40,6 +40,9 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 - Phase를 마치면 docs/PROGRESS.md 체크리스트를 갱신한다
 
 ## 명령어
-- 백엔드 실행: cd backend && uvicorn app.main:app --reload
-- 테스트: cd backend && pytest
-- 프론트: cd frontend && npm run dev
+- 백엔드 실행: cd backend && uv run fastapi dev   (http://127.0.0.1:8000, 문서 /docs)
+- 테스트: cd backend && uv run pytest
+- 린트: cd backend && uv run ruff check .
+- 패키지 추가: cd backend && uv add <패키지>
+- 프론트: cd frontend && npm run dev   (/api/* 요청은 백엔드로 프록시)
+- 프론트 빌드: cd frontend && npm run build
