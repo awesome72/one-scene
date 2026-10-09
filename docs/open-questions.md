@@ -58,7 +58,7 @@
 
 ## D. 외부 선택 (해당 Phase 전)
 - D1. STT 서비스: Whisper 계열 / CLOVA Speech / Google STT — 본인 음성 3분 샘플로 한국어 인식률 비교 (Phase 5 전)
-- D2. 배포처: 프론트 Vercel, 백엔드 Render·Fly.io 등 (v0.1 베타 전)
+- D2. ✅ (2026-10-09) Vercel Services 한 프로젝트(프론트 Vite + 백엔드 FastAPI), DB는 Neon Postgres, GitHub 공개 저장소 awesome72/one-scene, 누구나 접속. 로그인(B2)이 생길 때까지 `DAILY_LLM_LIMIT`(기본 300/일)으로 비용 상한
 - D3. 모델: 가이드는 `claude-sonnet-5-5`(질문·초안), `claude-haiku-4-5-20251001`(추출·검수). 환경 변수로 두므로 Phase 8 평가 결과로 조정
 
 ## E. 원본 문서 자체의 문제

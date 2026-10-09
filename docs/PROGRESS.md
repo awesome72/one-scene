@@ -42,7 +42,9 @@
 | 8 | golden 시나리오 10개, `eval_questions.py` 지표 | D3 | ✅ 2026-10-09 (기획안 지표 3개 모두 목표 달성, `experiments/eval/`) |
 
 ## Step 3. 클로즈드 베타 (7~8주)
-- [ ] 배포 (D2)
+- [x] 배포 (D2): https://one-scene.vercel.app — GitHub `main` 푸시 시 자동 배포 (2026-10-09)
+- [ ] Neon Postgres 연결 (Vercel Marketplace 약관 동의 필요) — 연결 전에는 /tmp SQLite라 데이터가 유지되지 않음
+- [ ] 실제 로그인 (B2) — 그 전까지 공개 접속 + 하루 AI 사용량 상한
 - [ ] 글쓰기 모임 2곳, 30명
 - [ ] 1단계 → 완성률 35% 확인
 
