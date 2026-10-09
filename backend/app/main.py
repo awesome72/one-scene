@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from app import models  # noqa: F401  테이블 등록
 from app.db import Base, engine
-from app.routers import drafts, sessions, turns
+from app.routers import drafts, library, sessions, turns
 
 
 @asynccontextmanager
@@ -19,6 +19,7 @@ app = FastAPI(title="한 장면 API", version="0.1.0", lifespan=lifespan)
 app.include_router(sessions.router)
 app.include_router(turns.router)
 app.include_router(drafts.router)
+app.include_router(library.router)
 
 
 @app.get("/health", tags=["system"])

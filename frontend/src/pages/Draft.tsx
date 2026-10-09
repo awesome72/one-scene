@@ -216,9 +216,21 @@ export function Draft({ id }: { id: string }) {
 
       {draft && !hit && (
         <footer className="composer">
-          <button type="button" className="secondary wide" disabled={status !== null} onClick={redraft}>
-            초안 다시 만들기
-          </button>
+          <div className="row">
+            <button type="button" className="secondary" disabled={status !== null} onClick={redraft}>
+              초안 다시 만들기
+            </button>
+            {session.stage === 4 && (
+              <button
+                type="button"
+                className="primary"
+                disabled={status !== null}
+                onClick={() => go({ name: 'finish', id })}
+              >
+                {session.status === 'done' ? '태그 고치기' : '마무리하기'}
+              </button>
+            )}
+          </div>
         </footer>
       )}
 

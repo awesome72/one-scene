@@ -114,6 +114,22 @@ export interface Draft {
   blank_count: number
 }
 
+export type TagKind = 'period' | 'person' | 'place' | 'object' | 'gap'
+export type TagSet = Record<TagKind, string[]>
+
+export interface Library {
+  done: {
+    id: string
+    title: string
+    finished_at: string
+    paragraphs: number
+    chars: number
+    first_sentence: string | null
+    tags: TagSet
+  }[]
+  next_topics: { question: string; from_session_id: string; from_title: string }[]
+}
+
 export type DraftEvent =
   | { event: 'status'; data: { step: 'assembling' | 'checking' } }
   | { event: 'draft'; data: { draft: Draft } }
@@ -228,6 +244,12 @@ export const api = {
   latestDraft: (id: string) => request<Draft>('GET', `/sessions/${id}/drafts/latest`),
   dismissHit: (id: string, draftId: string, hitId: string) =>
     request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/hits/${encodeURIComponent(hitId)}/dismiss`),
+  tags: (id: string) => request<TagSet>('GET', `/sessions/${id}/tags`),
+  suggestTags: (id: string) => request<TagSet>('POST', `/sessions/${id}/tags/suggest`),
+  saveTags: (id: string, tags: TagSet) => request<TagSet>('PUT', `/sessions/${id}/tags`, tags),
+  finishCheck: (id: string) => request<string[]>('GET', `/sessions/${id}/finish-check`),
+  finish: (id: string) => request<SessionDetail>('POST', `/sessions/${id}/finish`, { approved: true }),
+  library: () => request<Library>('GET', '/library'),
   answerHit: (id: string, draftId: string, hitId: string, text: string, input_mode: 'voice' | 'text') =>
     request<{ added: Material[]; draft: Draft }>(
       'POST',

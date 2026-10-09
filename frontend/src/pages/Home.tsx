@@ -34,8 +34,11 @@ export function Home() {
 
   return (
     <div className="page home">
-      <header className="top">
+      <header className="top row between">
         <h1 className="logo">한 장면</h1>
+        <button type="button" className="link" onClick={() => go({ name: 'library' })}>
+          보관함
+        </button>
       </header>
 
       {error && <p className="error">{error}</p>}

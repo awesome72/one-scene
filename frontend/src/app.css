@@ -550,3 +550,88 @@ button:focus-visible {
 .eyebrow.row {
   align-items: center;
 }
+
+/* 마무리·보관함 */
+.top {
+  align-items: center;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+}
+input {
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.field input {
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-list.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+.tag {
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 4px 12px;
+  text-align: left;
+}
+.tag-list.column .tag {
+  border-radius: 10px;
+  font-family: var(--serif);
+}
+.tag span {
+  color: var(--muted-2);
+  margin-left: 4px;
+}
+.essay {
+  text-align: left;
+  color: var(--ink);
+  font: inherit;
+}
+.tags {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.tags div {
+  display: contents;
+}
+.tags dt {
+  color: var(--muted);
+}
+.tags dd {
+  margin: 0;
+}
+.topic {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--ink);
+}
