@@ -20,6 +20,8 @@ def make_engine(url: str, **kwargs: Any) -> Engine:
     else:
         # 서버리스: 함수가 잠들었다 깨어나면 끊긴 연결을 걸러 낸다
         kwargs.setdefault("pool_pre_ping", True)
+        # Neon 풀링 주소(PgBouncer)에서는 서버 쪽 prepared statement가 깨질 수 있다
+        kwargs.setdefault("connect_args", {"prepare_threshold": None})
         kwargs.setdefault("pool_size", 2)
         kwargs.setdefault("max_overflow", 3)
     engine = create_engine(url, **kwargs)
