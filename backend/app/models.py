@@ -71,6 +71,8 @@ class WritingSession(Base):
     target_length: Mapped[str | None] = mapped_column(String(10))
     sequence_pattern: Mapped[str | None] = mapped_column(String(10))
     status: Mapped[str] = mapped_column(String(10), default="active")
+    # 재료 카드를 이미 제안한 단계. 같은 단계에서 매 턴 카드를 다시 띄우지 않기 위해
+    card_offered_stage: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now, onupdate=now
@@ -113,6 +115,8 @@ class Turn(Base):
     text: Mapped[str] = mapped_column(Text)
     input_mode: Mapped[str | None] = mapped_column(String(10))
     stage: Mapped[int] = mapped_column(Integer)
+    # 코치 턴: 생성 시도 횟수, 검수 결과, 고정 응답 여부 등 (평가용, 사용자에게 안 보임)
+    meta: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     session: Mapped[WritingSession] = relationship(back_populates="turns")

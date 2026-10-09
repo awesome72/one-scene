@@ -1,9 +1,17 @@
-from datetime import datetime
-from typing import Literal
+from datetime import UTC, datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
 
-from app.models import ArcBlock
+from app.models import ArcBlock, InputMode, MaterialType, TargetLength
+
+
+def _as_utc(value: datetime) -> datetime:
+    # SQLite는 시간대를 저장하지 않으므로 시간대 없는 값은 UTC로 간주한다
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+UtcDatetime = Annotated[datetime, AfterValidator(_as_utc)]
 
 STAGE_NAMES: dict[int, str] = {1: "주제 설정", 2: "단락 구성", 3: "계열 짜기", 4: "태그와 교정"}
 
@@ -30,7 +38,7 @@ class SessionSummary(BaseModel):
     stage_name: str
     status: str
     last_question: str | None
-    updated_at: datetime
+    updated_at: UtcDatetime
 
 
 class SessionDetail(SessionSummary):
@@ -50,4 +58,49 @@ class TurnOut(BaseModel):
     text: str
     input_mode: str | None
     stage: int
-    created_at: datetime
+    created_at: UtcDatetime
+
+
+class SessionUpdate(BaseModel):
+    # 사용자가 직접 고치는 값. 보내지 않은 필드는 그대로 둔다
+    title: str | None = Field(default=None, max_length=200)
+    topic_sentence: str | None = Field(default=None, max_length=500)
+    target_length: TargetLength | None = None
+
+
+class TurnCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+    input_mode: InputMode = "text"
+
+
+class MaterialOut(BaseModel):
+    id: str
+    label: str
+    text: str
+    type: MaterialType
+    arc_block: ArcBlock | None
+    emotion_word: bool
+    excluded: bool
+
+
+class MaterialUpdate(BaseModel):
+    excluded: bool
+
+
+class CardBlock(BaseModel):
+    block: ArcBlock
+    label: str
+    materials: list[MaterialOut]
+
+
+class MaterialCard(BaseModel):
+    stage: int
+    stage_name: str
+    ready: bool
+    missing: list[str]
+    topic_sentence: str | None
+    target_length: str | None
+    blocks: list[CardBlock]
+    unplaced: list[MaterialOut]
+    repeated: list[RepeatedWord]
+    gaps: list[str]

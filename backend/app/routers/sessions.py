@@ -7,9 +7,19 @@ from sqlalchemy import select
 
 from app.db import DbDep
 from app.deps import CurrentUserDep, OwnedSessionDep
-from app.models import MAX_STAGE, MIN_STAGE, Turn, WritingSession
-from app.schemas import SessionCreate, SessionDetail, SessionSummary, StageApproval, TurnOut
-from app.views import session_detail, session_summary
+from app.models import MAX_STAGE, MIN_STAGE, Material, Turn, WritingSession
+from app.schemas import (
+    MaterialCard,
+    MaterialOut,
+    MaterialUpdate,
+    SessionCreate,
+    SessionDetail,
+    SessionSummary,
+    SessionUpdate,
+    StageApproval,
+    TurnOut,
+)
+from app.views import material_card, material_out, session_detail, session_summary
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -51,6 +61,33 @@ def list_sessions(db: DbDep, user: CurrentUserDep) -> list[SessionSummary]:
 @router.get("/sessions/{session_id}")
 def get_session(session: OwnedSessionDep) -> SessionDetail:
     return session_detail(session)
+
+
+@router.patch("/sessions/{session_id}")
+def update_session(body: SessionUpdate, session: OwnedSessionDep, db: DbDep) -> SessionDetail:
+    """제목·주제 문장·목표 길이를 사용자가 직접 정하거나 고친다."""
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(session, field, value)
+    db.commit()
+    return session_detail(session)
+
+
+@router.get("/sessions/{session_id}/material-card")
+def get_material_card(session: OwnedSessionDep) -> MaterialCard:
+    return material_card(session)
+
+
+@router.patch("/sessions/{session_id}/materials/{material_id}")
+def update_material(
+    material_id: str, body: MaterialUpdate, session: OwnedSessionDep, db: DbDep
+) -> MaterialOut:
+    """재료 빼 두기/되살리기. 재료 원문(text)은 바꿀 수 없다 (CLAUDE.md 제품 규칙 3)."""
+    material = db.get(Material, material_id)
+    if material is None or material.session_id != session.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "재료를 찾을 수 없습니다.")
+    material.excluded = body.excluded
+    db.commit()
+    return material_out(material)
 
 
 @router.get("/sessions/{session_id}/turns")

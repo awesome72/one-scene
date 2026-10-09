@@ -43,6 +43,7 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 ## 명령어
 - 백엔드 실행: cd backend && uv run fastapi dev   (http://127.0.0.1:8000, 문서 /docs)
 - 테스트: cd backend && PYTHONUTF8=1 uv run pytest   (Windows 콘솔 한글 깨짐 방지)
+- 실제 API 테스트(비용 발생): cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s
 - 린트: cd backend && uv run ruff check .
 - 패키지 추가: cd backend && uv add <패키지>
 - 프론트: cd frontend && npm run dev   (/api/* 요청은 백엔드로 프록시)

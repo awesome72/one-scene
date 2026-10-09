@@ -1,0 +1,21 @@
+"""다음 질문 하나 생성."""
+
+from app.config import get_settings
+from app.engine import prompt_builder
+from app.engine.llm import LLM
+from app.models import WritingSession
+
+MAX_TOKENS = 8000
+# 짧은 대화형 응답이라 낮은 effort로 충분하다. 품질 평가(Phase 8) 결과로 조정한다
+EFFORT = "low"
+
+
+async def run(llm: LLM, session: WritingSession, feedback: str | None = None) -> str:
+    prompt = prompt_builder.build(session, feedback)
+    return await llm.text(
+        model=get_settings().model_questioner,
+        system=prompt["system"],
+        messages=prompt["messages"],
+        max_tokens=MAX_TOKENS,
+        effort=EFFORT,
+    )
