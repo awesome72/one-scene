@@ -10,8 +10,10 @@ MAX_TOKENS = 8000
 EFFORT = "low"
 
 
-async def run(llm: LLM, session: WritingSession, feedback: str | None = None) -> str:
-    prompt = prompt_builder.build(session, feedback)
+async def run(
+    llm: LLM, session: WritingSession, feedback: str | None = None, opening: bool = False
+) -> str:
+    prompt = prompt_builder.build(session, feedback, opening)
     return await llm.text(
         model=get_settings().model_questioner,
         system=prompt["system"],

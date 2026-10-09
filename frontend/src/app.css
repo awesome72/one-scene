@@ -1,0 +1,400 @@
+/* 화면 스타일. 토큰은 index.css (docs/design/design-spec.md) */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 180px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.primary,
+.secondary {
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  min-height: 48px;
+}
+.primary {
+  background: var(--ink);
+  color: #fff;
+  border: 1px solid var(--ink);
+}
+.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+}
+.wide {
+  width: 100%;
+}
+.grow {
+  flex: 1;
+}
+.link {
+  background: none;
+  border: 0;
+  color: var(--muted);
+  padding: 8px 0;
+  font-size: 14px;
+}
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+.row > .primary,
+.row > .secondary {
+  flex: 1;
+}
+.row.between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+.title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+.eyebrow {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 6px;
+  letter-spacing: 0.02em;
+}
+.question {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.6;
+  margin: 0;
+  word-break: keep-all;
+}
+.question.small {
+  font-size: 17px;
+}
+.question em,
+.repeated,
+mark {
+  font-style: normal;
+}
+.question em {
+  color: var(--ink);
+  background: linear-gradient(transparent 62%, var(--mark-bg) 62%);
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.footnote,
+.hint,
+.sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+.error {
+  color: var(--mark);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 아크 5블록 */
+.arc-dots {
+  display: flex;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
+  width: 100%;
+}
+.arc-dot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted-2);
+}
+.arc-dot i {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.arc-dot.filled {
+  color: var(--ink-2);
+}
+.arc-dot.filled i {
+  background: var(--ink);
+}
+
+/* 단계 바 */
+.stage-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.stage-bar ol {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stage-bar li {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-2);
+}
+.stage-bar li.done {
+  background: var(--muted);
+}
+.stage-bar li.current {
+  background: var(--ink);
+  width: 28px;
+}
+
+/* 대화 */
+.chat-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.repeated {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.past {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted-2);
+  word-break: keep-all;
+}
+.past.coach {
+  font-family: var(--serif);
+}
+.past.user {
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+.past.user.mine {
+  color: var(--ink-2);
+  border-left-color: var(--ink-2);
+}
+.now {
+  padding: 8px 0;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+}
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mark);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}
+
+.composer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 430px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 18%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.composer form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+textarea {
+  font: inherit;
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  padding: 12px;
+  resize: vertical;
+  width: 100%;
+}
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.skip {
+  align-self: center;
+}
+
+/* 아래에서 올라오는 시트 (재료 카드, 말로 답하기) */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 33, 58, 0.35);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 10;
+}
+.sheet {
+  background: var(--bg);
+  width: 100%;
+  max-width: 430px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sheet-head h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.lead {
+  font-family: var(--serif);
+  font-size: 18px;
+  margin: 0;
+}
+.label {
+  font-size: 14px;
+  margin: 0;
+}
+.card-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card-block h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+}
+.card-block h3 span {
+  font-weight: 400;
+  color: var(--muted);
+}
+.card-block p,
+.card-block ul {
+  margin: 0;
+  font-size: 14px;
+}
+.card-block ul {
+  padding-left: 18px;
+}
+.said {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  color: var(--ink);
+}
+.said.off {
+  color: var(--muted-2);
+  text-decoration: line-through;
+}
+.transcript.live {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.6;
+  min-height: 120px;
+  margin: 0;
+}
+.listening {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  margin: 0;
+}
+.note {
+  font-size: 13px;
+  color: var(--ink-2);
+  background: var(--mark-bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0;
+}

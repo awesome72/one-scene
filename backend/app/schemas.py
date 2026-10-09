@@ -71,6 +71,8 @@ class SessionUpdate(BaseModel):
 class TurnCreate(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
     input_mode: InputMode = "text"
+    # '이 질문은 넘어가기' 버튼으로 보낸 턴. 재료를 뽑지 않고 직전 질문을 넘어간 주제로 기록
+    skip: bool = False
 
 
 class MaterialOut(BaseModel):

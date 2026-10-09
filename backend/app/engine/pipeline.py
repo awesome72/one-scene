@@ -82,14 +82,32 @@ def apply_extraction(session: WritingSession, turn: Turn, extraction: Extraction
     return added
 
 
-async def _ask(llm: LLM, session: WritingSession, last_user_text: str) -> AsyncIterator[Event]:
-    """질문 생성 ⇄ 검수. 마지막에 ('final', question, meta) 이벤트를 낸다."""
+async def _extract(
+    llm: LLM, session: WritingSession, text: str, last_question: str | None
+) -> Extraction:
+    try:
+        return await extractor.run(
+            llm,
+            utterance=text,
+            stage=session.stage,
+            last_question=last_question,
+            known_gaps=[s.value for s in session.signals if s.kind == "gap"],
+        )
+    except LLMError:
+        log.exception("재료 추출 실패 (session=%s)", session.id)
+        return Extraction()
+
+
+async def _ask(
+    llm: LLM, session: WritingSession, last_user_text: str | None, opening: bool = False
+) -> AsyncIterator[Event]:
+    """질문 생성 ⇄ 검수. 마지막에 ('_final', question, meta) 이벤트를 낸다."""
     feedback: str | None = None
     attempts: list[dict[str, Any]] = []
     question = ""
     for attempt in range(1, MAX_ATTEMPTS + 1):
         yield _event("status", step="asking", attempt=attempt)
-        question = await questioner.run(llm, session, feedback)
+        question = await questioner.run(llm, session, feedback, opening)
         yield _event("status", step="reviewing", attempt=attempt)
         review = await reviewer.run(
             llm, question=question, last_user_text=last_user_text, stage=session.stage
@@ -106,8 +124,52 @@ async def _ask(llm: LLM, session: WritingSession, last_user_text: str) -> AsyncI
     yield _event("_final", question=question, meta={"attempts": attempts, "passed": passed})
 
 
+async def _ask_and_save(
+    db: Session,
+    llm: LLM,
+    session: WritingSession,
+    last_user_text: str | None,
+    opening: bool = False,
+) -> AsyncIterator[Event]:
+    reply, meta = "", {}
+    try:
+        async for event in _ask(llm, session, last_user_text, opening):
+            if event["event"] == "_final":
+                reply, meta = event["data"]["question"], event["data"]["meta"]
+            else:
+                yield event
+    except LLMError as exc:
+        log.exception("질문 생성 실패 (session=%s)", session.id)
+        yield _event(
+            "error", message="질문을 만들지 못했어요. 잠시 뒤 다시 보내 주세요.", detail=str(exc)
+        )
+        return
+    if opening:
+        meta["opening"] = True
+    yield _save_coach_turn(db, session, reply, meta)
+
+
+def _save_coach_turn(
+    db: Session, session: WritingSession, reply: str, meta: dict[str, Any]
+) -> Event:
+    coach_turn = Turn(
+        idx=len(session.turns), role="coach", text=reply, stage=session.stage, meta=meta
+    )
+    session.turns.append(coach_turn)
+    db.commit()
+    return _event(
+        "question",
+        turn=TurnOut.model_validate(coach_turn, from_attributes=True).model_dump(mode="json"),
+    )
+
+
 async def handle_user_turn(
-    db: Session, llm: LLM, session: WritingSession, text: str, input_mode: str
+    db: Session,
+    llm: LLM,
+    session: WritingSession,
+    text: str,
+    input_mode: str,
+    skip: bool = False,
 ) -> AsyncIterator[Event]:
     last_question = _last_question(session)
     user_turn = Turn(
@@ -116,19 +178,13 @@ async def handle_user_turn(
     session.turns.append(user_turn)
     db.commit()
 
-    # 1) 재료 추출. 실패해도 대화는 이어간다 (사용자 발화 원문은 이미 저장됨)
-    yield _event("status", step="extracting")
-    extraction = Extraction()
-    try:
-        extraction = await extractor.run(
-            llm,
-            utterance=text,
-            stage=session.stage,
-            last_question=last_question,
-            known_gaps=[s.value for s in session.signals if s.kind == "gap"],
-        )
-    except LLMError:
-        log.exception("재료 추출 실패 (session=%s)", session.id)
+    if skip:
+        # '넘어가기' 버튼: 추출 없이 직전 질문을 넘어간 주제로 기록한다 (SKILL.md 8장)
+        extraction = Extraction(skip_request=True, skip_topic=last_question)
+    else:
+        # 1) 재료 추출. 실패해도 대화는 이어간다 (사용자 발화 원문은 이미 저장됨)
+        yield _event("status", step="extracting")
+        extraction = await _extract(llm, session, text, last_question)
     added = apply_extraction(session, user_turn, extraction)
     db.commit()
     yield _event(
@@ -140,33 +196,23 @@ async def handle_user_turn(
     # 2) 고통 신호: 질문 대신 상태를 묻는다 (SKILL.md 9장)
     if extraction.distress:
         reply = resources.data("fixed_replies")["distress"]
-        meta: dict[str, Any] = {"fixed": "distress"}
-    else:
-        # 3) 단계 마감 조건 충족 → 재료 카드 제안 (같은 단계에서는 한 번만)
-        if stage_machine.is_ready_to_close(session) and session.card_offered_stage != session.stage:
-            session.card_offered_stage = session.stage
-            db.commit()
-            yield _event("card", stage=session.stage)
-        # 4) 질문 생성 ⇄ 검수
-        reply, meta = "", {}
-        try:
-            async for event in _ask(llm, session, text):
-                if event["event"] == "_final":
-                    reply, meta = event["data"]["question"], event["data"]["meta"]
-                else:
-                    yield event
-        except LLMError as exc:
-            log.exception("질문 생성 실패 (session=%s)", session.id)
-            yield _event("error", message="질문을 만들지 못했어요. 잠시 뒤 다시 보내 주세요.",
-                         detail=str(exc))
-            return
+        yield _save_coach_turn(db, session, reply, {"fixed": "distress"})
+        return
 
-    coach_turn = Turn(
-        idx=len(session.turns), role="coach", text=reply, stage=session.stage, meta=meta
-    )
-    session.turns.append(coach_turn)
-    db.commit()
-    yield _event(
-        "question",
-        turn=TurnOut.model_validate(coach_turn, from_attributes=True).model_dump(mode="json"),
-    )
+    # 3) 단계 마감 조건 충족 → 재료 카드 제안 (같은 단계에서는 한 번만)
+    if stage_machine.is_ready_to_close(session) and session.card_offered_stage != session.stage:
+        session.card_offered_stage = session.stage
+        db.commit()
+        yield _event("card", stage=session.stage)
+
+    # 4) 질문 생성 ⇄ 검수 → 코치 턴 저장
+    async for event in _ask_and_save(db, llm, session, None if skip else text):
+        yield event
+
+
+async def handle_stage_open(
+    db: Session, llm: LLM, session: WritingSession
+) -> AsyncIterator[Event]:
+    """새 단계의 여는 질문. 사용자가 단계를 넘기거나 되돌린 뒤 화면이 부른다."""
+    async for event in _ask_and_save(db, llm, session, None, opening=True):
+        yield event

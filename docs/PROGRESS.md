@@ -35,7 +35,7 @@
 | 2 | SKILL.md → `prompts/*.md`, `cliches.yaml` (`docs/prompt-mapping.md`) | — | ✅ 2026-10-09 |
 | 3 | 대화 엔진(추출·질문·검수·단계 판정), SSE, golden 테스트 | B1, B3, B4 / API 키 | ✅ 2026-10-09 (오프라인 64개 + live 6개 통과) |
 | — | **직접 글 한 편 완주 (가장 중요한 검증)** | | ☐ |
-| 4 | 프론트 대화 화면 (StageBar, ArcPanel, MaterialCard, MicButton) | A1, A3 | ☐ |
+| 4 | 프론트 대화 화면 (StageBar, ArcPanel, MaterialCard, MicButton) | A1, A3 | ✅ 2026-10-09 (실제 API로 브라우저 확인. 음성은 브라우저 내장 인식으로 임시 구현, 마이크 실기기 미확인) |
 | 5 | 음성 입력 (STT 어댑터, 확인 후 전송) | D1 STT 선정 | ☐ |
 | 6 | 개요·초안·진실성·린터·교정 화면 | A2, B5, C1~C4 | ☐ |
 | 7 | 태그와 보관함, 다음 글감 | — | ☐ |

@@ -10,6 +10,7 @@ import yaml
 
 from app.engine import resources, stage_machine
 from app.models import ARC_BLOCKS, WritingSession
+from app.schemas import STAGE_NAMES
 
 STAGE_MODULES = {
     1: "stage1_topic",
@@ -59,18 +60,38 @@ def state_block(session: WritingSession, feedback: str | None = None) -> str:
     return text
 
 
-def history(session: WritingSession) -> list[dict[str, Any]]:
-    """최근 대화를 messages로. 첫 메시지는 user여야 하므로 코치가 먼저 연 대화엔 시작 표시를 붙인다."""
+def stage_opened(stage: int) -> str:
+    return resources.prompt("stage_opened").format(stage_name=STAGE_NAMES[stage])
+
+
+def history(session: WritingSession, opening_stage: int | None = None) -> list[dict[str, Any]]:
+    """최근 대화를 messages로.
+
+    messages는 user로 시작해 user로 끝나야 한다 (마지막이 assistant면 prefill이 되어 거부된다).
+    - 코치가 먼저 연 대화: 맨 앞에 시작 표시
+    - 코치 턴이 연달아 있는 곳(단계를 넘긴 뒤의 여는 질문): 사이에 단계 시작 표시
+    - opening_stage: 지금 새 단계의 여는 질문을 만들 때 끝에 붙이는 단계 시작 표시
+    """
     turns = session.turns[-MAX_HISTORY_TURNS:]
     messages: list[dict[str, Any]] = []
     for turn in turns:
         role = "assistant" if turn.role == "coach" else "user"
         if messages and messages[-1]["role"] == role:
-            messages[-1]["content"] += "\n\n" + turn.text
+            if role == "assistant":
+                messages.append({"role": "user", "content": stage_opened(turn.stage)})
+                messages.append({"role": role, "content": turn.text})
+            else:
+                messages[-1]["content"] += "\n\n" + turn.text
         else:
             messages.append({"role": role, "content": turn.text})
     if messages and messages[0]["role"] == "assistant":
         messages.insert(0, {"role": "user", "content": resources.prompt("session_start")})
+    if opening_stage is not None:
+        marker = stage_opened(opening_stage)
+        if messages and messages[-1]["role"] == "user":
+            messages[-1]["content"] += "\n\n" + marker
+        else:
+            messages.append({"role": "user", "content": marker})
     return messages
 
 
@@ -80,7 +101,9 @@ def feedback_text(reasons: list[str], rejected: str) -> str:
     )
 
 
-def build(session: WritingSession, feedback: str | None = None) -> dict[str, Any]:
+def build(
+    session: WritingSession, feedback: str | None = None, opening: bool = False
+) -> dict[str, Any]:
     return {
         "system": [
             {
@@ -90,5 +113,5 @@ def build(session: WritingSession, feedback: str | None = None) -> dict[str, Any
             },
             {"type": "text", "text": state_block(session, feedback)},
         ],
-        "messages": history(session),
+        "messages": history(session, session.stage if opening else None),
     }

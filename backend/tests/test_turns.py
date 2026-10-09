@@ -1,5 +1,6 @@
 import json
 from collections.abc import Iterator
+from itertools import pairwise
 
 import pytest
 from fastapi.testclient import TestClient
@@ -215,3 +216,34 @@ def test_turn_validation(client: TestClient, fake: FakeLLM) -> None:
     assert client.post(f"/sessions/{sid}/turns", json={"text": ""}).status_code == 422
     other = {"X-User-Id": "someone-else"}
     assert client.post(f"/sessions/{sid}/turns", json={"text": "a"}, headers=other).status_code == 404
+
+
+def test_skip_button_records_last_question_without_extraction(
+    client: TestClient, fake: FakeLLM
+) -> None:
+    sid = _start(client)
+    first_q = client.get(f"/sessions/{sid}/turns").json()[0]["text"]
+    events = _send(client, sid, text="이 질문은 넘어갈게요.", skip=True)
+    assert "extracting" not in [d.get("step") for k, d in events if k == "status"]
+    assert [c for c in fake.parse_calls if c["schema"] is Extraction] == []
+    state = fake.text_calls[0]["system"][1]["text"]
+    assert f"skipped_topics:\n- {first_q}" in state
+
+
+def test_stage_opening_question_after_advance(client: TestClient, fake: FakeLLM) -> None:
+    sid = _start(client)
+    _send(client, sid)
+    client.post(f"/sessions/{sid}/advance", json={"approved": True})
+    fake.questions.append("오프닝으로 고른 그 회의실에서, 손은 무엇을 하고 있었어요?")
+    res = client.post(f"/sessions/{sid}/coach")
+    events = parse_sse(res.text)
+    assert events[-1][0] == "question"
+    assert events[-1][1]["turn"]["stage"] == 2
+    messages = fake.text_calls[-1]["messages"]
+    assert messages[-1]["role"] == "user" and "단락 구성" in messages[-1]["content"]
+
+    # 다음 턴에서는 연달아 있는 코치 턴 사이에 단계 시작 표시가 들어가 역할이 번갈아 나온다
+    _send(client, sid, text="볼펜을 쥐고 있었어요.")
+    roles = [m["role"] for m in fake.text_calls[-1]["messages"]]
+    assert all(a != b for a, b in pairwise(roles))
+    assert roles[0] == "user" and roles[-1] == "user"

@@ -28,6 +28,8 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  word-break: keep-all; /* 한국어는 어절 단위로 줄바꿈 */
+  overflow-wrap: anywhere;
 }
 
 #root {
