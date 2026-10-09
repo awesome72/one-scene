@@ -17,6 +17,11 @@ def make_engine(url: str, **kwargs: Any) -> Engine:
     is_sqlite = url.startswith("sqlite")
     if is_sqlite:
         kwargs.setdefault("connect_args", {"check_same_thread": False})
+    else:
+        # 서버리스: 함수가 잠들었다 깨어나면 끊긴 연결을 걸러 낸다
+        kwargs.setdefault("pool_pre_ping", True)
+        kwargs.setdefault("pool_size", 2)
+        kwargs.setdefault("max_overflow", 3)
     engine = create_engine(url, **kwargs)
     if is_sqlite:
 
@@ -28,7 +33,7 @@ def make_engine(url: str, **kwargs: Any) -> Engine:
     return engine
 
 
-engine = make_engine(get_settings().database_url)
+engine = make_engine(get_settings().sqlalchemy_url)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

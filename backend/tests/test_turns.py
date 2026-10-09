@@ -247,3 +247,15 @@ def test_stage_opening_question_after_advance(client: TestClient, fake: FakeLLM)
     roles = [m["role"] for m in fake.text_calls[-1]["messages"]]
     assert all(a != b for a, b in pairwise(roles))
     assert roles[0] == "user" and roles[-1] == "user"
+
+
+def test_daily_llm_limit(client: TestClient, fake: FakeLLM, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "daily_llm_limit", 1)
+    sid = _start(client)
+    assert client.post(f"/sessions/{sid}/turns", json={"text": "첫 답"}).status_code == 200
+    res = client.post(f"/sessions/{sid}/turns", json={"text": "둘째 답"})
+    assert res.status_code == 429
+    assert "내일" in res.json()["detail"]
+    assert client.get(f"/sessions/{sid}").status_code == 200  # 읽기는 막지 않는다

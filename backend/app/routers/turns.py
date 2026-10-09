@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from app.db import DbDep
-from app.deps import OwnedSessionDep
+from app.deps import LlmQuotaDep, OwnedSessionDep
 from app.engine.llm import LLM, get_llm
 from app.engine.pipeline import Event, handle_stage_open, handle_user_turn
 from app.schemas import TurnCreate
@@ -19,7 +19,7 @@ def _sse(event: Event) -> ServerSentEvent:
     return ServerSentEvent(event=event["event"], data=event["data"])
 
 
-@router.post("/turns", response_class=EventSourceResponse)
+@router.post("/turns", response_class=EventSourceResponse, dependencies=[LlmQuotaDep])
 async def post_turn(
     body: TurnCreate, session: OwnedSessionDep, db: DbDep, llm: LlmDep
 ) -> AsyncIterable[ServerSentEvent]:
@@ -33,7 +33,7 @@ async def post_turn(
         yield _sse(event)
 
 
-@router.post("/coach", response_class=EventSourceResponse)
+@router.post("/coach", response_class=EventSourceResponse, dependencies=[LlmQuotaDep])
 async def post_coach(
     session: OwnedSessionDep, db: DbDep, llm: LlmDep
 ) -> AsyncIterable[ServerSentEvent]:

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from app.db import DbDep
-from app.deps import OwnedSessionDep
+from app.deps import LlmQuotaDep, OwnedSessionDep
 from app.engine import drafting
 from app.engine.llm import LLM, get_llm
 from app.models import Draft, WritingSession
@@ -37,7 +37,7 @@ def save_outline(body: OutlineSave, session: OwnedSessionDep, db: DbDep) -> Outl
     return drafting.save_outline(db, session, body.pattern)
 
 
-@router.post("/drafts", response_class=EventSourceResponse)
+@router.post("/drafts", response_class=EventSourceResponse, dependencies=[LlmQuotaDep])
 async def create_draft(
     session: OwnedSessionDep, db: DbDep, llm: LlmDep
 ) -> AsyncIterable[ServerSentEvent]:
@@ -59,7 +59,7 @@ def dismiss_hit(draft_id: str, hit_id: str, session: OwnedSessionDep, db: DbDep)
     return drafting.dismiss_hit(db, session, _draft(session, draft_id), hit_id)
 
 
-@router.post("/drafts/{draft_id}/hits/{hit_id}/answer")
+@router.post("/drafts/{draft_id}/hits/{hit_id}/answer", dependencies=[LlmQuotaDep])
 async def answer_hit(
     draft_id: str, hit_id: str, body: HitAnswer, session: OwnedSessionDep, db: DbDep,
     llm: LlmDep,

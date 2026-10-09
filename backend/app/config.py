@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     stt_api_key: str = ""
     voice_keep_original: bool = False
 
+    # 로그인 없이 공개 배포하는 동안 API 비용을 지키는 하루 전체 AI 작업 상한 (0이면 끔)
+    daily_llm_limit: int = 300
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        """Neon/Vercel이 주는 postgres:// 주소를 psycopg 3 드라이버 주소로 바꾼다."""
+        url = self.database_url
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix):]
+        return url
+
 
 @lru_cache
 def get_settings() -> Settings:

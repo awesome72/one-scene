@@ -195,7 +195,16 @@ async function stream<E extends { event: string }>(
     headers: { 'Content-Type': 'application/json', 'X-User-Id': userId() },
     body: JSON.stringify(body ?? {}),
   })
-  if (!res.ok || !res.body) throw new ApiError(res.status, `요청이 실패했어요 (${res.status})`)
+  if (!res.ok || !res.body) {
+    let message = `요청이 실패했어요 (${res.status})`
+    try {
+      const data = await res.json()
+      if (typeof data.detail === 'string') message = data.detail // 예: 하루 사용량 상한 (429)
+    } catch {
+      /* 본문 없음 */
+    }
+    throw new ApiError(res.status, message)
+  }
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
   let buffer = ''
   for (;;) {
