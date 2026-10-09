@@ -31,7 +31,7 @@
 | Phase | 내용 | 착수 전 결정 (open-questions) | 상태 |
 |---|---|---|---|
 | 0 | 저장소 뼈대, FastAPI 헬스체크, Vite React TS | — | ✅ 2026-10-09 |
-| 1 | 데이터 모델, 세션 API(`/sessions`, `/advance`, `/back`) | B2 사용자·인증 | ☐ |
+| 1 | 데이터 모델, 세션 API(`/sessions`, `/advance`, `/back`) | B2 사용자·인증 | ✅ 2026-10-09 |
 | 2 | SKILL.md → `prompts/*.md`, `cliches.yaml` | — | ☐ |
 | 3 | 대화 엔진(추출·질문·검수·단계 판정), SSE, golden 테스트 | B1, B3, B4 / API 키 | ☐ |
 | — | **직접 글 한 편 완주 (가장 중요한 검증)** | | ☐ |

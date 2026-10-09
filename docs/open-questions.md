@@ -20,7 +20,7 @@
 ### A3. 홈의 "새 글을 여는 질문" 순환
 - 목업에 있지만 API 6장에 없음
 - 제안: `GET /opening-questions` 추가 또는 `POST /sessions`에 `opening_question` 파라미터. 보관함의 "다음 글감"도 같은 경로로 시작
-- 결정:
+- 결정: (2026-10-09, 잠정) `GET /opening-questions` + `POST /sessions {opening_question}`로 구현. 질문 목록은 `backend/app/data/opening_questions.yaml`
 
 ## B. 데이터·엔진 (Phase 1, 3 전)
 
@@ -32,7 +32,7 @@
 ### B2. 사용자·인증
 - `sessions.user_id`는 있지만 users 테이블과 인증 방식이 없음
 - 제안: MVP는 users 테이블 + 이메일 매직링크(또는 베타 초대 코드). Phase 1에 최소 형태로 포함
-- 결정:
+- 결정: (2026-10-09, 잠정) users 테이블 생성. 개발 중에는 `X-User-Id` 헤더로 구분(없으면 `dev-user`). 베타 전에 실제 인증으로 교체
 
 ### B3. 정서적 안전 신호
 - 기획안 12장·SKILL.md 9장: 고통 신호 감지 시 진행 중단. 그러나 7장 파이프라인에 해당 단계 없음
@@ -48,13 +48,13 @@
 ### B5. 교정 "그대로 두기"
 - 목업 초안 화면에 [그대로 두기] 버튼 → 사용자가 무시한 지적을 저장할 곳이 없음
 - 제안: `drafts.lint_result` 항목에 `dismissed: true` 추가, 4단계 마감 조건에서 제외
-- 결정:
+- 결정: (2026-10-09, 잠정) 제안대로. `drafts.lint_result` 항목에 `dismissed` 저장 (Phase 6에서 구현)
 
 ## C. 코드 예시의 작은 결함 (Phase 6에서 수정)
 - C1. 린터 `cliches.yaml`의 `'{match}'` 자리표시자를 `lint()`가 채우지 않음 → `entry["question"].format(match=m.group())`
 - C2. 긴 문장 정규식 `[^.!?\n]{61,}[.!?]`는 마침표 없이 끝나는 문장·`…`·따옴표 뒤 마침표를 놓침
 - C3. 마지막 문장 검사가 "마지막 줄" 기준 → 마지막 단락 안의 마지막 문장으로 바꿔야 함
-- C4. `tags` 테이블에 기본키 없음
+- C4. ~~`tags` 테이블에 기본키 없음~~ → Phase 1에서 `id` 기본키 추가
 
 ## D. 외부 선택 (해당 Phase 전)
 - D1. STT 서비스: Whisper 계열 / CLOVA Speech / Google STT — 본인 음성 3분 샘플로 한국어 인식률 비교 (Phase 5 전)

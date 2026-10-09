@@ -1,6 +1,22 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI(title="한 장면 API", version="0.1.0")
+from app import models  # noqa: F401  테이블 등록
+from app.db import Base, engine
+from app.routers import sessions
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # 개발 단계: 테이블 자동 생성. PostgreSQL 전환 전에 Alembic 마이그레이션으로 바꾼다
+    Base.metadata.create_all(engine)
+    yield
+
+
+app = FastAPI(title="한 장면 API", version="0.1.0", lifespan=lifespan)
+app.include_router(sessions.router)
 
 
 @app.get("/health", tags=["system"])
