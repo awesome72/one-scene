@@ -14,7 +14,7 @@
 - [x] 문서 간 불일치 정리 → `docs/open-questions.md`
 - [x] `.gitignore`, `.env.example`, `git init`
 - [x] 개발 도구 확인: Python 3.11.9, Node 24, npm 10, git, uv
-- [ ] `ANTHROPIC_API_KEY` 교체 — 현재 키가 401 invalid x-api-key. 교체 후 `cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s`
+- [x] `ANTHROPIC_API_KEY` 교체 (2026-10-09)
 - [x] 첫 커밋
 
 ## Step 1. 프롬프트 검증 (1~2주) — 코드 없이
@@ -33,7 +33,7 @@
 | 0 | 저장소 뼈대, FastAPI 헬스체크, Vite React TS | — | ✅ 2026-10-09 |
 | 1 | 데이터 모델, 세션 API(`/sessions`, `/advance`, `/back`) | B2 사용자·인증 | ✅ 2026-10-09 |
 | 2 | SKILL.md → `prompts/*.md`, `cliches.yaml` (`docs/prompt-mapping.md`) | — | ✅ 2026-10-09 |
-| 3 | 대화 엔진(추출·질문·검수·단계 판정), SSE, golden 테스트 | B1, B3, B4 / API 키 | ✅ 2026-10-09 (오프라인 64개 통과. live 테스트는 API 키 401로 미실행) |
+| 3 | 대화 엔진(추출·질문·검수·단계 판정), SSE, golden 테스트 | B1, B3, B4 / API 키 | ✅ 2026-10-09 (오프라인 64개 + live 6개 통과) |
 | — | **직접 글 한 편 완주 (가장 중요한 검증)** | | ☐ |
 | 4 | 프론트 대화 화면 (StageBar, ArcPanel, MaterialCard, MicButton) | A1, A3 | ☐ |
 | 5 | 음성 입력 (STT 어댑터, 확인 후 전송) | D1 STT 선정 | ☐ |
