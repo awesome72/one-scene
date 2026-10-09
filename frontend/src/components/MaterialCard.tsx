@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import { api, STAGE_NAMES, type MaterialCardData } from '../api/client'
 import { josa } from '../lib/josa'
 
+// SKILL.md 6장 길이 기준
+const LENGTHS = [
+  { id: 'short', name: '짧은 글', desc: '한 순간 · 약 1천 자' },
+  { id: 'medium', name: '보통 글', desc: '한 시기 · 2~3천 자' },
+  { id: 'long', name: '긴 글', desc: '긴 시간 · 4~6천 자' },
+] as const
+
 // 재료 카드 (목업 ④). 모두 사용자가 한 말 원문. 해석·의미 부여 없음 (SKILL.md 3장)
 export function MaterialCard({
   sessionId,
@@ -21,6 +28,19 @@ export function MaterialCard({
 
   const toggle = async (materialId: string, excluded: boolean) => {
     await api.setExcluded(sessionId, materialId, excluded)
+    setCard(await api.materialCard(sessionId))
+  }
+
+  // 주제·길이는 사용자가 직접 정하거나 고칠 수 있다 (open-questions F2)
+  const [editingTopic, setEditingTopic] = useState(false)
+  const [topic, setTopic] = useState('')
+  const saveTopic = async () => {
+    await api.updateSession(sessionId, { topic_sentence: topic.trim() })
+    setEditingTopic(false)
+    setCard(await api.materialCard(sessionId))
+  }
+  const setLength = async (target_length: 'short' | 'medium' | 'long') => {
+    await api.updateSession(sessionId, { target_length })
     setCard(await api.materialCard(sessionId))
   }
 
@@ -47,12 +67,66 @@ export function MaterialCard({
             </p>
             <p className="sub">모두 당신이 한 말입니다. 쓰지 않을 재료는 눌러서 빼 둘 수 있어요.</p>
 
-            {card.topic_sentence && (
-              <section className="card-block">
-                <h3>한 문장 주제</h3>
-                <p className="said">{card.topic_sentence}</p>
-              </section>
-            )}
+            <section className="card-block">
+              <h3>
+                한 문장 주제
+                {!editingTopic && (
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => {
+                      setTopic(card.topic_sentence ?? '')
+                      setEditingTopic(true)
+                    }}
+                  >
+                    {card.topic_sentence ? '고치기' : '정하기'}
+                  </button>
+                )}
+              </h3>
+              {editingTopic ? (
+                <form
+                  className="row"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    saveTopic()
+                  }}
+                >
+                  <input
+                    autoFocus
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="이 글은 무엇에 관한 이야기예요?"
+                    aria-label="한 문장 주제"
+                  />
+                  <button type="submit" className="secondary" disabled={!topic.trim()}>
+                    저장
+                  </button>
+                </form>
+              ) : (
+                <p className={card.topic_sentence ? 'said' : 'hint'}>
+                  {card.topic_sentence ?? '아직 정하지 않았어요. 대화로 정해도 되고, 직접 적어도 돼요.'}
+                </p>
+              )}
+            </section>
+
+            <section className="card-block">
+              <h3>목표 길이</h3>
+              <div className="row" role="radiogroup" aria-label="목표 길이">
+                {LENGTHS.map((l) => (
+                  <button
+                    type="button"
+                    key={l.id}
+                    role="radio"
+                    aria-checked={card.target_length === l.id}
+                    className={`pattern ${card.target_length === l.id ? 'on' : ''}`}
+                    onClick={() => setLength(l.id)}
+                  >
+                    <strong>{l.name}</strong>
+                    <span>{l.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
 
             {card.blocks.map((b) => {
               const active = b.materials.filter((m) => !m.excluded).length

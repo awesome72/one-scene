@@ -46,6 +46,8 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 - 개발 DB(backend/one_scene.db)는 마이그레이션이 없다. 모델 컬럼을 바꾸면 지우고 다시 만든다
 - 테스트: cd backend && PYTHONUTF8=1 uv run pytest   (Windows 콘솔 한글 깨짐 방지)
 - 실제 API 테스트(비용 발생): cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s
+- 질문 품질 평가(비용 약 $0.6): cd backend && PYTHONUTF8=1 uv run python -m evals.eval_questions --label 메모   → experiments/eval/
+  프롬프트(app/prompts/*.md)나 검수 규칙을 바꾸면 돌려서 docs/PROGRESS.md 표에 기록한다
 - 린트: cd backend && uv run ruff check .
 - 패키지 추가: cd backend && uv add <패키지>
 - 프론트: cd frontend && npm run dev   (/api/* 요청은 백엔드로 프록시)

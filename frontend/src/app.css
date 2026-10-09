@@ -635,3 +635,12 @@ input:focus-visible {
   padding: 12px;
   color: var(--ink);
 }
+.card-block h3 .link {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 400;
+}
+.card-block .row .pattern {
+  flex: 1;
+  padding: 8px;
+}

@@ -57,6 +57,8 @@ class AnthropicLLM:
         self.client = client or anthropic.AsyncAnthropic(
             api_key=settings.anthropic_api_key or None
         )
+        # 호출별 토큰 사용량 (평가 스크립트가 비용 계산에 쓴다)
+        self.usage: list[dict[str, Any]] = []
 
     def _extra(self, model: str, effort: str | None) -> dict[str, Any]:
         extra: dict[str, Any] = {}
@@ -68,8 +70,15 @@ class AnthropicLLM:
             extra["fallbacks"] = "default"
         return extra
 
-    @staticmethod
-    def _check(message: Any) -> None:
+    def _check(self, message: Any, model: str) -> None:
+        u = message.usage
+        self.usage.append({
+            "model": model,
+            "input": u.input_tokens,
+            "output": u.output_tokens,
+            "cache_read": u.cache_read_input_tokens or 0,
+            "cache_write": u.cache_creation_input_tokens or 0,
+        })
         if message.stop_reason == "refusal":
             raise LLMRefusal(f"refusal ({getattr(message, '_request_id', '')})")
 
@@ -89,7 +98,7 @@ class AnthropicLLM:
             messages=messages,  # type: ignore[arg-type]
             **self._extra(model, effort),
         )
-        self._check(message)
+        self._check(message, model)
         return "".join(b.text for b in message.content if b.type == "text").strip()
 
     async def parse(
@@ -109,7 +118,7 @@ class AnthropicLLM:
             output_format=schema,
             **self._extra(model, None),
         )
-        self._check(message)
+        self._check(message, model)
         if message.parsed_output is None:
             raise LLMError(f"구조화 출력 파싱 실패 (stop_reason={message.stop_reason})")
         return message.parsed_output

@@ -89,6 +89,33 @@ def keep_verbatim(extraction: Extraction, utterance: str) -> Extraction:
     )
 
 
+# 사용자가 따옴표로 옮긴 말 (실제로 오간 대사)
+_DIALOGUE = re.compile(r"[\"“]([^\"“”]{2,80})[\"”]|‘([^‘’]{2,80})’")
+
+
+def ensure_dialogue(extraction: Extraction, utterance: str) -> Extraction:
+    """따옴표 대사가 dialogue 재료로 빠졌으면 원문 그대로 더한다 (프롬프트만으로는 가끔 놓친다).
+
+    블록은 그 대사를 품은 다른 재료를 따르고, 없으면 '사건과 배경'으로 둔다.
+    """
+    materials = list(extraction.materials)
+    for m in _DIALOGUE.finditer(utterance):
+        quote = m.group(0)
+        inner = (m.group(1) or m.group(2)).strip()
+        if any(x.type == "dialogue" and inner in x.text for x in materials):
+            continue
+        host = next((x for x in materials if inner in x.text), None)
+        arc = (host.arc_block if host else None) or "event"
+        materials.append(ExtractedMaterial(text=quote, type="dialogue", arc_block=arc))
+    # dialogue인데 블록이 비어 있으면 같은 이유로 '사건과 배경'
+    materials = [
+        x.model_copy(update={"arc_block": "event"}) if x.type == "dialogue" and not x.arc_block
+        else x
+        for x in materials
+    ]
+    return extraction.model_copy(update={"materials": materials})
+
+
 def build_user_message(
     *, utterance: str, stage: int, last_question: str | None, known_gaps: list[str]
 ) -> str:
@@ -113,4 +140,4 @@ async def run(
         schema=Extraction,
         max_tokens=MAX_TOKENS,
     )
-    return keep_verbatim(raw, utterance)
+    return ensure_dialogue(keep_verbatim(raw, utterance), utterance)

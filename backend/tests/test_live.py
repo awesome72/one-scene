@@ -22,21 +22,23 @@ GOLDEN = yaml.safe_load(
 )
 
 
-def _golden_pairs() -> list[tuple[str | None, str]]:
-    """(직전 사용자 발화, 코치 응답) 쌍."""
-    pairs, last_user = [], None
+def _golden_pairs() -> list[tuple[list[str], str]]:
+    """(그때까지의 사용자 발화 전체, 코치 응답) 쌍."""
+    pairs, users = [], []
     for turn in GOLDEN["turns"]:
         if turn["role"] == "user":
-            last_user = turn["text"]
+            users.append(turn["text"])
         else:
-            pairs.append((last_user, turn["text"]))
+            pairs.append((list(users), turn["text"]))
     return pairs
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(("user", "coach"), _golden_pairs())
-async def test_golden_coach_responses_pass_llm_review(user: str | None, coach: str) -> None:
-    review = await reviewer.run(AnthropicLLM(), question=coach, last_user_text=user, stage=1)
+@pytest.mark.parametrize(("users", "coach"), _golden_pairs())
+async def test_golden_coach_responses_pass_llm_review(users: list[str], coach: str) -> None:
+    review = await reviewer.run(
+        AnthropicLLM(), question=coach, last_user_text=users[-1], stage=1, user_texts=users
+    )
     assert review.passed, review.reasons
 
 

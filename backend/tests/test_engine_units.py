@@ -166,3 +166,43 @@ def test_prompt_puts_stable_part_first_and_state_after() -> None:
 def test_stage_module_switches_with_stage() -> None:
     assert "4단계. 태그와 교정" in prompt_builder.stable_system(4)
     assert "1단계. 주제 설정" not in prompt_builder.stable_system(4)
+
+
+def test_rule_check_quote_must_be_verbatim() -> None:
+    users = ["마지막에 그 자국을 손으로 한 번 쓸어 봤어요."]
+    bad = reviewer.rule_check("‘한 번 쓸어 봤다’고 하셨어요. 그때 손끝에 뭐가 느껴졌어요?", users)
+    assert any("인용" in r for r in bad)
+    ok = reviewer.rule_check("‘한 번 쓸어 봤어요’라고 하셨어요. 그때 손끝에 뭐가 느껴졌어요?", users)
+    assert ok == []
+
+
+def test_rule_check_repeated_question() -> None:
+    prev = "그 말을 처음 들은 날, 엄마는 어디를 보고 계셨어요?"
+    again = "‘그...’ 하고 멈추셨어요. 그 말을 처음 들은 날, 엄마는 어디를 보고 계셨어요?"
+    assert any("되풀이" in r for r in reviewer.rule_check(again, previous_question=prev))
+    other = "‘그...’ 하고 멈추셨어요. 모니터에는 무엇이 떠 있었어요?"
+    assert reviewer.rule_check(other, previous_question=prev) == []
+
+
+def test_ensure_dialogue_adds_missed_quote_verbatim() -> None:
+    from app.engine.extractor import ensure_dialogue
+
+    utter = '엄마가 "이런 걸 요즘 누가 사냐"면서도 그 자리에서 입어 보셨어요.'
+    raw = Extraction(materials=[
+        ExtractedMaterial(text="그 자리에서 입어 보셨어요", type="scene", arc_block="scene"),
+    ])
+    out = ensure_dialogue(raw, utter)
+    dialogue = [m for m in out.materials if m.type == "dialogue"]
+    assert [m.text for m in dialogue] == ['"이런 걸 요즘 누가 사냐"']
+    assert dialogue[0].text in utter and dialogue[0].arc_block == "event"
+
+
+def test_ensure_dialogue_keeps_existing_and_fills_block() -> None:
+    from app.engine.extractor import ensure_dialogue
+
+    utter = '"이번 분기만 버티자." 그 말을 3년 동안 들었어요.'
+    raw = Extraction(materials=[
+        ExtractedMaterial(text='"이번 분기만 버티자."', type="dialogue", arc_block=None),
+    ])
+    out = ensure_dialogue(raw, utter)
+    assert len(out.materials) == 1 and out.materials[0].arc_block == "event"

@@ -104,13 +104,20 @@ async def _ask(
     """질문 생성 ⇄ 검수. 마지막에 ('_final', question, meta) 이벤트를 낸다."""
     feedback: str | None = None
     attempts: list[dict[str, Any]] = []
+    user_texts = [t.text for t in session.turns if t.role == "user"]
+    previous_question = _last_question(session)
     question = ""
     for attempt in range(1, MAX_ATTEMPTS + 1):
         yield _event("status", step="asking", attempt=attempt)
         question = await questioner.run(llm, session, feedback, opening)
         yield _event("status", step="reviewing", attempt=attempt)
         review = await reviewer.run(
-            llm, question=question, last_user_text=last_user_text, stage=session.stage
+            llm,
+            question=question,
+            last_user_text=last_user_text,
+            stage=session.stage,
+            user_texts=user_texts,
+            previous_question=previous_question,
         )
         attempts.append({"question": question, "passed": review.passed, "reasons": review.reasons})
         if review.passed:
