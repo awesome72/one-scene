@@ -531,3 +531,22 @@ button:focus-visible {
   padding: 6px 8px;
   margin: 4px 0;
 }
+
+/* 읽어 주기 */
+.chip.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.listen {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.eyebrow.row {
+  align-items: center;
+}

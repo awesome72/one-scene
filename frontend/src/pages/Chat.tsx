@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type SessionDetail, type Turn, type TurnEvent } from '../api/client'
 import { ArcDots } from '../components/ArcDots'
+import { ListenButton } from '../components/ListenButton'
 import { MaterialCard } from '../components/MaterialCard'
 import { Quoted } from '../components/Quoted'
 import { StageBar } from '../components/StageBar'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { go } from '../lib/route'
 import { voiceSupported } from '../lib/speech'
+import { speak, stopSpeaking, ttsSupported, useReadAloud, useStopSpeakingOnUnmount } from '../lib/tts'
 
 const STEP_TEXT = {
   extracting: '말씀을 받아 적고 있어요',
@@ -26,6 +28,14 @@ export function Chat({ id }: { id: string }) {
   const [draft, setDraft] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
   const historyEnd = useRef<HTMLDivElement>(null)
+  const [readAloud, setReadAloud] = useReadAloud()
+  // onEvent 안에서 최신 값을 읽기 위한 ref
+  const readAloudRef = useRef(readAloud)
+  const lastInputRef = useRef<'voice' | 'text'>('text')
+  useEffect(() => {
+    readAloudRef.current = readAloud
+  }, [readAloud])
+  useStopSpeakingOnUnmount()
 
   useEffect(() => {
     Promise.all([api.getSession(id), api.turns(id)])
@@ -55,6 +65,11 @@ export function Chat({ id }: { id: string }) {
       case 'question':
         setTurns((t) => [...t, e.data.turn])
         setStatus(null)
+        if (readAloudRef.current) {
+          // 말로 답하던 중이면, 다 읽은 뒤 바로 말하기 화면을 연다 (손 안 쓰는 대화)
+          const handsFree = lastInputRef.current === 'voice' && voiceSupported()
+          speak(e.data.turn.text, handsFree ? () => setMode('voice') : undefined)
+        }
         break
       case 'error':
         setError(e.data.message)
@@ -70,6 +85,7 @@ export function Chat({ id }: { id: string }) {
     setError(null)
     setMode('idle')
     setDraft('')
+    lastInputRef.current = input_mode
     const optimistic: Turn = {
       id: `local-${Date.now()}`,
       idx: turns.length,
@@ -120,9 +136,21 @@ export function Chat({ id }: { id: string }) {
           <button type="button" className="link" onClick={() => go({ name: 'home' })}>
             ← 홈
           </button>
-          <button type="button" className="chip" onClick={() => setCardOpen(true)}>
-            재료 {session.material_count}
-          </button>
+          <div className="row">
+            {ttsSupported() && (
+              <button
+                type="button"
+                className={`chip ${readAloud ? 'on' : ''}`}
+                aria-pressed={readAloud}
+                onClick={() => setReadAloud(!readAloud)}
+              >
+                읽어 주기 {readAloud ? '켬' : '끔'}
+              </button>
+            )}
+            <button type="button" className="chip" onClick={() => setCardOpen(true)}>
+              재료 {session.material_count}
+            </button>
+          </div>
         </div>
         <h1 className="title">{session.title || session.topic_sentence || '새 글'}</h1>
         <StageBar stage={session.stage} />
@@ -144,7 +172,9 @@ export function Chat({ id }: { id: string }) {
 
       {lastCoach && (
         <section className="now" aria-live="polite">
-          <p className="eyebrow">지금 질문</p>
+          <p className="eyebrow row between">
+            지금 질문 <ListenButton key={lastCoach.id} text={lastCoach.text} />
+          </p>
           <p className="question">
             <Quoted text={lastCoach.text} />
           </p>
@@ -201,7 +231,15 @@ export function Chat({ id }: { id: string }) {
         ) : (
           <div className="row">
             {voiceSupported() && (
-              <button type="button" className="primary grow" disabled={busy} onClick={() => setMode('voice')}>
+              <button
+                type="button"
+                className="primary grow"
+                disabled={busy}
+                onClick={() => {
+                  stopSpeaking()
+                  setMode('voice')
+                }}
+              >
                 누르고 말하기
               </button>
             )}

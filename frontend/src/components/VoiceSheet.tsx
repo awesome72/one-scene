@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { josa } from '../lib/josa'
+import { stopSpeaking } from '../lib/tts'
 import { type Recognition, recognitionCtor } from '../lib/speech'
 import { Quoted } from './Quoted'
 
@@ -29,6 +30,7 @@ export function VoiceSheet({
   const start = () => {
     const Ctor = recognitionCtor()
     if (!Ctor) return
+    stopSpeaking() // 읽어 주던 목소리가 받아쓰기에 섞이지 않게
     setFinalText('')
     setInterim('')
     setSeconds(0)

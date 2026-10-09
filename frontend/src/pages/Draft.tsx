@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { ApiError, api, type Draft as DraftData, type LintHit, type SessionDetail } from '../api/client'
+import { ListenButton } from '../components/ListenButton'
 import { Quoted } from '../components/Quoted'
 import { StageBar } from '../components/StageBar'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { go } from '../lib/route'
 import { voiceSupported } from '../lib/speech'
+import { useStopSpeakingOnUnmount } from '../lib/tts'
 
 const STEP_TEXT = { assembling: '초안을 다시 짜고 있어요', checking: '문장마다 출처를 확인하고 있어요' } as const
 
@@ -61,6 +63,7 @@ export function Draft({ id }: { id: string }) {
   const [answered, setAnswered] = useState(0)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  useStopSpeakingOnUnmount()
 
   useEffect(() => {
     api.getSession(id).then(setSession).catch((e) => setError(String(e.message ?? e)))
@@ -234,6 +237,7 @@ export function Draft({ id }: { id: string }) {
             <p className="question">
               <Quoted text={hit.question} />
             </p>
+            <ListenButton key={hit.id} text={hit.question} />
             {answering === 'text' ? (
               <form
                 onSubmit={(e) => {
