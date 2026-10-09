@@ -32,7 +32,7 @@
 |---|---|---|---|
 | 0 | 저장소 뼈대, FastAPI 헬스체크, Vite React TS | — | ✅ 2026-10-09 |
 | 1 | 데이터 모델, 세션 API(`/sessions`, `/advance`, `/back`) | B2 사용자·인증 | ✅ 2026-10-09 |
-| 2 | SKILL.md → `prompts/*.md`, `cliches.yaml` | — | ☐ |
+| 2 | SKILL.md → `prompts/*.md`, `cliches.yaml` (`docs/prompt-mapping.md`) | — | ✅ 2026-10-09 |
 | 3 | 대화 엔진(추출·질문·검수·단계 판정), SSE, golden 테스트 | B1, B3, B4 / API 키 | ☐ |
 | — | **직접 글 한 편 완주 (가장 중요한 검증)** | | ☐ |
 | 4 | 프론트 대화 화면 (StageBar, ArcPanel, MaterialCard, MicButton) | A1, A3 | ☐ |

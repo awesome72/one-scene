@@ -28,6 +28,7 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 - 백엔드: FastAPI, SQLAlchemy 2.x, Pydantic v2, 타입 힌트 필수
 - 모델 이름은 config.py의 환경 변수로만 참조 (하드코딩 금지)
 - 프롬프트는 backend/app/prompts/*.md 파일로 관리. 코드 안 문자열 금지
+- core.md·stage*.md는 SKILL.md에서 자동 생성된다. 직접 고치지 말고 SKILL.md를 고친 뒤 `uv run python -m app.prompt_sync`
 - LLM 호출은 engine/ 안에서만. 라우터에서 직접 호출 금지
 - 프론트: React + TypeScript, 상태는 서버가 원천
 - UI는 모바일 우선 (목업 기준 390×844). 디자인 토큰은 docs/design/design-spec.md를 따른다
@@ -41,7 +42,7 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 
 ## 명령어
 - 백엔드 실행: cd backend && uv run fastapi dev   (http://127.0.0.1:8000, 문서 /docs)
-- 테스트: cd backend && uv run pytest
+- 테스트: cd backend && PYTHONUTF8=1 uv run pytest   (Windows 콘솔 한글 깨짐 방지)
 - 린트: cd backend && uv run ruff check .
 - 패키지 추가: cd backend && uv add <패키지>
 - 프론트: cd frontend && npm run dev   (/api/* 요청은 백엔드로 프록시)
