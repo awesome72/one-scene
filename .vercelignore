@@ -1,0 +1,14 @@
+# CLI 배포 때 올리지 않을 것 (비밀·개인 글·로컬 산출물)
+.env
+.env.*
+!.env.example
+글모음/
+.playwright-mcp/
+**/.venv/
+**/node_modules/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.db
+frontend/dist/
+experiments/

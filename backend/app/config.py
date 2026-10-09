@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -21,7 +22,12 @@ class Settings(BaseSettings):
     model_extractor: str = ""
     model_reviewer: str = ""
 
-    database_url: str = f"sqlite:///{BACKEND_DIR / 'one_scene.db'}"
+    # Vercel 함수는 /tmp에만 쓸 수 있다. DATABASE_URL(Neon)이 없을 때의 임시 대비일 뿐 데이터는 유지되지 않는다
+    database_url: str = (
+        "sqlite:////tmp/one_scene.db"
+        if os.environ.get("VERCEL")
+        else f"sqlite:///{BACKEND_DIR / 'one_scene.db'}"
+    )
 
     stt_provider: str = ""
     stt_api_key: str = ""

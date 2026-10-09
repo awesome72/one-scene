@@ -30,3 +30,6 @@ backend/uploads/
 
 # Vercel
 .vercel/
+
+.vercel
+.env*
