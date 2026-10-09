@@ -165,6 +165,15 @@ export function Chat({ id }: { id: string }) {
       {error && <p className="error">{error}</p>}
 
       <footer className="composer">
+        {session.stage >= 3 && mode === 'idle' && (
+          <button
+            type="button"
+            className="secondary wide"
+            onClick={() => go({ name: session.stage === 3 ? 'outline' : 'draft', id })}
+          >
+            {session.stage === 3 ? '단락 순서 정하기' : '초안 보기'}
+          </button>
+        )}
         {mode === 'typing' ? (
           <form
             onSubmit={(e) => {

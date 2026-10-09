@@ -188,6 +188,7 @@ class OutlineItem(Base):
     session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id"), index=True)
     position: Mapped[int] = mapped_column(Integer)
     arc_block: Mapped[str | None] = mapped_column(String(10))
+    label: Mapped[str | None] = mapped_column(String(40))  # "장면으로 돌아오기" 등 화면 이름
     material_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     target_chars: Mapped[int | None] = mapped_column(Integer)
 

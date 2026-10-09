@@ -42,6 +42,8 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 
 ## 명령어
 - 백엔드 실행: cd backend && uv run fastapi dev   (http://127.0.0.1:8000, 문서 /docs)
+  Windows에서 자동 재시작이 가끔 이전 코드로 남는다. 백엔드 코드를 고친 뒤 이상하면 서버를 직접 재시작한다
+- 개발 DB(backend/one_scene.db)는 마이그레이션이 없다. 모델 컬럼을 바꾸면 지우고 다시 만든다
 - 테스트: cd backend && PYTHONUTF8=1 uv run pytest   (Windows 콘솔 한글 깨짐 방지)
 - 실제 API 테스트(비용 발생): cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s
 - 린트: cd backend && uv run ruff check .

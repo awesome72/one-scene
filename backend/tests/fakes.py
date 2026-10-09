@@ -37,6 +37,11 @@ class FakeLLM:
         self.reviews = deque(reviews or [])
         self.text_calls: list[dict[str, Any]] = []
         self.parse_calls: list[dict[str, Any]] = []
+        # 그 밖의 스키마(초안 조립, 진실성 검사 등): 스키마 → 응답 목록
+        self.responses: dict[type, deque] = {}
+
+    def queue(self, response: BaseModel) -> None:
+        self.responses.setdefault(type(response), deque()).append(response)
 
     async def text(self, **kwargs: Any) -> str:
         self.text_calls.append(kwargs)
@@ -49,4 +54,6 @@ class FakeLLM:
             return self.extractions.popleft() if self.extractions else Extraction()
         if schema is Review:
             return self.reviews.popleft() if self.reviews else PASS
+        if self.responses.get(schema):
+            return self.responses[schema].popleft()
         raise AssertionError(f"예상하지 못한 스키마 {schema}")

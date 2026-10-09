@@ -72,3 +72,40 @@ def test_full_turn_through_api(client: TestClient) -> None:
     question = data["turn"]["text"]
     print("\n코치:", question)
     assert reviewer.rule_check(question) == []
+
+
+@pytest.mark.asyncio
+async def test_fidelity_catches_invented_weather_live() -> None:
+    from app.engine import fidelity
+    from app.engine.assembler import AssembledDraft, DraftParagraph, DraftSentence
+    from tests.test_drafting import _materials
+
+    draft = AssembledDraft(paragraphs=[DraftParagraph(outline_position=1, sentences=[
+        DraftSentence(text="비가 내리는 회의실 창밖만 보고 있었다.", material_ids=["m1"]),
+        DraftSentence(text="나는 회의실 창밖만 보고 있었다.", material_ids=["m1"]),
+        DraftSentence(text="팀장은 \"이번 분기만 버티자\"고 했다.", material_ids=["m2"]),
+    ])])
+    utterances = {"t": '회의실 창밖만 보고 있었어요. 팀장님이 또 "이번 분기만 버티자"래요.'}
+    out = await fidelity.check(AnthropicLLM(), draft, _materials(), utterances)
+    print("\n", [(s.is_blank, s.text) for s in out])
+    assert out[0].is_blank, "지어낸 날씨를 놓침"
+    assert not out[1].is_blank and not out[2].is_blank, "원문을 다듬은 문장까지 지움"
+
+
+def test_assemble_real_draft(client: TestClient, db_session) -> None:
+    from tests.test_drafting import _seed
+
+    app.dependency_overrides.pop(get_llm, None)
+    sid = _seed(db_session, client)
+    client.post(f"/sessions/{sid}/outline", json={"pattern": "linear"})
+    events = parse_sse(client.post(f"/sessions/{sid}/drafts").text)
+    kind, data = events[-1]
+    assert kind == "draft", events
+    draft = data["draft"]
+    print()
+    for p in draft["paragraphs"]:
+        print(f"[{p['position']}]", " ".join(s["text"] for s in p["sentences"]))
+    print("표시:", [(h["label"], h["text"]) for h in draft["hits"]])
+    for p in draft["paragraphs"]:
+        for s in p["sentences"]:
+            assert s["is_blank"] or s["materials"], f"출처 없는 문장: {s['text']}"

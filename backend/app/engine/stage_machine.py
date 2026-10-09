@@ -51,8 +51,15 @@ def missing(session: WritingSession) -> list[str]:
         draft = session.drafts[-1] if session.drafts else None
         if draft is None:
             out.append("초안")
-        elif any(s.get("is_blank") for s in draft.sentence_map):
-            out.append("빈칸 채우기")
+        else:
+            # 빈칸은 채우거나, 사용자가 '그대로 두기'로 남기기로 한 것만 통과 (open-questions B5)
+            kept = {h["id"] for h in draft.lint_result or [] if h.get("dismissed")}
+            open_blanks = [
+                i for i, s in enumerate(draft.sentence_map)
+                if s.get("is_blank") and f"{i}:0:blank" not in kept
+            ]
+            if open_blanks:
+                out.append("빈칸 채우기")
         if not session.tags:
             out.append("태그")
     return out

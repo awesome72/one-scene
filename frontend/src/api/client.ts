@@ -75,6 +75,50 @@ export interface MaterialCardData {
   gaps: string[]
 }
 
+export type PatternId = 'linear' | 'return' | 'frame' | 'cross'
+
+export interface Outline {
+  pattern: PatternId | null
+  patterns: { id: PatternId; name: string; desc: string }[]
+  items: { position: number; arc_block: ArcBlock; label: string; materials: Material[]; target_chars: number }[]
+  total_chars: number
+  saved: boolean
+  bookends: string[]
+}
+
+export interface LintHit {
+  id: string
+  kind: string
+  label: string
+  sentence: number
+  start: number
+  end: number
+  text: string
+  why: string
+  question: string
+  dismissed: boolean
+}
+
+export interface Draft {
+  id: string
+  version: number
+  created_at: string
+  paragraphs: {
+    position: number
+    label: string | null
+    sentences: { index: number; text: string; is_blank: boolean; materials: Material[] }[]
+  }[]
+  hits: LintHit[]
+  open_hits: number
+  char_count: number
+  blank_count: number
+}
+
+export type DraftEvent =
+  | { event: 'status'; data: { step: 'assembling' | 'checking' } }
+  | { event: 'draft'; data: { draft: Draft } }
+  | { event: 'error'; data: { message: string; detail?: string } }
+
 export type TurnEvent =
   | { event: 'status'; data: { step: 'extracting' | 'asking' | 'reviewing'; attempt?: number } }
   | { event: 'materials'; data: { added: Material[]; session: SessionDetail } }
@@ -125,7 +169,11 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 // POST + SSE: EventSource는 GET만 되므로 fetch 스트림을 직접 읽는다
-async function stream(path: string, body: unknown, onEvent: (e: TurnEvent) => void): Promise<void> {
+async function stream<E extends { event: string }>(
+  path: string,
+  body: unknown,
+  onEvent: (e: E) => void,
+): Promise<void> {
   const res = await fetch(`/api${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-User-Id': userId() },
@@ -148,7 +196,7 @@ async function stream(path: string, body: unknown, onEvent: (e: TurnEvent) => vo
         if (line.startsWith('event:')) event = line.slice(6).trim()
         else if (line.startsWith('data:')) data.push(line.slice(5).trimStart())
       }
-      if (event && data.length) onEvent({ event, data: JSON.parse(data.join('\n')) } as TurnEvent)
+      if (event && data.length) onEvent({ event, data: JSON.parse(data.join('\n')) } as unknown as E)
     }
   }
 }
@@ -173,4 +221,17 @@ export const api = {
     onEvent: (e: TurnEvent) => void,
   ) => stream(`/sessions/${id}/turns`, body, onEvent),
   openStage: (id: string, onEvent: (e: TurnEvent) => void) => stream(`/sessions/${id}/coach`, {}, onEvent),
+  outline: (id: string, pattern?: PatternId) =>
+    request<Outline>('GET', `/sessions/${id}/outline${pattern ? `?pattern=${pattern}` : ''}`),
+  saveOutline: (id: string, pattern: PatternId) => request<Outline>('POST', `/sessions/${id}/outline`, { pattern }),
+  makeDraft: (id: string, onEvent: (e: DraftEvent) => void) => stream(`/sessions/${id}/drafts`, {}, onEvent),
+  latestDraft: (id: string) => request<Draft>('GET', `/sessions/${id}/drafts/latest`),
+  dismissHit: (id: string, draftId: string, hitId: string) =>
+    request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/hits/${encodeURIComponent(hitId)}/dismiss`),
+  answerHit: (id: string, draftId: string, hitId: string, text: string, input_mode: 'voice' | 'text') =>
+    request<{ added: Material[]; draft: Draft }>(
+      'POST',
+      `/sessions/${id}/drafts/${draftId}/hits/${encodeURIComponent(hitId)}/answer`,
+      { text, input_mode },
+    ),
 }
