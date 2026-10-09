@@ -32,7 +32,7 @@
 ### B2. 사용자·인증
 - `sessions.user_id`는 있지만 users 테이블과 인증 방식이 없음
 - 제안: MVP는 users 테이블 + 이메일 매직링크(또는 베타 초대 코드). Phase 1에 최소 형태로 포함
-- 결정: (2026-10-09, 잠정) users 테이블 생성. 개발 중에는 `X-User-Id` 헤더로 구분(없으면 `dev-user`). 베타 전에 실제 인증으로 교체
+- 결정: (2026-10-09 확정) Neon Auth(관리형 Better Auth) 이메일·비밀번호. 운영은 JWT 필수(JWKS EdDSA, iss·aud = Auth origin, sub = 사용자 ID, 15분 만료), 로컬·테스트는 `NEON_AUTH_BASE_URL`이 없으면 `X-User-Id`. 로그인 전 만든 세션은 옛 ID에 남아 보이지 않는다
 
 ### B3. 정서적 안전 신호
 - 기획안 12장·SKILL.md 9장: 고통 신호 감지 시 진행 중단. 그러나 7장 파이프라인에 해당 단계 없음

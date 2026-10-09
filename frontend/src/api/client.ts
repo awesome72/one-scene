@@ -1,3 +1,5 @@
+import { AUTH_REQUIRED_EVENT, authEnabled, getToken } from '../lib/auth'
+
 // 백엔드 API 클라이언트. 서버가 상태의 원천이다 (CLAUDE.md)
 
 export type ArcBlock = 'scene' | 'event' | 'meaning' | 'present' | 'resonance'
@@ -165,10 +167,27 @@ export class ApiError extends Error {
   }
 }
 
+// 운영: 로그인 JWT, 로컬: 브라우저별 임시 ID
+async function headers(): Promise<Record<string, string>> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (authEnabled) {
+    const token = await getToken()
+    if (token) h.Authorization = `Bearer ${token}`
+  } else {
+    h['X-User-Id'] = userId()
+  }
+  return h
+}
+
+function failed(status: number, message: string): ApiError {
+  if (status === 401 && authEnabled) window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT))
+  return new ApiError(status, message)
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json', 'X-User-Id': userId() },
+    headers: await headers(),
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!res.ok) {
@@ -179,7 +198,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     } catch {
       /* 본문 없음 */
     }
-    throw new ApiError(res.status, message)
+    throw failed(res.status, message)
   }
   return res.json() as Promise<T>
 }
@@ -192,7 +211,7 @@ async function stream<E extends { event: string }>(
 ): Promise<void> {
   const res = await fetch(`/api${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-User-Id': userId() },
+    headers: await headers(),
     body: JSON.stringify(body ?? {}),
   })
   if (!res.ok || !res.body) {
@@ -203,7 +222,7 @@ async function stream<E extends { event: string }>(
     } catch {
       /* 본문 없음 */
     }
-    throw new ApiError(res.status, message)
+    throw failed(res.status, message)
   }
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
   let buffer = ''

@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import func, select
 
+from app.auth import AuthError, BannedUser, auth_mode, verify
 from app.config import get_settings
 from app.db import DbDep
 from app.models import Draft, Turn, User, WritingSession
@@ -13,13 +14,33 @@ DEV_USER_ID = "dev-user"
 
 def get_current_user(
     db: DbDep,
+    authorization: Annotated[str | None, Header()] = None,
     x_user_id: Annotated[str | None, Header(max_length=64)] = None,
 ) -> User:
-    """임시 인증: X-User-Id 헤더로 사용자를 구분한다 (open-questions B2).
+    """로그인한 사용자 (open-questions B2, app/auth.py).
 
-    베타 전에 실제 인증(매직링크 등)으로 바꾼다. 헤더가 없으면 개발용 사용자.
+    neon 모드(운영): Bearer JWT 필수, 사용자 ID는 토큰의 sub. X-User-Id는 무시한다.
+    dev 모드(로컬·테스트): X-User-Id 헤더, 없으면 개발용 사용자.
     """
-    user_id = x_user_id or DEV_USER_ID
+    if auth_mode() == "neon":
+        scheme, _, token = (authorization or "").partition(" ")
+        if scheme.lower() != "bearer" or not token:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED, "로그인이 필요해요.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            claims = verify(token)
+        except BannedUser:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "이용이 제한된 계정이에요.") from None
+        except AuthError:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED, "로그인이 만료됐어요. 다시 로그인해 주세요.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from None
+        user_id = str(claims["sub"])[:64]
+    else:
+        user_id = x_user_id or DEV_USER_ID
     user = db.get(User, user_id)
     if user is None:
         user = User(id=user_id)

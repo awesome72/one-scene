@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { api, type SessionDetail } from '../api/client'
 import { ArcDots } from '../components/ArcDots'
 import { Quoted } from '../components/Quoted'
+import { type AuthUser, signOut } from '../lib/auth'
 import { go } from '../lib/route'
 
 // 홈 (목업 ①): 쓰는 중인 글 + 새 글을 여는 질문
-export function Home() {
+export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: () => void }) {
   const [current, setCurrent] = useState<SessionDetail[]>([])
   const [questions, setQuestions] = useState<string[]>([])
   const [qi, setQi] = useState(0)
@@ -36,9 +37,24 @@ export function Home() {
     <div className="page home">
       <header className="top row between">
         <h1 className="logo">한 장면</h1>
-        <button type="button" className="link" onClick={() => go({ name: 'library' })}>
-          보관함
-        </button>
+        <div className="row">
+          <button type="button" className="link" onClick={() => go({ name: 'library' })}>
+            보관함
+          </button>
+          {user && (
+            <button
+              type="button"
+              className="link"
+              title={user.email}
+              onClick={async () => {
+                await signOut()
+                onSignOut()
+              }}
+            >
+              로그아웃
+            </button>
+          )}
+        </div>
       </header>
 
       {error && <p className="error">{error}</p>}

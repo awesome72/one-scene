@@ -44,7 +44,7 @@
 ## Step 3. 클로즈드 베타 (7~8주)
 - [x] 배포 (D2): https://one-scene.vercel.app — GitHub `main` 푸시 시 자동 배포 (2026-10-09)
 - [x] Neon Postgres 연결 (`one-scene-db`, 풀링 `DATABASE_URL`) — 운영 대화가 Neon에 저장되는 것 확인 (2026-10-09)
-- [ ] 실제 로그인 (B2) — 그 전까지 공개 접속 + 하루 AI 사용량 상한. Neon 연결로 `NEON_AUTH_BASE_URL`·`VITE_NEON_AUTH_URL`이 생겼으니 Neon Auth가 후보
+- [x] 실제 로그인 (B2): Neon Auth 이메일·비밀번호, 백엔드 JWT 검증 (2026-10-09). 하루 AI 사용량 상한은 유지
 - [ ] 글쓰기 모임 2곳, 30명
 - [ ] 1단계 → 완성률 35% 확인
 

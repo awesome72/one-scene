@@ -1,14 +1,19 @@
 import './app.css'
+import { useAuth } from './lib/auth'
 import { useRoute } from './lib/route'
 import { Chat } from './pages/Chat'
 import { Draft } from './pages/Draft'
 import { Finish } from './pages/Finish'
 import { Home } from './pages/Home'
 import { Library } from './pages/Library'
+import { Login } from './pages/Login'
 import { Outline } from './pages/Outline'
 
 function App() {
   const route = useRoute()
+  const [auth, refresh] = useAuth()
+  if (auth.status === 'loading') return <div className="page" />
+  if (auth.status === 'signed-out') return <Login onDone={refresh} />
   switch (route.name) {
     case 'chat':
       return <Chat key={route.id} id={route.id} />
@@ -21,7 +26,7 @@ function App() {
     case 'library':
       return <Library />
     default:
-      return <Home />
+      return <Home user={auth.user} onSignOut={refresh} />
   }
 }
 

@@ -63,7 +63,7 @@ cd frontend && npm run lint                          # oxlint
 - `AnthropicLLM`은 `client.beta.messages`를 쓰고 `FALLBACK_MODELS`에는 `fallbacks="default"`를 붙인다. 구조화 출력은 `beta.messages.parse(output_format=PydanticModel)`. 호출별 토큰 사용량을 `self.usage`에 쌓는다 (평가 비용 계산용).
 - 모델 이름은 `.env`의 `MODEL_QUESTIONER/ASSEMBLER/FIDELITY`(Sonnet 5.5), `MODEL_EXTRACTOR/REVIEWER`(Haiku 4.5)를 `config.py`로만 참조한다. Haiku에는 `effort`를 보내지 않는다.
 - ORM → 응답 변환은 `views.py`, 스키마는 `schemas.py`(세션·턴·재료)와 `schemas_draft.py`(개요·초안·교정). SQLite가 시간대를 잃으므로 시각 필드는 `UtcDatetime`.
-- 인증은 임시다: `X-User-Id` 헤더(없으면 `dev-user`), 프론트는 localStorage에 ID를 만든다 (open-questions B2). 세션 접근은 `deps.OwnedSessionDep`가 소유자를 확인한다.
+- 인증(`app/auth.py`, `frontend/src/lib/auth.ts`): `NEON_AUTH_BASE_URL`(프론트는 `VITE_NEON_AUTH_URL`)이 있으면 Neon Auth 로그인 필수 — 프론트가 `getSession()`의 `session.token`(JWT)을 Bearer로 보내고, 백엔드가 JWKS(EdDSA)로 서명·만료·iss·aud를 검증해 `sub`를 사용자 ID로 쓴다. 없으면(로컬·테스트) `X-User-Id` 헤더(없으면 `dev-user`)로 동작한다. 세션 접근은 `deps.OwnedSessionDep`가 소유자를 확인한다.
 
 ### 한 턴 처리 (`engine/pipeline.py`, `POST /sessions/{id}/turns` SSE)
 1. 사용자 턴 저장 → `extractor`(Haiku). `keep_verbatim`이 원문에 없는 조각을 버리고(공백·따옴표 차이만 허용, `find_verbatim`), `ensure_dialogue`가 놓친 따옴표 대사를 원문 그대로 더한다.

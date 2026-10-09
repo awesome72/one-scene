@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     stt_api_key: str = ""
     voice_keep_original: bool = False
 
+    # Neon Auth 주소 (Vercel Marketplace 연결이 넣어 준다). 있으면 로그인 필수 (app/auth.py)
+    neon_auth_base_url: str = ""
+
     # 로그인 없이 공개 배포하는 동안 API 비용을 지키는 하루 전체 AI 작업 상한 (0이면 끔)
     daily_llm_limit: int = 300
 
