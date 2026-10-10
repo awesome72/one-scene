@@ -360,3 +360,14 @@ def test_stuck_button_asks_easier_question_without_extraction(
     assert [t["role"] for t in turns] == ["coach", "user", "coach"]
     # 넘어가기와 달리 넘어간 주제로 기록하지 않는다
     assert client.get(f"/sessions/{sid}/material-card").json()["missing"]
+
+
+def test_extractor_gets_first_scene_for_resonance(client: TestClient, fake: FakeLLM) -> None:
+    """여운 판정: 추출기는 첫 장면의 재료를 함께 본다 (발화 하나만으로는 '다시 나온 사물'을 모른다)."""
+    fake.extractions.append(Extraction(materials=[
+        ExtractedMaterial(text="볼펜 뚜껑을 딸깍거렸어요", type="scene", arc_block="scene")]))
+    sid = _start(client)
+    _send(client, sid, text="볼펜 뚜껑을 딸깍거렸어요.")
+    _send(client, sid, text="요즘도 회의 때 볼펜을 딸깍거려요.")
+    user = [c for c in fake.parse_calls if c["schema"] is Extraction][-1]["user"]
+    assert "첫 장면의 재료" in user and "- 볼펜 뚜껑을 딸깍거렸어요" in user

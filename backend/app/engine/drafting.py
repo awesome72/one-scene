@@ -252,7 +252,8 @@ async def answer_hit(
         Turn(idx=len(session.turns), role="coach", text=question, stage=session.stage,
              meta={"revise_hit": hit_id, "draft": draft.id})
     )
-    user_turn = Turn(idx=len(session.turns) + 1, role="user", text=text, input_mode=input_mode,
+    # 코치 턴을 이미 붙였으므로 len이 곧 다음 번호다 (+1을 하면 다음 턴과 번호가 겹친다)
+    user_turn = Turn(idx=len(session.turns), role="user", text=text, input_mode=input_mode,
                      stage=session.stage)
     session.turns.append(user_turn)
     db.commit()
@@ -291,13 +292,21 @@ async def _fill_blank(
     if not 0 <= index < len(smap) or not smap[index].get("is_blank"):
         return False
     paragraph = smap[index]["paragraph"]
-    before = next((s["text"] for s in reversed(smap[:index]) if not s["is_blank"]), "(없음)")
-    after = next((s["text"] for s in smap[index + 1:] if not s["is_blank"]), "(없음)")
+    prev = next((s for s in reversed(smap[:index]) if not s["is_blank"]), None)
+    nxt = next((s for s in smap[index + 1:] if not s["is_blank"]), None)
+    # 앞뒤 문장이 기대는 재료도 준다: 맥락의 말("주간 회의 때")을 쓰면 그 재료 번호를 함께 달아야
+    # 진실성 검사를 통과한다 (실제 API 여정에서 새 재료만 달아 세 번 모두 탈락했다)
+    by_id = {m.id: m for m in session.materials if not m.excluded}
+    near_ids = [i for s in (prev, nxt) if s for i in s["material_ids"]]
+    near = [by_id[i] for i in dict.fromkeys(near_ids) if i in by_id and by_id[i] not in added]
     user = "\n".join([
-        f"앞 문장: {before}", f"뒤 문장: {after}", f"빈칸 질문: {question}",
-        f"사용자의 답: {user_turn.text}", "", "## 새 재료",
+        f"앞 문장: {prev['text'] if prev else '(없음)'}", f"뒤 문장: {nxt['text'] if nxt else '(없음)'}",
+        f"빈칸 질문: {question}", f"사용자의 답: {user_turn.text}", "", "## 새 재료",
         *[f"- {m.label} ({m.type}): {m.text}" for m in added],
+        "", "## 앞뒤 문장의 재료 (이 말을 쓰면 번호를 함께 단다)",
+        *([f"- {m.label} ({m.type}): {m.text}" for m in near] or ["(없음)"]),
     ])
+    utterances = {t.id: t.text for t in session.turns if t.role == "user"}
     try:
         out = await llm.parse(
             model=get_settings().model_assembler, system=_fill_system(), user=user,
@@ -307,7 +316,7 @@ async def _fill_blank(
             outline_position=paragraph,
             sentences=[DraftSentence(text=s.text, material_ids=s.material_ids) for s in out.sentences],
         )])
-        checked = await fidelity.check(llm, assembled, session.materials, {user_turn.id: user_turn.text})
+        checked = await fidelity.check(llm, assembled, session.materials, utterances)
     except LLMError:
         log.exception("빈칸 채우기 실패 (session=%s)", session.id)
         return False
@@ -325,10 +334,9 @@ async def _fill_blank(
     return True
 
 
-def _fill_system() -> str:
-    return "\n\n---\n\n".join(
-        [resources.prompt("core"), resources.prompt("stage4_revise"), resources.prompt("fill_blank")]
-    )
+def _fill_system() -> list[dict]:
+    # 초안 조립과 같은 캐시 앞부분 (assembler.revise_prefix)
+    return [assembler.revise_prefix(), {"type": "text", "text": resources.prompt("fill_blank")}]
 
 
 # ---------- 4단계: 직접 고치기 ----------

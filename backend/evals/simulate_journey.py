@@ -77,7 +77,9 @@ async def run_events(gen: Any) -> list[dict]:
     return [e async for e in gen]
 
 
-async def simulate(factory: sessionmaker, llm: AnthropicLLM, key: str, max_turns: int) -> dict[str, Any]:
+async def simulate(
+    factory: sessionmaker, llm: AnthropicLLM, user_llm: AnthropicLLM, key: str, max_turns: int
+) -> dict[str, Any]:
     p = PERSONAS[key]
     db = factory()
     db.add(User(id=f"sim-{key}"))
@@ -89,12 +91,18 @@ async def simulate(factory: sessionmaker, llm: AnthropicLLM, key: str, max_turns
     stages: list[dict[str, Any]] = []
     seconds: list[float] = []
     card_at: dict[int, int] = {}
+    phases: dict[str, float] = {}  # 서비스 비용만 (가상 사용자 비용은 user_llm에 따로)
 
+    def mark(name: str, start: int) -> int:
+        phases[name] = phases.get(name, 0.0) + sum(metering.cost(u) for u in llm.usage[start:])
+        return len(llm.usage)
+
+    at = len(llm.usage)
     for stage in (1, 2):
         turns_here = 0
         ready_at = None
         while turns_here < max_turns:
-            answer = (await persona_answer(llm, p["memory"], transcript)).strip()
+            answer = (await persona_answer(user_llm, p["memory"], transcript)).strip()
             transcript.append(("user", answer))
             t0 = time.perf_counter()
             events = await run_events(handle_user_turn(db, llm, session, answer, "voice"))
@@ -126,6 +134,7 @@ async def simulate(factory: sessionmaker, llm: AnthropicLLM, key: str, max_turns
         if q:
             transcript.append(("coach", f"[{session.stage}단계 시작] {q}"))
 
+    at = mark("대화(1~2단계)", at)
     draft_info: dict[str, Any] = {}
     if session.stage >= 3:
         outline = drafting.outline_view(session)
@@ -134,6 +143,7 @@ async def simulate(factory: sessionmaker, llm: AnthropicLLM, key: str, max_turns
         session.stage = 4
         db.commit()
         first = await make_draft(db, llm, session)
+        at = mark("초안 조립·검사", at)
         # 빈칸 교정 질문 셋에 가상 사용자가 답한 뒤 다시 만든다
         answered = 0
         while answered < 3:
@@ -143,16 +153,17 @@ async def simulate(factory: sessionmaker, llm: AnthropicLLM, key: str, max_turns
             if hit is None:
                 break
             transcript.append(("coach", f"[교정] {hit['question']}"))
-            answer = (await persona_answer(llm, p["memory"], transcript)).strip()
+            answer = (await persona_answer(user_llm, p["memory"], transcript)).strip()
             transcript.append(("user", answer))
             await drafting.answer_hit(db, llm, session, draft, hit["id"], answer, "voice")
             answered += 1
+        at = mark("빈칸 답·채우기", at)
         # 빈칸에 답하면 그 자리가 바로 채워진다 (다시 만들지 않은 지금 초안)
         now = drafting.draft_out(session.drafts[-1], session).model_dump(mode="json")
         after = summarize(now, 0.0)
         draft_info = {"pattern": pattern, "first": first, "second": after, "answered": answered}
 
-    return {"key": key, "name": p["name"], "stages": stages, "seconds": seconds,
+    return {"key": key, "name": p["name"], "stages": stages, "seconds": seconds, "phases": phases,
             "transcript": transcript, "draft": draft_info,
             "materials": len([m for m in session.materials if not m.excluded])}
 
@@ -208,6 +219,10 @@ def report(results: list[dict], spent: float) -> str:
         secs = sorted(r["seconds"])
         if secs:
             lines.append(f"\n턴 시간 중앙값 {secs[len(secs) // 2]:.1f}초 · 최대 {secs[-1]:.1f}초 · 재료 {r['materials']}개")
+        if r.get("phases"):
+            total = sum(r["phases"].values())
+            lines.append("\n서비스 비용 (가상 사용자 제외): " + " · ".join(
+                f"{k} ${v:.3f}" for k, v in r["phases"].items()) + f" · 합계 ${total:.3f}")
         d = r["draft"]
         if d:
             for label, k in (("첫 초안", "first"), ("빈칸 답 뒤 (다시 만들지 않음)", "second")):
@@ -234,10 +249,12 @@ async def main() -> None:
     engine = make_engine(f"sqlite:///{tempfile.mkdtemp()}/journey.db")
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-    llm = AnthropicLLM()
+    # 페르소나마다 서비스 LLM을 따로 둔다: 동시에 돌 때 단계별 비용이 섞이지 않게
+    llms = {k: AnthropicLLM() for k in keys}
+    user_llm = AnthropicLLM()  # 가상 사용자 호출은 서비스 비용과 따로 센다
     get_settings().review_sample_rate = 0.0  # 사후 검수는 여정 측정과 무관 (비용)
-    results = await asyncio.gather(*(simulate(factory, llm, k, args.max_turns) for k in keys))
-    spent = sum(metering.cost(u) for u in llm.usage)
+    results = await asyncio.gather(*(simulate(factory, llms[k], user_llm, k, args.max_turns) for k in keys))
+    spent = sum(metering.cost(u) for x in [*llms.values(), user_llm] for u in x.usage)
     md = report(list(results), spent)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / f"{datetime.now().astimezone():%Y%m%d-%H%M}.md"

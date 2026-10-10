@@ -260,6 +260,11 @@ def test_draft_flow_dismiss_and_answer(
     # 채우기에는 새 재료와 앞뒤 문장만 간다
     fill_prompt = [c for c in fake.parse_calls if c["schema"] is FilledBlank][-1]["user"]
     assert "m6 (object): 볼펜 뚜껑을 열었다 닫았다" in fill_prompt and "앞 문장:" in fill_prompt
+    # 앞 문장이 기대는 재료(m1)도 함께 준다: 맥락의 말을 쓰면 그 번호를 달 수 있게
+    assert "## 앞뒤 문장의 재료" in fill_prompt and "- m1 (" in fill_prompt
+    # 질문·답 턴 번호가 겹치지 않는다 (예전에는 답이 +1 건너뛰어 다음 턴과 겹쳤다)
+    idxs = [t["idx"] for t in client.get(f"/sessions/{sid}/turns").json()]
+    assert idxs == list(range(len(idxs)))
     turns = client.get(f"/sessions/{sid}/turns").json()
     assert [t["text"] for t in turns[-2:]] == [
         "그때 손은 무엇을 하고 있었나요?", "볼펜 뚜껑을 열었다 닫았다 했어요"

@@ -85,6 +85,9 @@ def apply_extraction(session: WritingSession, turn: Turn, extraction: Extraction
     return added
 
 
+FIRST_SCENE_MAX = 6  # 추출기에 넘기는 첫 장면 재료 수 (토큰을 아끼려고 앞쪽 몇 개만)
+
+
 async def _extract(
     llm: LLM, session: WritingSession, text: str, last_question: str | None
 ) -> Extraction:
@@ -95,6 +98,10 @@ async def _extract(
             stage=session.stage,
             last_question=last_question,
             known_gaps=[s.value for s in session.signals if s.kind == "gap"],
+            # 여운 판정에 필요한 맥락: 발화 하나만 보면 '첫 장면의 사물이 지금 다시 나온 것'을 알 수 없다
+            # (여정 시뮬레이션에서 여운 재료가 0개라 2단계를 24번 대답해도 마치지 못했다)
+            first_scene=[m.text for m in session.materials
+                         if m.arc_block == "scene" and not m.excluded][:FIRST_SCENE_MAX],
         )
     except LLMError:
         log.exception("재료 추출 실패 (session=%s)", session.id)
@@ -342,11 +349,25 @@ TRIVIAL_MAX_CHARS = 6
 _KEEP_FOR_EXTRACTION = ("넘어", "싫", "패스", "그만")
 
 
+# "잘 기억 안 나요", "모르겠어요"처럼 기억이 없다는 짧은 답: 재료가 나오지 않는다 (여정 시뮬레이션에서 자주 나옴)
+NO_MEMORY_MAX_CHARS = 14
+_NO_MEMORY = ("기억이 안", "기억 안", "기억이 잘 안", "기억이 없", "모르겠", "잘 몰라", "생각이 안 나", "생각 안 나")
+# "기억 안 나요, 근데 그날 비가 왔어요"처럼 뒤에 이야기가 이어지면 추출한다
+_BUT = ("근데", "그런데", "하지만", "그래도", "대신")
+
+
 def _trivial(text: str) -> bool:
-    """재료 추출이 필요 없는 아주 짧은 답 (넘어가기·위험 표현은 제외)."""
+    """재료 추출이 필요 없는 짧은 답 (넘어가기·위험 표현·따옴표 대사는 제외).
+
+    아주 짧은 답("네"), 또는 기억이 없다는 짧은 답("잘 기억 안 나요")."""
     t = text.strip()
+    compact = len(t.replace(" ", ""))
+    short = compact <= TRIVIAL_MAX_CHARS or (
+        compact <= NO_MEMORY_MAX_CHARS and any(k in t for k in _NO_MEMORY)
+        and not any(k in t for k in _BUT)
+    )
     return (
-        len(t.replace(" ", "")) <= TRIVIAL_MAX_CHARS
+        short
         and not any(k in t for k in _KEEP_FOR_EXTRACTION)
         and not any(q in t for q in "\"“”‘’'")
         and not _looks_distressed(t)

@@ -117,25 +117,30 @@ def ensure_dialogue(extraction: Extraction, utterance: str) -> Extraction:
 
 
 def build_user_message(
-    *, utterance: str, stage: int, last_question: str | None, known_gaps: list[str]
+    *, utterance: str, stage: int, last_question: str | None, known_gaps: list[str],
+    first_scene: list[str] | None = None,
 ) -> str:
     gaps = "\n".join(f"- {g}" for g in known_gaps) or "(없음)"
+    scene = "\n".join(f"- {s}" for s in first_scene or []) or "(아직 없음)"
     return (
         f"현재 단계: {stage}\n"
         f"코치의 직전 질문: {last_question or '(없음)'}\n"
-        f"이미 기록된 열린 틈:\n{gaps}\n\n"
+        f"이미 기록된 열린 틈:\n{gaps}\n"
+        f"첫 장면의 재료 (이 사물·동작이 지금의 이야기에 다시 나오면 resonance):\n{scene}\n\n"
         f"<사용자 발화>\n{utterance}\n</사용자 발화>"
     )
 
 
 async def run(
-    llm: LLM, *, utterance: str, stage: int, last_question: str | None, known_gaps: list[str]
+    llm: LLM, *, utterance: str, stage: int, last_question: str | None, known_gaps: list[str],
+    first_scene: list[str] | None = None,
 ) -> Extraction:
     raw = await llm.parse(
         model=get_settings().model_extractor,
         system=resources.prompt("extractor"),
         user=build_user_message(
-            utterance=utterance, stage=stage, last_question=last_question, known_gaps=known_gaps
+            utterance=utterance, stage=stage, last_question=last_question, known_gaps=known_gaps,
+            first_scene=first_scene,
         ),
         schema=Extraction,
         max_tokens=MAX_TOKENS,

@@ -233,9 +233,22 @@ def test_prompt_caches_history_with_state_at_end() -> None:
     ("text", "trivial"),
     [("네", True), ("맞아요.", True), ("모르겠어요", True), ("넘어갈게요", False),
      ("싫어요", False), ('"그만"', False), ("죽고 싶어", False),
+     ("잘 기억 안 나요.", True), ("음, 잘 모르겠어요.", True), ("그건 기억이 잘 안 나네요", True),
+     ("기억 안 나요, 근데 그날 비가 왔어요", False), ("모르겠어요, 그만할래요", False),
      ("회의실이었어요. 창밖만 봤어요.", False)],
 )
 def test_trivial_replies_skip_extraction(text: str, trivial: bool) -> None:
     from app.engine.pipeline import _trivial
 
     assert _trivial(text) is trivial
+
+
+def test_draft_and_fill_share_cached_revise_prefix() -> None:
+    """비용: 초안 조립과 빈칸 채우기가 같은 4단계 앞부분(약 8,500토큰)을 캐시로 함께 쓴다."""
+    from app.engine import assembler
+    from app.engine.drafting import _fill_system
+
+    a, f = assembler.system_prompt(), _fill_system()
+    assert a[0] == f[0] and a[0]["cache_control"] == {"type": "ephemeral"}
+    assert "다섯 가지 철칙" in a[0]["text"] and "초안 조립기" in a[1]["text"]
+    assert "빈칸 채우기" in f[1]["text"] and "cache_control" not in f[1]

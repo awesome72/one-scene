@@ -76,12 +76,14 @@ class LLM(Protocol):
         self,
         *,
         model: str,
-        system: str,
+        system: str | list[dict[str, Any]],
         user: str,
         schema: type[T],
         max_tokens: int,
         effort: str | None = None,
-    ) -> T: ...
+    ) -> T:
+        """system은 문자열, 또는 캐시 표시를 단 블록 목록 (초안 조립·빈칸 채우기가 앞부분을 함께 캐시)."""
+        ...
 
 
 def _supports_effort(model: str) -> bool:
@@ -184,7 +186,7 @@ class AnthropicLLM:
         self,
         *,
         model: str,
-        system: str,
+        system: str | list[dict[str, Any]],
         user: str,
         schema: type[T],
         max_tokens: int,
@@ -194,7 +196,7 @@ class AnthropicLLM:
             message = await self.client.beta.messages.parse(
                 model=model,
                 max_tokens=max_tokens,
-                system=system,
+                system=system,  # type: ignore[arg-type]
                 messages=[{"role": "user", "content": user}],
                 output_format=schema,
                 **self._extra(model, effort),

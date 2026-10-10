@@ -30,11 +30,18 @@ class AssembledDraft(BaseModel):
     paragraphs: list[DraftParagraph]
 
 
-def system_prompt() -> str:
-    return "\n\n---\n\n".join(
-        [resources.prompt("core"), resources.prompt("stage4_revise"),
-         resources.prompt("assembler")]
-    )
+def revise_prefix() -> dict:
+    """4단계 공통 앞부분(core + 4단계 모듈, 약 8,500토큰). 초안 조립과 빈칸 채우기가 같은 앞부분을
+    쓰므로 5분 캐시를 단다: 초안을 만든 뒤 몇 분 안에 빈칸에 답하면 이 부분을 1/10 값으로 읽는다."""
+    return {
+        "type": "text",
+        "text": "\n\n---\n\n".join([resources.prompt("core"), resources.prompt("stage4_revise")]),
+        "cache_control": {"type": "ephemeral"},
+    }
+
+
+def system_prompt() -> list[dict]:
+    return [revise_prefix(), {"type": "text", "text": resources.prompt("assembler")}]
 
 
 def build_user_message(session: WritingSession, items: list[OutlineItem]) -> str:
