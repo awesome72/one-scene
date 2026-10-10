@@ -73,7 +73,7 @@ export function Login({ onDone }: { onDone: () => void }) {
           {mode === 'signin' ? '처음이에요, 가입할게요' : '이미 계정이 있어요'}
         </button>
       </form>
-      <p className="footnote">한 장면은 글을 대신 쓰지 않습니다. 당신이 쓴 글과 대화는 당신만 볼 수 있어요.</p>
+      <p className="footnote">한 장면은 당신의 말로 글을 짓고, AI는 빈 곳에 제안만 합니다. 쓴 글과 대화는 당신만 볼 수 있어요.</p>
     </div>
   )
 }

@@ -27,6 +27,8 @@ export function Chat({ id }: { id: string }) {
   const [mode, setMode] = useState<'idle' | 'typing' | 'voice'>('idle')
   const [draft, setDraft] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
+  // 만들어지는 중인 질문 (question_delta를 이어 붙인 것). null이면 없음
+  const [streaming, setStreaming] = useState<string | null>(null)
   const historyEnd = useRef<HTMLDivElement>(null)
   const [readAloud, setReadAloud] = useReadAloud()
   // onEvent 안에서 최신 값을 읽기 위한 ref
@@ -52,10 +54,11 @@ export function Chat({ id }: { id: string }) {
       .catch((e) => setError(String(e.message ?? e)))
   }, [id])
 
+  const isStreaming = streaming !== null
   useEffect(() => {
     // 최신 Chromium의 scrollIntoView는 Promise를 돌려준다. effect가 그걸 반환하면 안 된다
     void historyEnd.current?.scrollIntoView({ block: 'end' })
-  }, [turns.length])
+  }, [turns.length, isStreaming])
 
   const onEvent = useCallback((e: TurnEvent) => {
     switch (e.event) {
@@ -68,7 +71,18 @@ export function Chat({ id }: { id: string }) {
       case 'card':
         setCardOpen(true)
         break
+      case 'question_delta':
+        // 질문이 만들어지는 대로 보여 준다 (속도감)
+        setStreaming((q) => (q ?? '') + e.data.text)
+        setStatus(null)
+        break
+      case 'question_reset':
+        // 빠른 규칙 검사에 걸려 다시 만드는 중
+        setStreaming('')
+        setStatus(STEP_TEXT.reviewing)
+        break
       case 'question':
+        setStreaming(null)
         setTurns((t) => [...t, e.data.turn])
         setStatus(null)
         if (readAloudRef.current) {
@@ -79,6 +93,7 @@ export function Chat({ id }: { id: string }) {
         break
       case 'error':
         setError(e.data.message)
+        setStreaming(null)
         setStatus(null)
         break
     }
@@ -102,7 +117,7 @@ export function Chat({ id }: { id: string }) {
       created_at: new Date().toISOString(),
     }
     setTurns((t) => [...t, optimistic])
-    setStatus(skip ? STEP_TEXT.asking : STEP_TEXT.extracting)
+    setStatus(STEP_TEXT.asking)
     try {
       await api.sendTurn(id, { text, input_mode, skip }, onEvent)
     } catch (e) {
@@ -191,6 +206,15 @@ export function Chat({ id }: { id: string }) {
           {t.text}
         </p>
       ))}
+      {streaming !== null && (
+        <section className="now streaming" aria-live="polite">
+          <p className="eyebrow">다음 질문</p>
+          <p className="question">
+            {streaming}
+            <span className="caret" aria-hidden />
+          </p>
+        </section>
+      )}
       <div ref={historyEnd} />
 
       {status && (

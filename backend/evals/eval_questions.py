@@ -92,7 +92,14 @@ async def run_scenario(factory: sessionmaker, llm: AnthropicLLM, sc: dict) -> di
         turns = []
         for answer in sc["answers"]:
             started = time.perf_counter()
-            events = [e async for e in handle_user_turn(db, llm, session, answer, "text")]
+            events, first_delta, question_at = [], None, None
+            async for e in handle_user_turn(db, llm, session, answer, "text"):
+                events.append(e)
+                now = time.perf_counter() - started
+                if e["event"] == "question_delta" and first_delta is None:
+                    first_delta = now
+                if e["event"] == "question":
+                    question_at = now
             elapsed = time.perf_counter() - started
             kinds = [e["event"] for e in events]
             materials = next((e["data"]["added"] for e in events if e["event"] == "materials"), [])
@@ -106,6 +113,8 @@ async def run_scenario(factory: sessionmaker, llm: AnthropicLLM, sc: dict) -> di
                 "materials": materials,
                 "events": kinds,
                 "seconds": round(elapsed, 1),
+                "first_delta_seconds": round(first_delta, 2) if first_delta is not None else None,
+                "question_seconds": round(question_at, 2) if question_at is not None else None,
             })
         signals = [{"kind": s.kind, "value": s.value, "count": s.count} for s in session.signals]
         return {"id": sc["id"], "name": sc["name"], "tags": sc.get("tags", []), "turns": turns,
@@ -137,7 +146,14 @@ def analyse(results: list[dict]) -> dict[str, Any]:
                                  t["coach"].count("?") == 1 for t in coach_turns])
     m["single_question_rule"] = rate([t["coach"].count("?") + t["coach"].count("？") == 1
                                       for t in coach_turns])
-    m["first_pass"] = rate([t["meta"]["attempts"][0]["passed"] for t in coach_turns])
+    # 검수 1차 통과 = 실시간 규칙 검사 첫 시도 통과 + 보낸 뒤 LLM 검수 통과
+    m["first_pass"] = rate([
+        t["meta"]["attempts"][0]["passed"] and t["meta"].get("review", {}).get("passed", True)
+        for t in coach_turns
+    ])
+    m["llm_review_pass"] = rate([
+        t["meta"]["review"]["passed"] for t in coach_turns if "review" in t["meta"]
+    ])
     m["final_passed"] = rate([t["meta"]["passed"] for t in coach_turns])
     m["avg_attempts"] = sum(len(t["meta"]["attempts"]) for t in coach_turns) / len(coach_turns)
     js = [t["judge"] for t in coach_turns]
@@ -169,6 +185,10 @@ def analyse(results: list[dict]) -> dict[str, Any]:
     m["materials"] = len(mats)
     m["arc_assigned"] = rate([x["arc_block"] is not None for x in mats])
     m["avg_seconds"] = sum(t["seconds"] for t in all_user_turns) / len(all_user_turns)
+    q_secs = [t["question_seconds"] for t in all_user_turns if t.get("question_seconds")]
+    d_secs = [t["first_delta_seconds"] for t in all_user_turns if t.get("first_delta_seconds")]
+    m["avg_question_seconds"] = sum(q_secs) / len(q_secs) if q_secs else float("nan")
+    m["avg_first_delta_seconds"] = sum(d_secs) / len(d_secs) if d_secs else float("nan")
     return m
 
 
@@ -183,7 +203,8 @@ def report(results: list[dict], m: dict, spent: float, label: str) -> str:
         f"# 질문 품질 평가 {datetime.now().astimezone():%Y-%m-%d %H:%M}" + (f" — {label}" if label else ""),
         "",
         (f"시나리오 {len(results)}개, 코치 응답 {m['coach_turns']}개, 비용 약 ${spent:.2f}, "
-         f"턴당 평균 {m['avg_seconds']:.1f}초"),
+         f"첫 글자 {m['avg_first_delta_seconds']:.1f}초 · 질문 완성 {m['avg_question_seconds']:.1f}초 "
+         f"· 턴 전체 {m['avg_seconds']:.1f}초"),
         "",
         "## 기획안 10장 지표",
         "| 지표 | 결과 | 목표 | |",
@@ -203,7 +224,8 @@ def report(results: list[dict], m: dict, spent: float, label: str) -> str:
         f"| 해석·요약·조언 없음 (F5) | {pct(m['judge_no_interpretation'])} | 철칙 3 |",
         f"| 넘어간 이야기 다시 안 묻기 | {pct(m['judge_respects_skip'])} | 8장 |",
         f"| 채점자 기준 질문 하나 | {pct(m['judge_single_question'])} | 철칙 1 |",
-        f"| 검수 최종 통과 | {pct(m['final_passed'])} | 3회 안에 통과 |",
+        f"| 검수 최종 통과 (규칙) | {pct(m['final_passed'])} | 3회 안에 통과 |",
+        f"| 보낸 뒤 LLM 검수 통과 | {pct(m['llm_review_pass'])} | 기록용 |",
         f"| 평균 생성 횟수 | {m['avg_attempts']:.2f} | 1이면 재생성 없음 |",
         f"| 코치 인용이 원문 그대로 (F3) | {pct(m['quote_verbatim'])} | 인용 {m['quote_count']}개 |",
         f"| 따옴표 대사 → dialogue 재료 (F1) | {pct(m['dialogue_captured'])} | 대사 {m['dialogue_count']}개 |",

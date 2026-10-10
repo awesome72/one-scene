@@ -20,7 +20,7 @@ AI가 글을 대신 쓰지 않고, 한 번에 하나씩 질문해 사용자의 �
 
 ## 절대 깨지면 안 되는 제품 규칙
 1. 코치 응답에는 질문이 정확히 하나. reviewer가 검사한다.
-2. 초안의 모든 문장은 재료 ID에 연결된다. 연결되지 않는 문장은 `[빈칸: 질문]`으로 바꾼다. 절대 지어내지 않는다.
+2. 초안 본문의 문장은 재료 ID에 연결되거나, 사용자가 확인한 문장(직접 고침·받아들인 AI 제안)이다. 재료에 없는 자리는 `[빈칸: 질문]`으로 두고, AI가 쓴 문장은 그 빈칸의 `suggestion`('AI 제안')으로만 붙는다. 제안은 사용자가 받아들이기 전까지 본문·복사·저장에 들어가지 않는다 (2026-10-10 사용자 결정).
 3. 사용자 발화 원문은 수정하지 않고 저장한다 (`materials.text`는 발화의 연속된 부분 문자열).
 4. 단계 이동은 사용자가 승인할 때만 (`/advance`, `/back`, `/finish`는 `{"approved": true}` 필수).
 
@@ -69,14 +69,15 @@ cd frontend && npm run lint                          # oxlint
 1. 사용자 턴 저장 → `extractor`(Haiku). `keep_verbatim`이 원문에 없는 조각을 버리고(공백·따옴표 차이만 허용, `find_verbatim`), `ensure_dialogue`가 놓친 따옴표 대사를 원문 그대로 더한다.
 2. `apply_extraction`: 재료(`seq`, 프롬프트에서는 `m{seq}`), 신호(`repeated`는 사용자 발화 전체에서 매번 다시 셈, `gap`, `skipped`, `hesitation`). 주제 문장·목표 길이는 비어 있을 때만 채운다 (이후는 사용자가 PATCH).
 3. `distress`면 질문 대신 `data/fixed_replies.yaml` 고정 응답. 단계 마감 조건(`stage_machine.missing`)이 처음 채워지면 `card` 이벤트를 단계당 한 번(`card_offered_stage`).
-4. `questioner` ⇄ `reviewer` 최대 3회. reviewer는 먼저 `rule_check`(물음표 1개, 두 질문 잇기, 문장 수, 상투어, 인용이 사용자 원문인지, 직전 질문 되풀이)를 돌리고, 걸리면 LLM을 부르지 않는다. 탈락 사유는 `questioner_feedback.md`로 다음 시도에 들어간다. 3회 모두 탈락해도 마지막 시도를 보낸다. 시도 기록은 코치 턴의 `meta.attempts`.
-- SSE 이벤트: `status(extracting|asking|reviewing)` → `materials` → `card`? → `question` | `error`. 검수를 통과하기 전의 질문은 보내지 않는다. `POST /sessions/{id}/coach`는 사용자 발화 없이 새 단계의 여는 질문을 만들고, `TurnCreate.skip=true`는 추출 없이 직전 질문을 넘어간 주제로 기록한다.
+4. 속도 설계: 추출과 질문 생성(`questioner.stream`)을 **동시에** 시작하고, 질문은 `question_delta`로 글자가 생기는 대로 보낸다. 실시간 경로에는 `reviewer.rule_check`(물음표 1개, 두 질문 잇기, 문장 수, 상투어, 인용 원문, 직전 질문 되풀이)만 두고, 걸리면 `question_reset` 후 피드백을 넣어 최대 3회 다시 만든다. 코치 턴 저장은 추출(고통 신호 판정)이 끝난 뒤에 한다. `data/fixed_replies.yaml`의 `distress_markers`가 보이는 답은 추출이 끝날 때까지 질문을 보내지 않고, 그 밖의 답에서 뒤늦게 고통 신호가 잡히면 `question_reset` 후 고정 응답. LLM 검수는 질문을 보낸 뒤 `meta.review`에 기록만 한다(`_review_later`).
+- SSE 이벤트: `status(asking)` → `question_delta`* (→ `question_reset` → `question_delta`*)… · `materials` · `card`? → `question` | `error`. `materials`는 질문 조각 사이에 끼어 올 수 있다. `POST /sessions/{id}/coach`는 사용자 발화 없이 새 단계의 여는 질문을 만들고, `TurnCreate.skip=true`는 추출 없이 직전 질문을 넘어간 주제로 기록한다.
 - 프롬프트 조립(`prompt_builder.py`): system = [core + 단계 모듈 + questioner.md (cache_control)] + [세션 상태 YAML, 매 턴 바뀜]. **messages는 user로 시작하고 user로 끝나야 한다** (Sonnet 5.5는 prefill 불가). 코치 턴이 연달아 있으면 사이에 `stage_opened.md`를, 맨 앞에는 `session_start.md`를 끼운다.
 
 ### 개요·초안·교정 (`engine/drafting.py`)
 - `outline.plan`: 패턴 4개(linear/return/frame/cross) × 재료 → 단락 순서·분량(SKILL.md 6장 비율). LLM 없이 결정적. `arc_block`이 없는 재료는 개요에 들어가지 않는다.
 - `handle_draft`(SSE `status(assembling|checking)` → `draft`): **조립 전에 저장된 패턴으로 개요를 다시 계산한다** (교정 답으로 생긴 재료 반영). `assembler`(재료 번호로 출처 표시) → `fidelity.structural`(출처 없음·없는 재료 → 빈칸) → `fidelity.semantic`(재료 + 그 재료가 나온 사용자 발화 대비) → `cliche_linter`.
 - 초안의 원천은 `drafts.sentence_map`(`paragraph, text, material_ids, is_blank, note`)이고 `body`는 파생값. 교정 표시 id는 `"{문장}:{시작}:{종류}"`, `lint_result[].dismissed`가 '그대로 두기'(B5). 교정 질문에 답하면 질문·답이 대화 턴으로 남고 답에서 재료를 뽑는다 (초안에는 '다시 만들기' 때 반영).
+- AI 제안: 조립기는 빈칸마다 `suggestion`을 쓰고, 진실성 검사에서 걸린 문장은 버리지 않고 그 빈칸의 제안이 된다. `POST /drafts/{id}/sentences/{i}/accept`(고쳐 쓰기 가능)·`/accept-all`이 같은 초안 버전 안에서 `source: "accepted"`로 바꾼다. 조립 effort는 medium, 진실성 검사는 low (속도).
 - 직접 고치기(`edit_draft`, `POST /drafts/{id}/edit`)는 LLM 없이 새 초안 버전을 만든다. 그대로 남은 문장은 출처를 유지하고, 고친 문장은 `source: "user"`(진실성 검사 대상 아님). '그대로 두기'는 (종류, 표시된 말)로 다음 버전에 이어진다.
 - 태그는 Haiku가 제안만 하고 사용자가 `PUT /tags`로 저장한다. 보관함의 다음 글감 = `gap` 태그 중 아직 새 글 첫 질문으로 쓰지 않은 것.
 

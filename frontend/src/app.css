@@ -687,3 +687,56 @@ input:focus-visible {
   flex-direction: column;
   gap: 12px;
 }
+
+/* 만들어지는 중인 질문 */
+.now.streaming .question {
+  color: var(--ink-2);
+}
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--ink-2);
+  animation: pulse 1s steps(2) infinite;
+}
+
+/* AI 제안 */
+.ai-suggestion {
+  font: inherit;
+  text-align: left;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px dashed var(--line-2);
+  border-radius: 6px;
+  padding: 0 4px;
+}
+.ai-suggestion small,
+.badge-ai {
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--muted);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  padding: 0 3px;
+  margin-right: 4px;
+  vertical-align: 0.15em;
+}
+.ai-suggestion.on {
+  background: var(--mark-bg);
+}
+.sentence.accepted {
+  text-decoration: underline dotted var(--muted-2);
+  text-underline-offset: 5px;
+}
+.suggestion-box {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.7;
+  background: var(--surface);
+  border: 1px dashed var(--line-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+}

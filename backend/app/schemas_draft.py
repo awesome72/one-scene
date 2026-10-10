@@ -55,8 +55,10 @@ class DraftSentenceOut(BaseModel):
     index: int
     text: str
     is_blank: bool
-    # 사용자가 직접 고치거나 쓴 문장 (출처 재료 없음, 진실성 검사 대상 아님)
+    # 사용자가 직접 고치거나 쓴 문장, 또는 받아들인 AI 제안 (출처 재료 없음)
     edited: bool = False
+    accepted: bool = False  # 받아들인 AI 제안
+    suggestion: str | None = None  # 빈칸에 붙은 'AI 제안' (받아들이기 전에는 글이 아님)
     materials: list[MaterialOut]
 
 
@@ -80,6 +82,12 @@ class DraftOut(BaseModel):
     open_hits: int
     char_count: int
     blank_count: int
+    suggestion_count: int = 0
+
+
+class AcceptSuggestion(BaseModel):
+    # 비우면 제안 그대로, 있으면 고쳐 쓴 문장으로 받아들인다
+    text: str | None = Field(default=None, max_length=1000)
 
 
 class HitAnswer(BaseModel):

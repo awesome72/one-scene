@@ -1,5 +1,7 @@
 """다음 질문 하나 생성."""
 
+from collections.abc import AsyncIterator
+
 from app.config import get_settings
 from app.engine import prompt_builder
 from app.engine.llm import LLM
@@ -15,6 +17,20 @@ async def run(
 ) -> str:
     prompt = prompt_builder.build(session, feedback, opening)
     return await llm.text(
+        model=get_settings().model_questioner,
+        system=prompt["system"],
+        messages=prompt["messages"],
+        max_tokens=MAX_TOKENS,
+        effort=EFFORT,
+    )
+
+
+def stream(
+    llm: LLM, session: WritingSession, feedback: str | None = None, opening: bool = False
+) -> AsyncIterator[str]:
+    """질문을 글자가 생기는 대로 내보낸다."""
+    prompt = prompt_builder.build(session, feedback, opening)
+    return llm.stream_text(
         model=get_settings().model_questioner,
         system=prompt["system"],
         messages=prompt["messages"],

@@ -79,6 +79,8 @@ export function Draft({ id }: { id: string }) {
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState<string[]>([])
   const [notice, setNotice] = useState<string | null>(null)
+  const [editingSuggestion, setEditingSuggestion] = useState<string | null>(null)
+  const [confirmRedraft, setConfirmRedraft] = useState(false)
   const hasEdited = draft?.paragraphs.some((p) => p.sentences.some((s) => s.edited)) ?? false
   const title = session?.title || session?.topic_sentence || '한 장면'
 
@@ -120,7 +122,39 @@ export function Draft({ id }: { id: string }) {
     setNotice(`${name}로 저장했어요.${blanksNote()}`)
   }
 
+  // AI 제안 받아들이기 (하나 / 모두)
+  const acceptOne = async (index: number, text?: string) => {
+    if (!draft) return
+    setError(null)
+    try {
+      setDraft(await api.acceptSuggestion(id, draft.id, index, text))
+      setSelected(null)
+      setEditingSuggestion(null)
+    } catch (e) {
+      setError(String((e as Error).message))
+    }
+  }
+
+  const acceptAll = async () => {
+    if (!draft) return
+    setError(null)
+    try {
+      const n = draft.suggestion_count
+      setDraft(await api.acceptAll(id, draft.id))
+      setNotice(`AI 제안 ${n}곳을 받아들였어요. 점선 문장은 언제든 직접 고칠 수 있어요.`)
+    } catch (e) {
+      setError(String((e as Error).message))
+    }
+  }
+
   const redraft = async () => {
+    // 다시 만들면 재료로부터 새로 조립하므로, 고치거나 받아들인 문장은 빠진다 → 한 번 더 확인
+    if (hasEdited && !confirmRedraft) {
+      setConfirmRedraft(true)
+      setNotice('다시 만들면 직접 고치거나 받아들인 문장은 새 초안에 들어가지 않아요. 한 번 더 누르면 다시 만들어요.')
+      return
+    }
+    setConfirmRedraft(false)
     setError(null)
     setSelected(null)
     setStatus(STEP_TEXT.assembling)
@@ -146,6 +180,10 @@ export function Draft({ id }: { id: string }) {
   const open = draft ? draft.hits.filter((h) => !h.dismissed) : []
   const numbers = new Map(open.map((h, i) => [h.id, i + 1]))
   const hit = open.find((h) => h.id === selected) ?? null
+  const hitSuggestion =
+    hit && hit.kind === 'blank'
+      ? draft?.paragraphs.flatMap((p) => p.sentences).find((x) => x.index === hit.sentence && x.suggestion) ?? null
+      : null
 
   const dismiss = async () => {
     if (!draft || !hit) return
@@ -206,6 +244,11 @@ export function Draft({ id }: { id: string }) {
             <button type="button" className="link" disabled={status !== null} onClick={startEdit}>
               {editing ? '고치는 중' : '직접 고치기'}
             </button>
+            {draft.suggestion_count > 0 && (
+              <button type="button" className="link" disabled={status !== null} onClick={acceptAll}>
+                AI 제안 모두 받아들이기 ({draft.suggestion_count})
+              </button>
+            )}
             <button type="button" className="link" onClick={copy}>
               복사
             </button>
@@ -256,7 +299,18 @@ export function Draft({ id }: { id: string }) {
                   const blankHit = sh.find((h) => h.kind === 'blank')
                   return (
                     <span key={s.index}>
-                      {s.is_blank ? (
+                      {s.is_blank && s.suggestion && blankHit && !blankHit.dismissed ? (
+                        <button
+                          type="button"
+                          className={`ai-suggestion ${selected === blankHit.id ? 'on' : ''}`}
+                          onClick={() => setSelected(blankHit.id)}
+                          aria-label="AI 제안 문장, 눌러서 받아들이거나 고치기"
+                        >
+                          <small>AI 제안</small>
+                          {s.suggestion}
+                          <sup>{numbers.get(blankHit.id)}</sup>
+                        </button>
+                      ) : s.is_blank ? (
                         blankHit && !blankHit.dismissed ? (
                           <button
                             type="button"
@@ -270,7 +324,7 @@ export function Draft({ id }: { id: string }) {
                         )
                       ) : (
                         <span
-                          className={`sentence ${source === s.index ? 'on' : ''} ${s.edited ? 'edited' : ''}`}
+                          className={`sentence ${source === s.index ? 'on' : ''} ${s.accepted ? 'accepted' : s.edited ? 'edited' : ''}`}
                           onClick={() => setSource(source === s.index ? null : s.index)}
                         >
                           <Sentence
@@ -284,7 +338,9 @@ export function Draft({ id }: { id: string }) {
                       )}{' '}
                       {source === s.index && (
                         <span className="source">
-                          {s.edited
+                          {s.accepted
+                            ? '받아들인 AI 제안이에요.'
+                            : s.edited
                             ? '직접 고친 문장이에요.'
                             : `출처: ${s.materials.map((m) => `“${m.text}”`).join(' · ')}`}
                         </span>
@@ -345,7 +401,60 @@ export function Draft({ id }: { id: string }) {
                 닫기
               </button>
             </header>
-            <p className="sub">{hit.why}</p>
+            {hitSuggestion ? (
+              <>
+                <p className="sub">재료가 비어 있던 자리에 AI가 쓴 문장이에요. 받아들여야 글이 돼요.</p>
+                {editingSuggestion === null ? (
+                  <p className="suggestion-box">{hitSuggestion.suggestion}</p>
+                ) : (
+                  <textarea
+                    autoFocus
+                    rows={3}
+                    value={editingSuggestion}
+                    onChange={(e) => setEditingSuggestion(e.target.value)}
+                    aria-label="제안 고쳐 쓰기"
+                  />
+                )}
+                <div className="row">
+                  {editingSuggestion === null ? (
+                    <>
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={status !== null}
+                        onClick={() => acceptOne(hitSuggestion.index)}
+                      >
+                        이대로 받아들이기
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setEditingSuggestion(hitSuggestion.suggestion ?? '')}
+                      >
+                        고쳐서 받아들이기
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" className="secondary" onClick={() => setEditingSuggestion(null)}>
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={!editingSuggestion.trim() || status !== null}
+                        onClick={() => acceptOne(hitSuggestion.index, editingSuggestion)}
+                      >
+                        고친 문장 넣기
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="eyebrow">또는 내 기억으로 채우기</p>
+              </>
+            ) : (
+              <p className="sub">{hit.why}</p>
+            )}
             <p className="question">
               <Quoted text={hit.question} />
             </p>

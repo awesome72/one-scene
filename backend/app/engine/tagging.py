@@ -25,6 +25,11 @@ class TagSet(BaseModel):
     gap: list[str] = Field(default_factory=list)
 
 
+class TagSuggestion(TagSet):
+    # 제목 후보 (마무리 화면에서 고르거나 고쳐 쓴다)
+    titles: list[str] = Field(default_factory=list)
+
+
 def current(session: WritingSession) -> TagSet:
     grouped: dict[str, list[str]] = {k: [] for k in KINDS}
     for t in session.tags:
@@ -71,20 +76,20 @@ def build_user_message(session: WritingSession) -> str:
     return "\n".join(lines)
 
 
-async def suggest(llm: LLM, session: WritingSession) -> TagSet:
+async def suggest(llm: LLM, session: WritingSession) -> TagSuggestion:
     try:
         return await llm.parse(
             model=get_settings().model_extractor,
             system=resources.prompt("tagger"),
             user=build_user_message(session),
-            schema=TagSet,
+            schema=TagSuggestion,
             max_tokens=MAX_TOKENS,
         )
     except LLMError:
         log.exception("태그 제안 실패 (session=%s)", session.id)
         # 제안이 실패해도 사용자가 직접 붙일 수 있게 빈 제안 + 반복된 말만
         objects = [s.value for s in session.signals if s.kind == "repeated" and s.count >= 2]
-        return TagSet(object=objects[:2])
+        return TagSuggestion(object=objects[:2])
 
 
 def first_sentence(session: WritingSession) -> str | None:

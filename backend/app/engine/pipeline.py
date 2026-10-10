@@ -4,6 +4,7 @@
 진행 상황은 이벤트로 내보내고, 검수를 통과한 질문만 사용자에게 보낸다.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from typing import Any
@@ -99,36 +100,93 @@ async def _extract(
 
 
 async def _ask(
-    llm: LLM, session: WritingSession, last_user_text: str | None, opening: bool = False
+    llm: LLM, session: WritingSession, opening: bool = False
 ) -> AsyncIterator[Event]:
-    """질문 생성 ⇄ 검수. 마지막에 ('_final', question, meta) 이벤트를 낸다."""
+    """질문을 글자 단위로 내보내고(question_delta), 규칙 검사에 걸리면 다시 만든다(question_reset).
+
+    속도를 위해 실시간 경로에는 규칙 검사만 둔다 (물음표 1개, 두 질문 잇기, 상투어, 인용 원문,
+    직전 질문 되풀이). LLM 검수는 질문을 보낸 뒤 품질 기록용으로 돈다 (_review_later).
+    마지막에 ('_final', question, meta)를 낸다.
+    """
     feedback: str | None = None
     attempts: list[dict[str, Any]] = []
     user_texts = [t.text for t in session.turns if t.role == "user"]
     previous_question = _last_question(session)
     question = ""
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        yield _event("status", step="asking", attempt=attempt)
-        question = await questioner.run(llm, session, feedback, opening)
-        yield _event("status", step="reviewing", attempt=attempt)
-        review = await reviewer.run(
-            llm,
-            question=question,
-            last_user_text=last_user_text,
-            stage=session.stage,
-            user_texts=user_texts,
-            previous_question=previous_question,
-        )
-        attempts.append({"question": question, "passed": review.passed, "reasons": review.reasons})
-        if review.passed:
+        if attempt > 1:
+            yield _event("question_reset", attempt=attempt)
+        chunks: list[str] = []
+        async for chunk in questioner.stream(llm, session, feedback, opening):
+            chunks.append(chunk)
+            yield _event("question_delta", text=chunk)
+        question = "".join(chunks).strip()
+        reasons = reviewer.rule_check(question, user_texts, previous_question)
+        attempts.append({"question": question, "passed": not reasons, "reasons": reasons})
+        if not reasons:
             break
-        feedback = prompt_builder.feedback_text(review.reasons, question)
+        feedback = prompt_builder.feedback_text(reasons, question)
     passed = attempts[-1]["passed"]
     if not question:
         question = resources.data("fixed_replies")["fallback_question"]
     if not passed:
-        log.warning("검수 %d회 탈락, 마지막 시도를 보냄: %s", MAX_ATTEMPTS, attempts[-1]["reasons"])
+        log.warning("규칙 검사 %d회 탈락, 마지막 시도를 보냄: %s", MAX_ATTEMPTS, attempts[-1]["reasons"])
     yield _event("_final", question=question, meta={"attempts": attempts, "passed": passed})
+
+
+async def _review_later(
+    db: Session, llm: LLM, session: WritingSession, turn: Turn, last_user_text: str | None
+) -> None:
+    """보낸 질문을 LLM으로 검수해 기록만 한다 (평가 지표용, 사용자를 기다리게 하지 않는다)."""
+    meta = dict(turn.meta or {})
+    if not meta.get("passed"):
+        return
+    try:
+        review = await reviewer.run(
+            llm,
+            question=turn.text,
+            last_user_text=last_user_text,
+            stage=session.stage,
+            user_texts=[t.text for t in session.turns if t.role == "user"],
+        )
+    except LLMError:
+        log.exception("사후 검수 실패 (turn=%s)", turn.id)
+        return
+    meta["review"] = {"passed": review.passed, "reasons": review.reasons}
+    turn.meta = meta  # JSON 컬럼은 새 객체를 넣어야 저장된다
+    db.commit()
+
+
+def _save_coach_turn(
+    db: Session, session: WritingSession, reply: str, meta: dict[str, Any]
+) -> tuple[Turn, Event]:
+    coach_turn = Turn(
+        idx=len(session.turns), role="coach", text=reply, stage=session.stage, meta=meta
+    )
+    session.turns.append(coach_turn)
+    db.commit()
+    return coach_turn, _event(
+        "question",
+        turn=TurnOut.model_validate(coach_turn, from_attributes=True).model_dump(mode="json"),
+    )
+
+
+def _error(exc: Exception) -> Event:
+    return _event(
+        "error", message="질문을 만들지 못했어요. 잠시 뒤 다시 보내 주세요.", detail=str(exc)
+    )
+
+
+async def _pump(source: AsyncIterator[Event], queue: asyncio.Queue) -> None:
+    """질문 생성 이벤트를 큐로 옮긴다. 끝나면 None."""
+    try:
+        async for event in source:
+            await queue.put(event)
+    except LLMError as exc:
+        log.exception("질문 생성 실패")
+        await queue.put(_error(exc))
+    finally:
+        await queue.put(None)
 
 
 async def _ask_and_save(
@@ -136,38 +194,41 @@ async def _ask_and_save(
     llm: LLM,
     session: WritingSession,
     last_user_text: str | None,
+    *,
     opening: bool = False,
+    queue: asyncio.Queue | None = None,
+    held: list[Event] | None = None,
 ) -> AsyncIterator[Event]:
+    """질문 이벤트를 내보내고 코치 턴을 저장한다.
+
+    queue가 있으면 이미 돌고 있는 생성을 이어받고, held는 그 큐에서 먼저 꺼내 둔 이벤트다.
+    """
+    if queue is None:
+        queue = asyncio.Queue()
+        asyncio.create_task(_pump(_ask(llm, session, opening), queue))
     reply, meta = "", {}
-    try:
-        async for event in _ask(llm, session, last_user_text, opening):
-            if event["event"] == "_final":
-                reply, meta = event["data"]["question"], event["data"]["meta"]
-            else:
-                yield event
-    except LLMError as exc:
-        log.exception("질문 생성 실패 (session=%s)", session.id)
-        yield _event(
-            "error", message="질문을 만들지 못했어요. 잠시 뒤 다시 보내 주세요.", detail=str(exc)
-        )
-        return
+
+    async def events() -> AsyncIterator[Event | None]:
+        for e in held or []:
+            yield e
+        while True:
+            yield await queue.get()
+
+    async for event in events():
+        if event is None:
+            break
+        if event["event"] == "_final":
+            reply, meta = event["data"]["question"], event["data"]["meta"]
+        elif event["event"] == "error":
+            yield event
+            return
+        else:
+            yield event
     if opening:
         meta["opening"] = True
-    yield _save_coach_turn(db, session, reply, meta)
-
-
-def _save_coach_turn(
-    db: Session, session: WritingSession, reply: str, meta: dict[str, Any]
-) -> Event:
-    coach_turn = Turn(
-        idx=len(session.turns), role="coach", text=reply, stage=session.stage, meta=meta
-    )
-    session.turns.append(coach_turn)
-    db.commit()
-    return _event(
-        "question",
-        turn=TurnOut.model_validate(coach_turn, from_attributes=True).model_dump(mode="json"),
-    )
+    turn, saved = _save_coach_turn(db, session, reply, meta)
+    yield saved
+    await _review_later(db, llm, session, turn, last_user_text)
 
 
 async def handle_user_turn(
@@ -186,12 +247,42 @@ async def handle_user_turn(
     db.commit()
 
     if skip:
-        # '넘어가기' 버튼: 추출 없이 직전 질문을 넘어간 주제로 기록한다 (SKILL.md 8장)
-        extraction = Extraction(skip_request=True, skip_topic=last_question)
-    else:
-        # 1) 재료 추출. 실패해도 대화는 이어간다 (사용자 발화 원문은 이미 저장됨)
-        yield _event("status", step="extracting")
-        extraction = await _extract(llm, session, text, last_question)
+        # '넘어가기' 버튼: 추출 없이 직전 질문을 넘어간 주제로 기록하고 바로 다음 질문
+        apply_extraction(session, user_turn, Extraction(skip_request=True, skip_topic=last_question))
+        db.commit()
+        yield _event("materials", added=[], session=session_detail(session).model_dump(mode="json"))
+        yield _event("status", step="asking")
+        async for event in _ask_and_save(db, llm, session, None):
+            yield event
+        return
+
+    # 속도: 재료 추출과 질문 생성을 동시에 시작하고, 질문은 만들어지는 대로 흘려보낸다.
+    # 질문 생성은 사용자 발화를 이미 대화 기록으로 본다. 질문 저장은 추출(고통 신호 판정)이 끝난 뒤에 한다.
+    # 위험한 표현이 보이는 답은 추출이 끝날 때까지 질문을 화면에 보내지 않는다 (SKILL.md 9장)
+    yield _event("status", step="asking")
+    hold_all = _looks_distressed(text)
+    queue: asyncio.Queue = asyncio.Queue()
+    ask_task = asyncio.create_task(_pump(_ask(llm, session), queue))
+    extract_task = asyncio.create_task(_extract(llm, session, text, last_question))
+    held: list[Event] = []  # 아직 보내지 않은 질문 이벤트 (위험 표현, 또는 저장 대기 중인 _final)
+    streamed = False
+    getter: asyncio.Task | None = asyncio.create_task(queue.get())
+    while not extract_task.done():
+        waiting = {extract_task} | ({getter} if getter else set())
+        await asyncio.wait(waiting, return_when=asyncio.FIRST_COMPLETED)
+        if getter and getter.done():
+            event = getter.result()
+            getter = None
+            if event is None or event["event"] in ("_final", "error") or hold_all:
+                held.append(event)  # 끝·저장·오류는 추출이 끝난 뒤에 처리한다
+            else:
+                streamed = True
+                yield event
+            if event is not None and event["event"] not in ("_final", "error"):
+                getter = asyncio.create_task(queue.get())
+    if getter is not None:
+        getter.cancel()
+    extraction = extract_task.result()
     added = apply_extraction(session, user_turn, extraction)
     db.commit()
     yield _event(
@@ -200,26 +291,36 @@ async def handle_user_turn(
         session=session_detail(session).model_dump(mode="json"),
     )
 
-    # 2) 고통 신호: 질문 대신 상태를 묻는다 (SKILL.md 9장)
+    # 고통 신호: 만들던 질문은 버리고 상태를 묻는다 (SKILL.md 9장). 이미 흘러간 질문은 화면에서 지운다
     if extraction.distress:
+        ask_task.cancel()
+        if streamed:
+            yield _event("question_reset", attempt=0)
         reply = resources.data("fixed_replies")["distress"]
-        yield _save_coach_turn(db, session, reply, {"fixed": "distress"})
+        _, saved = _save_coach_turn(db, session, reply, {"fixed": "distress"})
+        yield saved
         return
 
-    # 3) 단계 마감 조건 충족 → 재료 카드 제안 (같은 단계에서는 한 번만)
+    # 단계 마감 조건 충족 → 재료 카드 제안 (같은 단계에서는 한 번만)
     if stage_machine.is_ready_to_close(session) and session.card_offered_stage != session.stage:
         session.card_offered_stage = session.stage
         db.commit()
         yield _event("card", stage=session.stage)
 
-    # 4) 질문 생성 ⇄ 검수 → 코치 턴 저장
-    async for event in _ask_and_save(db, llm, session, None if skip else text):
+    async for event in _ask_and_save(db, llm, session, text, queue=queue, held=held):
         yield event
+
+
+def _looks_distressed(text: str) -> bool:
+    markers = resources.data("fixed_replies").get("distress_markers", [])
+    compact = text.replace(" ", "")
+    return any(m.replace(" ", "") in compact for m in markers)
 
 
 async def handle_stage_open(
     db: Session, llm: LLM, session: WritingSession
 ) -> AsyncIterator[Event]:
     """새 단계의 여는 질문. 사용자가 단계를 넘기거나 되돌린 뒤 화면이 부른다."""
+    yield _event("status", step="asking")
     async for event in _ask_and_save(db, llm, session, None, opening=True):
         yield event

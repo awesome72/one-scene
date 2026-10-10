@@ -19,6 +19,7 @@ export function Finish({ id }: { id: string }) {
   const [tags, setTags] = useState<TagSet>(EMPTY)
   const [inputs, setInputs] = useState<Record<TagKind, string>>({ period: '', person: '', place: '', object: '', gap: '' })
   const [missing, setMissing] = useState<string[]>([])
+  const [titles, setTitles] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>('불러오는 중…')
   const [error, setError] = useState<string | null>(null)
 
@@ -32,8 +33,10 @@ export function Finish({ id }: { id: string }) {
         const hasSaved = Object.values(saved).some((v) => v.length)
         if (hasSaved) setTags(saved)
         else {
-          setStatus('태그를 제안하고 있어요')
-          setTags(await api.suggestTags(id))
+          setStatus('태그와 제목을 제안하고 있어요')
+          const { titles: suggested, ...rest } = await api.suggestTags(id)
+          setTags(rest)
+          setTitles(suggested ?? [])
         }
       } catch (e) {
         setError(String((e as Error).message))
@@ -79,6 +82,16 @@ export function Finish({ id }: { id: string }) {
         <span className="eyebrow">제목</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="이 글의 이름" />
       </label>
+      {titles.length > 0 && (
+        <div className="tag-list" aria-label="AI 제목 제안">
+          {titles.map((t) => (
+            <button type="button" key={t} className="tag" onClick={() => setTitle(t)}>
+              <span className="badge-ai">AI 제안</span>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
 
       {(Object.keys(KIND_LABEL) as TagKind[]).map((kind) => (
         <section key={kind} className="card-block">

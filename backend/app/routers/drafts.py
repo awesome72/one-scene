@@ -10,6 +10,7 @@ from app.engine import drafting
 from app.engine.llm import LLM, get_llm
 from app.models import Draft, WritingSession
 from app.schemas_draft import (
+    AcceptSuggestion,
     DraftEdit,
     DraftOut,
     HitAnswer,
@@ -65,6 +66,23 @@ def latest_draft(session: OwnedSessionDep) -> DraftOut:
 def edit_draft(draft_id: str, body: DraftEdit, session: OwnedSessionDep, db: DbDep) -> DraftOut:
     """사용자가 직접 고친 본문 → 새 초안 버전. LLM을 부르지 않는다."""
     return drafting.edit_draft(db, session, _draft(session, draft_id), body.paragraphs)
+
+
+@router.post("/drafts/{draft_id}/sentences/{index}/accept")
+def accept_suggestion(
+    draft_id: str, index: int, body: AcceptSuggestion, session: OwnedSessionDep, db: DbDep
+) -> DraftOut:
+    """빈칸의 AI 제안을 받아들인다 (text를 주면 고쳐 쓴 문장으로)."""
+    try:
+        return drafting.accept_suggestions(db, session, _draft(session, draft_id), index, body.text)
+    except IndexError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "문장을 찾을 수 없습니다.") from None
+
+
+@router.post("/drafts/{draft_id}/accept-all")
+def accept_all_suggestions(draft_id: str, session: OwnedSessionDep, db: DbDep) -> DraftOut:
+    """제안이 있는 빈칸을 모두 받아들인다."""
+    return drafting.accept_suggestions(db, session, _draft(session, draft_id), None)
 
 
 @router.post("/drafts/{draft_id}/hits/{hit_id}/dismiss")

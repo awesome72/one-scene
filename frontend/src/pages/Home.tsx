@@ -100,7 +100,7 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
         </div>
       </section>
 
-      <p className="footnote">한 장면은 글을 대신 쓰지 않습니다. 당신이 한 말만으로 글을 짓습니다.</p>
+      <p className="footnote">한 장면은 당신이 한 말로 글을 짓습니다. 빈 곳에 AI가 쓴 문장은 ‘AI 제안’으로 보여 드리고, 받아들인 것만 글이 됩니다.</p>
     </div>
   )
 }

@@ -19,6 +19,8 @@ from app.models import Material
 log = logging.getLogger(__name__)
 
 MAX_TOKENS = 8000
+# 속도: 문장마다 '재료에 있나'만 보는 판정이라 low로 충분하다
+EFFORT = "low"
 DEFAULT_QUESTION = "이 자리에 들어갈 장면을 말해 주실래요?"
 
 
@@ -40,6 +42,7 @@ class CheckedSentence:
     material_ids: list[str] = field(default_factory=list)  # DB id
     is_blank: bool = False
     note: str | None = None  # 빈칸이 된 이유 (출처 없음, 재료에 없는 내용 등)
+    suggestion: str | None = None  # 빈칸에 붙는 'AI 제안' 문장
 
 
 def blank(question: str) -> str:
@@ -57,13 +60,15 @@ def structural(draft: AssembledDraft, materials: list[Material]) -> list[Checked
                 continue
             if s.is_blank or text.startswith("[빈칸"):
                 body = text if text.startswith("[빈칸") else blank(text)
-                out.append(CheckedSentence(p.outline_position, body, [], True, "조립기가 비움"))
+                out.append(CheckedSentence(p.outline_position, body, [], True, "조립기가 비움",
+                                           (s.suggestion or "").strip() or None))
                 continue
             ids = [by_label[label].id for label in s.material_ids if label in by_label]
             if not ids or len(ids) != len(s.material_ids):
+                # 출처 없는 문장은 본문에서 빼고, 그 문장을 AI 제안으로 돌린다
                 out.append(CheckedSentence(
                     p.outline_position, blank(DEFAULT_QUESTION), [], True,
-                    f"출처 없음: {text}",
+                    f"출처 없음: {text}", text,
                 ))
                 continue
             out.append(CheckedSentence(p.outline_position, text, ids))
@@ -104,6 +109,7 @@ async def semantic(
         user=build_user_message(sentences, materials, utterances or {}),
         schema=FidelityResult,
         max_tokens=MAX_TOKENS,
+        effort=EFFORT,
     )
     verdicts = {v.index: v for v in result.verdicts}
     out: list[CheckedSentence] = []
@@ -116,12 +122,13 @@ async def semantic(
             log.warning("진실성 판정 누락 → 빈칸: 문장 %d", i)
             out.append(CheckedSentence(
                 s.paragraph, blank(DEFAULT_QUESTION), [], True,
-                f"진실성 판정 누락 / 원래 문장: {s.text}",
+                f"진실성 판정 누락 / 원래 문장: {s.text}", s.text,
             ))
         else:
+            # 재료에 없는 내용이 더해진 문장 → 본문에서 빼고 AI 제안으로 (받아들이면 글이 된다)
             out.append(CheckedSentence(
                 s.paragraph, blank(v.question or DEFAULT_QUESTION), [], True,
-                f"재료에 없는 내용: {v.added or '?'} / 원래 문장: {s.text}",
+                f"재료에 없는 내용: {v.added or '?'} / 원래 문장: {s.text}", s.text,
             ))
     return out
 

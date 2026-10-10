@@ -108,12 +108,21 @@ export interface Draft {
   paragraphs: {
     position: number
     label: string | null
-    sentences: { index: number; text: string; is_blank: boolean; edited: boolean; materials: Material[] }[]
+    sentences: {
+      index: number
+      text: string
+      is_blank: boolean
+      edited: boolean
+      accepted: boolean
+      suggestion: string | null
+      materials: Material[]
+    }[]
   }[]
   hits: LintHit[]
   open_hits: number
   char_count: number
   blank_count: number
+  suggestion_count: number
 }
 
 export type TagKind = 'period' | 'person' | 'place' | 'object' | 'gap'
@@ -141,6 +150,8 @@ export type TurnEvent =
   | { event: 'status'; data: { step: 'extracting' | 'asking' | 'reviewing'; attempt?: number } }
   | { event: 'materials'; data: { added: Material[]; session: SessionDetail } }
   | { event: 'card'; data: { stage: number } }
+  | { event: 'question_delta'; data: { text: string } }
+  | { event: 'question_reset'; data: { attempt: number } }
   | { event: 'question'; data: { turn: Turn } }
   | { event: 'error'; data: { message: string; detail?: string } }
 
@@ -311,10 +322,13 @@ export const api = {
   latestDraft: (id: string) => request<Draft>('GET', `/sessions/${id}/drafts/latest`),
   editDraft: (id: string, draftId: string, paragraphs: string[]) =>
     request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/edit`, { paragraphs }),
+  acceptSuggestion: (id: string, draftId: string, index: number, text?: string) =>
+    request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/sentences/${index}/accept`, { text: text ?? null }),
+  acceptAll: (id: string, draftId: string) => request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/accept-all`),
   dismissHit: (id: string, draftId: string, hitId: string) =>
     request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/hits/${encodeURIComponent(hitId)}/dismiss`),
   tags: (id: string) => request<TagSet>('GET', `/sessions/${id}/tags`),
-  suggestTags: (id: string) => request<TagSet>('POST', `/sessions/${id}/tags/suggest`),
+  suggestTags: (id: string) => request<TagSet & { titles: string[] }>('POST', `/sessions/${id}/tags/suggest`),
   saveTags: (id: string, tags: TagSet) => request<TagSet>('PUT', `/sessions/${id}/tags`, tags),
   finishCheck: (id: string) => request<string[]>('GET', `/sessions/${id}/finish-check`),
   finish: (id: string) => request<SessionDetail>('POST', `/sessions/${id}/finish`, { approved: true }),

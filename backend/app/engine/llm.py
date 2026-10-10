@@ -3,6 +3,7 @@
 엔진 모듈은 `LLM` 프로토콜에만 의존하므로 테스트에서는 가짜 구현을 넣는다.
 """
 
+from collections.abc import AsyncIterator
 from typing import Any, Protocol, TypeVar
 
 import anthropic
@@ -36,6 +37,18 @@ class LLM(Protocol):
         effort: str | None = None,
     ) -> str: ...
 
+    def stream_text(
+        self,
+        *,
+        model: str,
+        system: list[dict[str, Any]],
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        effort: str | None = None,
+    ) -> AsyncIterator[str]:
+        """글자가 생기는 대로 조각을 낸다 (화면에 질문을 실시간으로 보이기 위해)."""
+        ...
+
     async def parse(
         self,
         *,
@@ -44,6 +57,7 @@ class LLM(Protocol):
         user: str,
         schema: type[T],
         max_tokens: int,
+        effort: str | None = None,
     ) -> T: ...
 
 
@@ -101,6 +115,26 @@ class AnthropicLLM:
         self._check(message, model)
         return "".join(b.text for b in message.content if b.type == "text").strip()
 
+    async def stream_text(
+        self,
+        *,
+        model: str,
+        system: list[dict[str, Any]],
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        effort: str | None = None,
+    ) -> AsyncIterator[str]:
+        async with self.client.beta.messages.stream(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,  # type: ignore[arg-type]
+            messages=messages,  # type: ignore[arg-type]
+            **self._extra(model, effort),
+        ) as stream:
+            async for chunk in stream.text_stream:
+                yield chunk
+            self._check(await stream.get_final_message(), model)
+
     async def parse(
         self,
         *,
@@ -109,6 +143,7 @@ class AnthropicLLM:
         user: str,
         schema: type[T],
         max_tokens: int,
+        effort: str | None = None,
     ) -> T:
         message = await self.client.beta.messages.parse(
             model=model,
@@ -116,7 +151,7 @@ class AnthropicLLM:
             system=system,
             messages=[{"role": "user", "content": user}],
             output_format=schema,
-            **self._extra(model, None),
+            **self._extra(model, effort),
         )
         self._check(message, model)
         if message.parsed_output is None:

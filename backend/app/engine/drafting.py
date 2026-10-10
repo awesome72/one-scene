@@ -136,7 +136,9 @@ def draft_out(draft: Draft, session: WritingSession) -> DraftOut:
                 index=index,
                 text=s["text"],
                 is_blank=s["is_blank"],
-                edited=s.get("source") == "user",
+                edited=s.get("source") in ("user", "accepted"),
+                accepted=s.get("source") == "accepted",
+                suggestion=s.get("suggestion") if s["is_blank"] else None,
                 materials=[material_out(by_id[m]) for m in s["material_ids"] if m in by_id],
             )
         )
@@ -150,6 +152,9 @@ def draft_out(draft: Draft, session: WritingSession) -> DraftOut:
         open_hits=sum(1 for h in hits if not h.dismissed),
         char_count=sum(len(s["text"]) for s in draft.sentence_map if not s["is_blank"]),
         blank_count=sum(1 for s in draft.sentence_map if s["is_blank"]),
+        suggestion_count=sum(
+            1 for s in draft.sentence_map if s["is_blank"] and s.get("suggestion")
+        ),
     )
 
 
@@ -185,7 +190,7 @@ async def handle_draft(db: Session, llm: LLM, session: WritingSession) -> AsyncI
 
     sentence_map = [
         {"paragraph": s.paragraph, "text": s.text, "material_ids": s.material_ids,
-         "is_blank": s.is_blank, "note": s.note}
+         "is_blank": s.is_blank, "note": s.note, "suggestion": s.suggestion}
         for s in checked
     ]
     previous = session.drafts[-1] if session.drafts else None
@@ -293,3 +298,37 @@ def edit_draft(
     session.drafts.append(new)
     db.commit()
     return draft_out(new, session)
+
+
+# ---------- 4단계: AI 제안 받아들이기 ----------
+
+
+def accept_suggestions(
+    db: Session, session: WritingSession, draft: Draft, index: int | None, text: str | None = None
+) -> DraftOut:
+    """빈칸의 AI 제안을 본문으로 받아들인다. index가 None이면 제안이 있는 빈칸 모두.
+
+    받아들인 문장은 source="accepted"로 표시한다 (사용자가 확인한 문장, 출처 재료 없음).
+    같은 초안 버전 안에서 바꾸고 교정 점검을 다시 돌린다.
+    """
+    sentence_map = [dict(s) for s in draft.sentence_map]
+    targets = range(len(sentence_map)) if index is None else [index]
+    changed = 0
+    for i in targets:
+        if not 0 <= i < len(sentence_map):
+            raise IndexError(i)
+        s = sentence_map[i]
+        new_text = (text or "").strip() if index is not None and text else s.get("suggestion")
+        if not s["is_blank"] or not new_text:
+            continue
+        sentence_map[i] = {
+            **s, "text": new_text.strip(), "is_blank": False, "material_ids": [],
+            "source": "accepted", "note": f"AI 제안 받아들임 / 빈칸: {s['text']}",
+        }
+        changed += 1
+    if changed:
+        draft.sentence_map = sentence_map
+        draft.body = _body(sentence_map)
+        draft.lint_result = _lint(sentence_map, draft.lint_result)
+        db.commit()
+    return draft_out(draft, session)

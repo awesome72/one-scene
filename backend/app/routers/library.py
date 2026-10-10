@@ -8,7 +8,7 @@ from app.db import DbDep
 from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep
 from app.engine import stage_machine, tagging
 from app.engine.llm import LLM, get_llm
-from app.engine.tagging import TagSet
+from app.engine.tagging import TagSet, TagSuggestion
 from app.models import WritingSession
 from app.schemas import SessionDetail, StageApproval, UtcDatetime
 from app.views import session_detail
@@ -49,7 +49,7 @@ def get_tags(session: OwnedSessionDep) -> TagSet:
 
 
 @router.post("/sessions/{session_id}/tags/suggest", dependencies=[LlmQuotaDep])
-async def suggest_tags(session: OwnedSessionDep, llm: LlmDep) -> TagSet:
+async def suggest_tags(session: OwnedSessionDep, llm: LlmDep) -> TagSuggestion:
     """태그 제안. 저장하지 않는다 — 사용자가 고른 것만 PUT으로 저장한다."""
     return await tagging.suggest(llm, session)
 

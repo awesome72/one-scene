@@ -371,3 +371,86 @@ async def test_missing_fidelity_verdict_becomes_blank() -> None:
     out = await fidelity.check(llm, draft, _materials())
     assert [s.is_blank for s in out] == [False, True]
     assert "판정 누락" in out[1].note
+
+
+# ---------- AI 제안 ----------
+
+
+@pytest.mark.asyncio
+async def test_failed_sentences_become_suggestions() -> None:
+    llm = FakeLLM()
+    llm.queue(FidelityResult(verdicts=[
+        SentenceVerdict(index=0, ok=False, added="비", question="그날 창밖은 어땠어요?"),
+    ]))
+    draft = AssembledDraft(paragraphs=[DraftParagraph(outline_position=1, sentences=[
+        DraftSentence(text="비 내리는 창밖만 보고 있었다.", material_ids=["m1"]),
+        DraftSentence(text="그날 저녁은 어땠나요?", is_blank=True,
+                      suggestion="퇴근길 버스 창에 이마를 대고 있었다."),
+        DraftSentence(text="팀장은 웃었다.", material_ids=[]),  # 출처 없음
+    ])])
+    out = await fidelity.check(llm, draft, _materials())
+    assert [s.is_blank for s in out] == [True, True, True]
+    assert [s.suggestion for s in out] == [
+        "비 내리는 창밖만 보고 있었다.",  # 지어낸 문장은 본문이 아니라 제안으로
+        "퇴근길 버스 창에 이마를 대고 있었다.",  # 조립기의 제안
+        "팀장은 웃었다.",
+    ]
+
+
+def _draft_with_suggestions(client: TestClient, db_session: Session, fake: FakeLLM) -> tuple[str, dict]:
+    sid = _seed(db_session, client)
+    client.post(f"/sessions/{sid}/outline", json={"pattern": "linear"})
+    fake.queue(AssembledDraft(paragraphs=[
+        DraftParagraph(outline_position=1, sentences=[
+            DraftSentence(text="나는 회의실 창밖만 보고 있었다.", material_ids=["m1"]),
+            DraftSentence(text="그때 손은 무엇을 하고 있었나요?", is_blank=True,
+                          suggestion="나는 볼펜 뚜껑을 열었다 닫았다 했다."),
+        ]),
+        DraftParagraph(outline_position=5, sentences=[
+            DraftSentence(text="그 뒤 창밖은 어땠나요?", is_blank=True,
+                          suggestion="창밖에는 그냥 하늘이 있었다."),
+        ]),
+    ]))
+    fake.queue(FidelityResult(verdicts=[SentenceVerdict(index=0, ok=True)]))
+    draft = parse_sse(client.post(f"/sessions/{sid}/drafts").text)[-1][1]["draft"]
+    return sid, draft
+
+
+def test_draft_shows_suggestions(client: TestClient, db_session: Session, fake: FakeLLM) -> None:
+    _, draft = _draft_with_suggestions(client, db_session, fake)
+    assert draft["suggestion_count"] == 2 and draft["blank_count"] == 2
+    blank = draft["paragraphs"][0]["sentences"][1]
+    assert blank["is_blank"] and blank["suggestion"] == "나는 볼펜 뚜껑을 열었다 닫았다 했다."
+    # 아직 받아들이지 않은 제안은 본문 글자 수에 들어가지 않는다
+    assert draft["char_count"] == len("나는 회의실 창밖만 보고 있었다.")
+
+
+def test_accept_one_edit_one_then_all(client: TestClient, db_session: Session, fake: FakeLLM) -> None:
+    sid, draft = _draft_with_suggestions(client, db_session, fake)
+    did = draft["id"]
+    res = client.post(f"/sessions/{sid}/drafts/{did}/sentences/1/accept", json={}).json()
+    s1 = res["paragraphs"][0]["sentences"][1]
+    assert (s1["text"], s1["is_blank"], s1["accepted"]) == ("나는 볼펜 뚜껑을 열었다 닫았다 했다.", False, True)
+    assert res["suggestion_count"] == 1 and res["version"] == 1  # 같은 버전 안에서 바뀐다
+    assert all(h["sentence"] != 1 or h["kind"] != "blank" for h in res["hits"])
+
+    res = client.post(f"/sessions/{sid}/drafts/{did}/sentences/2/accept",
+                      json={"text": "창밖은 어둑했고 하늘만 보였다."}).json()
+    assert res["paragraphs"][1]["sentences"][0]["text"] == "창밖은 어둑했고 하늘만 보였다."
+    assert res["blank_count"] == 0
+
+    # 받아들일 제안이 없으면 모두 받아들이기는 아무것도 바꾸지 않는다
+    again = client.post(f"/sessions/{sid}/drafts/{did}/accept-all").json()
+    assert again["blank_count"] == 0
+    assert client.post(f"/sessions/{sid}/drafts/{did}/sentences/99/accept", json={}).status_code == 404
+
+
+def test_accept_all(client: TestClient, db_session: Session, fake: FakeLLM) -> None:
+    sid, draft = _draft_with_suggestions(client, db_session, fake)
+    res = client.post(f"/sessions/{sid}/drafts/{draft['id']}/accept-all").json()
+    assert res["blank_count"] == 0 and res["suggestion_count"] == 0
+    texts = [s["text"] for p in res["paragraphs"] for s in p["sentences"]]
+    assert texts == ["나는 회의실 창밖만 보고 있었다.", "나는 볼펜 뚜껑을 열었다 닫았다 했다.",
+                     "창밖에는 그냥 하늘이 있었다."]
+    # 받아들인 문장은 '받아들인 AI 제안'으로 표시된다 (출처 재료 없음)
+    assert [s["accepted"] for p in res["paragraphs"] for s in p["sentences"]] == [False, True, True]

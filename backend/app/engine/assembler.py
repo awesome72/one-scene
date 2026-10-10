@@ -8,6 +8,8 @@ from app.engine.llm import LLM
 from app.models import OutlineItem, WritingSession
 
 MAX_TOKENS = 16000
+# 속도: 조립은 재료를 옮겨 적는 일이라 medium으로 충분하다 (기본 high는 느리다)
+EFFORT = "medium"
 LENGTH_NAMES = {"short": "짧은 글", "medium": "보통 글", "long": "긴 글"}
 
 
@@ -15,6 +17,8 @@ class DraftSentence(BaseModel):
     text: str
     material_ids: list[str] = Field(default_factory=list)  # m3 같은 재료 번호
     is_blank: bool = False
+    # 빈칸에 들어갈 'AI 제안' 문장 (본문이 아님, 사용자가 받아들일 때만 글이 된다)
+    suggestion: str | None = None
 
 
 class DraftParagraph(BaseModel):
@@ -62,4 +66,5 @@ async def run(llm: LLM, session: WritingSession, items: list[OutlineItem]) -> As
         user=build_user_message(session, items),
         schema=AssembledDraft,
         max_tokens=MAX_TOKENS,
+        effort=EFFORT,
     )

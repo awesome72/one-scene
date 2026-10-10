@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.engine.assembler import AssembledDraft, DraftParagraph, DraftSentence
 from app.engine.fidelity import FidelityResult, SentenceVerdict
 from app.engine.llm import LLMError, get_llm
-from app.engine.tagging import TagSet
+from app.engine.tagging import TagSuggestion
 from app.main import app
 from app.models import WritingSession
 from tests.fakes import FakeLLM
@@ -43,7 +43,7 @@ def _drafted(db: Session, client: TestClient, fake: FakeLLM) -> str:
 
 def test_suggest_does_not_save(client: TestClient, db_session: Session, fake: FakeLLM) -> None:
     sid = _drafted(db_session, client, fake)
-    fake.queue(TagSet(person=["팀장님"], place=["회의실"], object=["창밖"],
+    fake.queue(TagSuggestion(person=["팀장님"], place=["회의실"], object=["창밖"], titles=["창밖"],
                       gap=["그 말을 처음 들었던 날, 어디에 있었어요?"]))
     suggested = client.post(f"/sessions/{sid}/tags/suggest").json()
     assert suggested["place"] == ["회의실"]

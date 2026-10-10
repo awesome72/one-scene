@@ -1,6 +1,7 @@
 """API를 부르지 않는 가짜 LLM. 정해 둔 응답을 순서대로 돌려주고, 받은 요청을 기록한다."""
 
 from collections import deque
+from collections.abc import AsyncIterator
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -46,6 +47,13 @@ class FakeLLM:
     async def text(self, **kwargs: Any) -> str:
         self.text_calls.append(kwargs)
         return self.questions.popleft() if self.questions else "그때 어디에 있었어요?"
+
+    async def stream_text(self, **kwargs: Any) -> AsyncIterator[str]:
+        """실제처럼 몇 글자씩 나눠 낸다. 요청은 text_calls에 같이 기록한다."""
+        self.text_calls.append(kwargs)
+        text = self.questions.popleft() if self.questions else "그때 어디에 있었어요?"
+        for i in range(0, len(text), 5):
+            yield text[i : i + 5]
 
     async def parse(self, **kwargs: Any) -> Any:
         self.parse_calls.append(kwargs)

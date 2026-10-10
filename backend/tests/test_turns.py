@@ -10,7 +10,7 @@ from app.engine.extractor import ExtractedMaterial, Extraction
 from app.engine.llm import LLMError, get_llm
 from app.main import app
 from app.models import WritingSession
-from tests.fakes import PASS, FakeLLM, failing_review
+from tests.fakes import FakeLLM, failing_review
 
 UTTER = "회의실이었어요. 팀장님이 또 같은 얘기를 하는데, 아 이건 아니다 싶었어요. 창밖만 보고 있었어요."
 
@@ -60,9 +60,12 @@ def test_turn_happy_path(client: TestClient, fake: FakeLLM, db_session: Session)
     sid = _start(client)
 
     events = _send(client, sid, input_mode="voice")
-    kinds = [k for k, _ in events]
-    assert kinds == ["status", "materials", "status", "status", "question"]
-    materials = events[1][1]
+    kinds = [k for k, _ in events if k != "question_delta"]
+    assert kinds == ["status", "materials", "question"]
+    # 질문은 글자 단위로 먼저 흘러가고, 이어 붙이면 최종 질문과 같다
+    streamed = "".join(d["text"] for k, d in events if k == "question_delta")
+    assert streamed == question
+    materials = dict(events)["materials"]
     # 지어낸 재료(원문에 없는 '비가 내렸어요')는 저장되지 않는다
     assert [m["text"] for m in materials["added"]] == ["회의실이었어요", "창밖만 보고 있었어요"]
     assert [m["label"] for m in materials["added"]] == ["m1", "m2"]
@@ -78,7 +81,7 @@ def test_turn_happy_path(client: TestClient, fake: FakeLLM, db_session: Session)
 
     meta = db_session.get(WritingSession, sid).turns[-1].meta
     assert meta["passed"] is True and len(meta["attempts"]) == 1
-
+    assert meta["review"]["passed"] is True  # LLM 검수는 보낸 뒤 기록용으로 돈다
 
 def test_repeated_words_counted_across_turns(client: TestClient, fake: FakeLLM) -> None:
     fake.extractions += [Extraction(key_words=["창밖"]), Extraction(key_words=["창밖"])]
@@ -89,56 +92,66 @@ def test_repeated_words_counted_across_turns(client: TestClient, fake: FakeLLM) 
     assert session["repeated"] == [{"value": "창밖", "count": 3}]
 
 
-def test_reviewer_failure_triggers_regeneration_with_feedback(
+def test_rule_failure_triggers_regeneration_with_feedback(
     client: TestClient, fake: FakeLLM, db_session: Session
 ) -> None:
-    fake.questions += ["그때 어디에 있었어요?", "'창밖만'이라고 하셨어요. 창밖에 무엇이 보였어요?"]
-    fake.reviews += [failing_review("직전 발화를 이어받지 않는다."), PASS]
+    fake.questions += ["그때 어디였어요? 누구와 있었어요?", "'창밖만'이라고 하셨어요. 창밖에 무엇이 보였어요?"]
     sid = _start(client)
     events = _send(client, sid)
-    assert [d.get("attempt") for k, d in events if k == "status"] == [None, 1, 1, 2, 2]
+    kinds = [k for k, _ in events]
+    assert "question_reset" in kinds  # 화면은 흘러가던 질문을 지우고 다시 받는다
     assert events[-1][1]["turn"]["text"].startswith("'창밖만'")
     # 두 번째 생성 요청에는 탈락 사유가 피드백으로 들어간다
     second_state = fake.text_calls[1]["system"][1]["text"]
-    assert "직전 발화를 이어받지 않는다." in second_state
+    assert "물음표가 2개" in second_state
     assert db_session.get(WritingSession, sid).turns[-1].meta["passed"] is True
 
-
-def test_rule_failure_does_not_call_llm_reviewer(client: TestClient, fake: FakeLLM) -> None:
-    fake.questions += ["멋진 이야기네요. 어디였어요?", "'창밖만'이라고 하셨어요. 무엇이 보였어요?"]
+def test_llm_review_runs_after_sending_and_does_not_block(
+    client: TestClient, fake: FakeLLM, db_session: Session
+) -> None:
+    """LLM 검수가 탈락시켜도 다시 만들지 않는다 (속도). 결과는 기록만 남는다."""
+    fake.questions.append("'창밖만'이라고 하셨어요. 무엇이 보였어요?")
+    fake.reviews.append(failing_review("구체성이 부족하다."))
     sid = _start(client)
-    _send(client, sid)
-    reviewer_calls = [c for c in fake.parse_calls if c["schema"].__name__ == "Review"]
-    assert len(reviewer_calls) == 1  # 첫 시도는 규칙에서 탈락해 LLM 검수를 건너뛴다
-
+    events = _send(client, sid)
+    assert "question_reset" not in [k for k, _ in events]
+    meta = db_session.get(WritingSession, sid).turns[-1].meta
+    assert meta["passed"] is True and meta["review"] == {
+        "passed": False, "reasons": ["구체성이 부족하다."]
+    }
 
 def test_gives_up_after_three_attempts_but_still_asks(
     client: TestClient, fake: FakeLLM, db_session: Session
 ) -> None:
-    fake.questions += ["질문1 어디였어요?", "질문2 어디였어요?", "질문3 어디였어요?"]
-    fake.reviews += [failing_review("x")] * 3
+    fake.questions += ["질문1? 어디였어요?", "질문2? 어디였어요?", "질문3? 어디였어요?"]
     sid = _start(client)
     events = _send(client, sid)
+    assert [k for k, _ in events].count("question_reset") == 2
     assert events[-1][0] == "question"
-    assert events[-1][1]["turn"]["text"] == "질문3 어디였어요?"
+    assert events[-1][1]["turn"]["text"] == "질문3? 어디였어요?"
     meta = db_session.get(WritingSession, sid).turns[-1].meta
     assert meta["passed"] is False and len(meta["attempts"]) == 3
+    assert "review" not in meta  # 규칙에서 탈락한 질문은 LLM 검수를 하지 않는다
 
-
-def test_distress_sends_fixed_reply_without_asking(client: TestClient, fake: FakeLLM) -> None:
+def test_distress_sends_fixed_reply_without_streaming_question(
+    client: TestClient, fake: FakeLLM
+) -> None:
     fake.extractions.append(Extraction(distress=True))
     sid = _start(client)
     events = _send(client, sid, text="이 얘기를 하니까 너무 괴로워서 견딜 수가 없어요")
-    assert fake.text_calls == []
+    # 질문 생성은 동시에 시작했지만, 추출 전까지 화면에 보내지 않았고 버렸다
+    assert "question_delta" not in [k for k, _ in events]
     assert events[-1][0] == "question"
     assert "멈춰도 괜찮아요" in events[-1][1]["turn"]["text"]
-
 
 def test_skip_request_is_remembered(client: TestClient, fake: FakeLLM) -> None:
     fake.extractions.append(Extraction(skip_request=True, skip_topic="아버지 이야기"))
     sid = _start(client)
     _send(client, sid, text="아버지 얘기는 넘어갈게요")
-    state = fake.text_calls[0]["system"][1]["text"]
+    # 질문 생성은 추출과 동시에 시작하므로, 이번 턴의 넘어가기는 다음 턴의 상태부터 들어간다
+    # (이번 턴 질문자도 대화 기록에서 "넘어갈게요"를 직접 본다)
+    _send(client, sid, text="고등학교 때 버스 얘기를 할게요")
+    state = fake.text_calls[-1]["system"][1]["text"]
     assert "skipped_topics:\n- 아버지 이야기" in state
 
 
@@ -173,7 +186,7 @@ def test_extractor_failure_does_not_block_question(client: TestClient, fake: Fak
     fake.questions.append("'창밖만'이라고 하셨어요. 무엇이 보였어요?")
     sid = _start(client)
     events = _send(client, sid)
-    assert events[1][1]["added"] == []
+    assert dict(events)["materials"]["added"] == []
     assert events[-1][0] == "question"
     assert client.get(f"/sessions/{sid}/turns").json()[1]["text"] == UTTER
 
@@ -181,17 +194,17 @@ def test_extractor_failure_does_not_block_question(client: TestClient, fake: Fak
 def test_question_failure_sends_error_and_keeps_user_turn(
     client: TestClient, fake: FakeLLM
 ) -> None:
-    async def broken(**_: object) -> str:
+    async def broken(**_: object):
         raise LLMError("boom")
+        yield ""  # 비동기 생성기로 만들기 위한 줄 (도달하지 않음)
 
-    fake.text = broken  # type: ignore[method-assign]
+    fake.stream_text = broken  # type: ignore[method-assign]
     sid = _start(client)
     events = _send(client, sid)
     assert events[-1][0] == "error"
     turns = client.get(f"/sessions/{sid}/turns").json()
     assert [t["role"] for t in turns] == ["coach", "user"]
     assert turns[-1]["text"] == UTTER
-
 
 def test_patch_session_and_exclude_material(client: TestClient, fake: FakeLLM) -> None:
     fake.extractions.append(
@@ -272,3 +285,33 @@ def test_per_user_daily_limit(client: TestClient, fake: FakeLLM, monkeypatch: py
     assert res.status_code == 429 and "오늘은 여기까지" in res.json()["detail"]
     # 다른 사람은 영향을 받지 않는다
     assert client.post(f"/sessions/{b}/turns", json={"text": "첫 답"}, headers={"X-User-Id": "bob"}).status_code == 200
+
+
+def test_late_distress_signal_resets_streamed_question(client: TestClient, fake: FakeLLM) -> None:
+    """위험 표현이 없어 질문을 먼저 흘려보냈는데 추출이 고통 신호를 잡으면, 질문을 지우고 바꾼다."""
+    fake.extractions.append(Extraction(distress=True))
+    sid = _start(client)
+    events = _send(client, sid, text="그날 이후로 아무것도 하기가 싫어요")
+    kinds = [k for k, _ in events]
+    assert "question_delta" in kinds
+    assert kinds.index("question_reset") > kinds.index("question_delta")
+    assert "멈춰도 괜찮아요" in events[-1][1]["turn"]["text"]
+    turns = client.get(f"/sessions/{sid}/turns").json()
+    assert len(turns) == 3 and "멈춰도 괜찮아요" in turns[-1]["text"]  # 흘러간 질문은 저장되지 않았다
+
+
+def test_streaming_starts_before_extraction_finishes(client: TestClient, fake: FakeLLM) -> None:
+    """추출이 느려도 질문 조각은 먼저 나간다 (속도)."""
+    import asyncio
+
+    original = fake.parse
+
+    async def slow_parse(**kwargs: object) -> object:
+        if kwargs["schema"] is Extraction:
+            await asyncio.sleep(0.2)
+        return await original(**kwargs)
+
+    fake.parse = slow_parse  # type: ignore[method-assign]
+    sid = _start(client)
+    kinds = [k for k, _ in _send(client, sid)]
+    assert kinds.index("question_delta") < kinds.index("materials") < kinds.index("question")
