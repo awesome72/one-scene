@@ -1154,3 +1154,25 @@ html.large-text #root {
   color: var(--ink-2);
   text-underline-offset: 3px;
 }
+
+/* 지금 재료로 쓸 수 있는 분량 (계열 짜기) */
+.coverage p {
+  margin: 0;
+}
+.coverage b {
+  font-weight: 500;
+}
+.coverage-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+.coverage-bar i {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+.coverage-bar i.thin {
+  background: var(--mark);
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Outline as OutlineData, type PatternId, type SessionDetail } from '../api/client'
+import { Coverage } from '../components/Coverage'
 import { Journey } from '../components/Journey'
 import { josa } from '../lib/josa'
 import { go } from '../lib/route'
@@ -111,6 +112,8 @@ export function Outline({ id }: { id: string }) {
           ))}
         </ol>
       </section>
+
+      <Coverage outline={outline} sessionId={id} />
 
       {status && (
         <p className="status" role="status">

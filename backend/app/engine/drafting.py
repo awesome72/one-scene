@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.engine import assembler, cliche_linter, fidelity, outline, resources
 from app.engine.assembler import AssembledDraft, DraftParagraph, DraftSentence
 from app.engine.extractor import Extraction
-from app.engine.llm import LLM, LLMError
+from app.engine.llm import LLM, UNAVAILABLE_MESSAGE, LLMError, LLMUnavailable
 from app.engine.pipeline import Event, _event, _extract, apply_extraction
 from app.models import Draft, Material, OutlineItem, Turn, WritingSession
 from app.schemas_draft import (
@@ -201,8 +201,9 @@ async def handle_draft(db: Session, llm: LLM, session: WritingSession) -> AsyncI
         checked = await fidelity.check(llm, assembled, session.materials, utterances)
     except LLMError as exc:
         log.exception("초안 조립 실패 (session=%s)", session.id)
-        yield _event("error", message="초안을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.",
-                     detail=str(exc))
+        message = (UNAVAILABLE_MESSAGE if isinstance(exc, LLMUnavailable)
+                   else "초안을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.")
+        yield _event("error", message=message)
         return
 
     sentence_map = merge_blanks([

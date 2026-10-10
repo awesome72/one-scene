@@ -29,6 +29,24 @@ class LLMRefusal(LLMError):
     pass
 
 
+class LLMUnavailable(LLMError):
+    """API를 지금 쓸 수 없다: 크레딧 소진·키 오류·과부하·연결 실패 등 SDK 오류.
+
+    SDK 예외를 그대로 두면 파이프라인이 잡지 못해 대화가 멈춘다 (2026-10-10 크레딧 소진 때 확인).
+    사용자에게는 원문 대신 정해 둔 문구만 보인다 (UNAVAILABLE_MESSAGE).
+    """
+
+
+UNAVAILABLE_MESSAGE = "지금 AI가 잠시 쉬고 있어요. 쓰신 답은 저장됐어요. 조금 뒤에 이어서 써 주세요."
+_SDK_ERRORS = (anthropic.APIStatusError, anthropic.APIConnectionError)
+
+
+def _unavailable(exc: Exception) -> LLMUnavailable:
+    status = getattr(exc, "status_code", None)
+    request_id = getattr(exc, "request_id", None)
+    return LLMUnavailable(f"{type(exc).__name__} status={status} request_id={request_id}")
+
+
 class LLM(Protocol):
     async def text(
         self,
@@ -124,13 +142,16 @@ class AnthropicLLM:
         effort: str | None = None,
         thinking_off: bool = False,
     ) -> str:
-        message = await self.client.beta.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,  # type: ignore[arg-type]
-            messages=messages,  # type: ignore[arg-type]
-            **self._extra(model, effort, thinking_off),
-        )
+        try:
+            message = await self.client.beta.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                system=system,  # type: ignore[arg-type]
+                messages=messages,  # type: ignore[arg-type]
+                **self._extra(model, effort, thinking_off),
+            )
+        except _SDK_ERRORS as exc:
+            raise _unavailable(exc) from exc
         self._check(message, model)
         return "".join(b.text for b in message.content if b.type == "text").strip()
 
@@ -144,16 +165,20 @@ class AnthropicLLM:
         effort: str | None = None,
         thinking_off: bool = False,
     ) -> AsyncIterator[str]:
-        async with self.client.beta.messages.stream(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,  # type: ignore[arg-type]
-            messages=messages,  # type: ignore[arg-type]
-            **self._extra(model, effort, thinking_off),
-        ) as stream:
-            async for chunk in stream.text_stream:
-                yield chunk
-            self._check(await stream.get_final_message(), model)
+        try:
+            async with self.client.beta.messages.stream(
+                model=model,
+                max_tokens=max_tokens,
+                system=system,  # type: ignore[arg-type]
+                messages=messages,  # type: ignore[arg-type]
+                **self._extra(model, effort, thinking_off),
+            ) as stream:
+                async for chunk in stream.text_stream:
+                    yield chunk
+                final = await stream.get_final_message()
+        except _SDK_ERRORS as exc:
+            raise _unavailable(exc) from exc
+        self._check(final, model)
 
     async def parse(
         self,
@@ -165,14 +190,17 @@ class AnthropicLLM:
         max_tokens: int,
         effort: str | None = None,
     ) -> T:
-        message = await self.client.beta.messages.parse(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-            output_format=schema,
-            **self._extra(model, effort),
-        )
+        try:
+            message = await self.client.beta.messages.parse(
+                model=model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+                output_format=schema,
+                **self._extra(model, effort),
+            )
+        except _SDK_ERRORS as exc:
+            raise _unavailable(exc) from exc
         self._check(message, model)
         if message.parsed_output is None:
             raise LLMError(f"구조화 출력 파싱 실패 (stop_reason={message.stop_reason})")

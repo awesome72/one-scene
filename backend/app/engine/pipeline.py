@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.engine import extractor, prompt_builder, questioner, resources, reviewer, stage_machine
 from app.engine.extractor import Extraction
-from app.engine.llm import LLM, LLMError
+from app.engine.llm import LLM, UNAVAILABLE_MESSAGE, LLMError, LLMUnavailable
 from app.models import Material, Signal, Turn, WritingSession
 from app.schemas import TurnOut
 from app.views import material_out, session_detail
@@ -180,9 +180,10 @@ def _save_coach_turn(
 
 
 def _error(exc: Exception) -> Event:
-    return _event(
-        "error", message="질문을 만들지 못했어요. 잠시 뒤 다시 보내 주세요.", detail=str(exc)
-    )
+    # 오류 원문(크레딧·키 등)은 로그에만 남기고 사용자에게는 정해 둔 문구만 보낸다
+    if isinstance(exc, LLMUnavailable):
+        return _event("error", message=UNAVAILABLE_MESSAGE)
+    return _event("error", message="질문을 만들지 못했어요. 잠시 뒤 다시 보내 주세요.")
 
 
 async def _pump(source: AsyncIterator[Event], queue: asyncio.Queue) -> None:
@@ -192,6 +193,9 @@ async def _pump(source: AsyncIterator[Event], queue: asyncio.Queue) -> None:
             await queue.put(event)
     except LLMError as exc:
         log.exception("질문 생성 실패")
+        await queue.put(_error(exc))
+    except Exception as exc:  # 예상 못 한 오류도 대화를 멈추게 두지 않는다 (끝 표시가 늘 간다)
+        log.exception("질문 생성 중 예상 못 한 오류")
         await queue.put(_error(exc))
     finally:
         await queue.put(None)

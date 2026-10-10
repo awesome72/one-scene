@@ -64,6 +64,7 @@ cd frontend && npm run lint                          # oxlint
 ### 백엔드 계층
 `routers/` (sessions, turns, drafts, library) → `engine/` → `models.py`.
 - **LLM 호출은 `engine/` 안에서만.** 엔진은 `engine/llm.py`의 `LLM` 프로토콜(`text`, `parse`)에만 의존한다. 라우터는 `Depends(get_llm)`으로 받고, 테스트는 이를 `tests/fakes.py`의 `FakeLLM`으로 바꾼다 (`fake.queue(<pydantic 응답>)`, `fake.extractions`, `fake.questions`, `fake.reviews`).
+- AI를 쓸 수 없을 때(크레딧 소진·키·과부하·연결): `AnthropicLLM`이 SDK 오류를 `LLMUnavailable`(LLMError)로 바꾼다. SSE는 `UNAVAILABLE_MESSAGE`("쓰신 답은 저장됐어요")만 보내고 오류 원문은 로그에만, SSE가 아닌 요청은 `main.py`의 처리기가 503. 새 LLM 호출을 더할 때도 SDK 예외를 직접 잡지 말고 이 경로를 탄다.
 - `AnthropicLLM`은 `client.beta.messages`를 쓰고 `FALLBACK_MODELS`에는 `fallbacks="default"`를 붙인다. 구조화 출력은 `beta.messages.parse(output_format=PydanticModel)`. 호출별 토큰 사용량을 `self.usage`에 쌓는다 (평가 비용 계산용).
 - 비용 기록(`engine/metering.py`): 라우터가 LLM을 쓰는 요청을 `metered()`(SSE)·`metered_call()`로 감싸면 그 안의 호출이 `llm_usage` 표에 토큰·비용과 함께 남는다 (contextvar라 엔진 함수 인자는 그대로). 단가표 `PRICES`도 여기 하나. 서버의 공용 `AnthropicLLM`은 `keep_usage=False`(메모리 누수 방지), 평가 스크립트는 `llm.usage`를 쓴다.
 - 모델 이름은 `.env`의 `MODEL_QUESTIONER/ASSEMBLER/FIDELITY`(Sonnet 5.5), `MODEL_EXTRACTOR/REVIEWER`(Haiku 4.5)를 `config.py`로만 참조한다. Haiku에는 `effort`를 보내지 않는다.
@@ -84,6 +85,7 @@ cd frontend && npm run lint                          # oxlint
 - 초안의 원천은 `drafts.sentence_map`(`paragraph, text, material_ids, is_blank, note`)이고 `body`는 파생값. 교정 표시 id는 `"{문장}:{시작}:{종류}"`, `lint_result[].dismissed`가 '그대로 두기'(B5). 교정 질문에 답하면 질문·답이 대화 턴으로 남고 답에서 재료를 뽑는다 (초안에는 '다시 만들기' 때 반영).
 - 빈칸: 같은 단락에서 연달아 나온 빈칸은 하나로 합친다(`merge_blanks`). 빈칸 교정 질문에 답하면 그 자리를 바로 채운다(`_fill_blank`, `fill_blank.md`): 답에서 뽑은 재료로만 쓴 문장을 진실성 검사에 통과시켜 빈칸 한 자리(두 문장이어도 한 칸, 뒤 표시 id가 그대로)에 넣고 `source: "filled"`. 못 쓰면 빈칸은 두고 재료로만 남는다.
 - AI 제안: 조립기는 빈칸마다 `suggestion`을 쓰고, 진실성 검사에서 걸린 문장은 버리지 않고 그 빈칸의 제안이 된다. `POST /drafts/{id}/sentences/{i}/accept`(고쳐 쓰기 가능)·`/accept-all`이 같은 초안 버전 안에서 `source: "accepted"`로 바꾼다. 조립 effort는 medium, 진실성 검사는 low (속도).
+- 계열 짜기 화면의 `Coverage`: 개요에 든 재료 글자 수를 '지금 재료로 쓸 수 있는 분량'으로 보여 준다 (시뮬레이션에서 초안 길이는 재료 글자의 0.65~1.3배). 목표의 30% 미만이면 대화로 돌아가기를 권한다.
 - 직접 고치기(`edit_draft`, `POST /drafts/{id}/edit`)는 LLM 없이 새 초안 버전을 만든다. 그대로 남은 문장은 출처를 유지하고, 고친 문장은 `source: "user"`(진실성 검사 대상 아님). '그대로 두기'는 (종류, 표시된 말)로 다음 버전에 이어진다.
 - 태그는 Haiku가 제안만 하고 사용자가 `PUT /tags`로 저장한다. 보관함의 다음 글감 = `gap` 태그 중 아직 새 글 첫 질문으로 쓰지 않은 것.
 
