@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Library as LibraryData } from '../api/client'
+import { DeleteAccount } from '../components/DeleteAccount'
 import { DeleteButton } from '../components/DeleteButton'
 import { go } from '../lib/route'
 
@@ -103,6 +104,7 @@ export function Library() {
                 await reload()
               }}
             />
+            <DeleteAccount />
           </section>
         </>
       )}

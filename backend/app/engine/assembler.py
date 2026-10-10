@@ -8,8 +8,6 @@ from app.engine.llm import LLM
 from app.models import OutlineItem, WritingSession
 
 MAX_TOKENS = 16000
-# 속도: 조립은 재료를 옮겨 적는 일이라 medium으로 충분하다 (기본 high는 느리다)
-EFFORT = "medium"
 LENGTH_NAMES = {"short": "짧은 글", "medium": "보통 글", "long": "긴 글"}
 
 
@@ -73,5 +71,6 @@ async def run(llm: LLM, session: WritingSession, items: list[OutlineItem]) -> As
         user=build_user_message(session, items),
         schema=AssembledDraft,
         max_tokens=MAX_TOKENS,
-        effort=EFFORT,
+        # 속도: 조립은 재료를 옮겨 적는 일이라 high까지는 필요 없다 (config.assembler_effort)
+        effort=get_settings().assembler_effort,
     )

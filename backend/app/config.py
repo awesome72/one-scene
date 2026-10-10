@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     daily_llm_limit: int = 300
     # 한 사람의 하루 AI 작업 상한 (글 한 편 ≈ 40~70턴. 하루에 한 편을 다 못 끝내면 다음 날 이어 쓴다)
     daily_llm_limit_per_user: int = 60
+    # 초안 조립 effort (속도·비용 ↔ 빈칸 수). 여정 시뮬레이션으로 정한다 (docs/PROGRESS.md)
+    assembler_effort: str = "medium"
     # 질문을 보낸 뒤 도는 LLM 검수(기록용)를 몇 %만 돌릴지. 평가 스크립트는 1.0으로 돌린다 (비용)
     review_sample_rate: float = 0.1
     # 받아쓰기·읽어 주기 하루 상한 (사용자당). 건당 약 $0.001이라 AI 상한과 따로 넉넉하게

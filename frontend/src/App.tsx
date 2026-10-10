@@ -1,5 +1,6 @@
 import './app.css'
-import { useAuth } from './lib/auth'
+import { useState } from 'react'
+import { resetParams, useAuth } from './lib/auth'
 import { useRoute } from './lib/route'
 import { Chat } from './pages/Chat'
 import { Draft } from './pages/Draft'
@@ -9,10 +10,17 @@ import { Library } from './pages/Library'
 import { Login } from './pages/Login'
 import { Outline } from './pages/Outline'
 import { Privacy } from './pages/Privacy'
+import { ResetPassword } from './pages/ResetPassword'
 
 function App() {
   const route = useRoute()
   const [auth, refresh] = useAuth()
+  // 비밀번호 재설정 메일의 링크로 돌아오면 주소에 ?token= (또는 ?error=)이 붙어 있다
+  const [reset, setReset] = useState(() => {
+    const p = resetParams()
+    return p.token || p.error ? p : null
+  })
+  if (reset) return <ResetPassword token={reset.token} error={reset.error} onDone={() => setReset(null)} />
   // 개인정보 처리방침은 로그인 전에도 볼 수 있어야 한다
   if (route.name === 'privacy') return <Privacy />
   if (auth.status === 'loading') return <div className="page" />

@@ -70,6 +70,52 @@ export async function signOut(): Promise<void> {
   await authClient?.signOut()
 }
 
+// ---------- 비밀번호 재설정 ----------
+// 메일의 링크를 누르면 Neon Auth가 redirectTo로 ?token=… (만료·잘못이면 ?error=INVALID_TOKEN)을 붙여 돌려보낸다.
+// 링크는 15분 동안 쓸 수 있다 (Neon Auth 문서)
+
+/** 이 화면으로 돌아왔을 때 주소에 붙은 재설정 토큰 (또는 오류) */
+export function resetParams(): { token: string | null; error: string | null } {
+  const q = new URLSearchParams(location.search)
+  return { token: q.get('token'), error: q.get('error') }
+}
+
+export async function requestPasswordReset(email: string): Promise<string | null> {
+  if (!authClient) return '지금은 비밀번호를 다시 정할 수 없어요.'
+  const client = authClient
+  // 있는 계정인지와 상관없이 같은 응답이 온다 (가입 여부를 드러내지 않는다)
+  return attempt(
+    () => client.requestPasswordReset({ email, redirectTo: `${location.origin}/` }),
+    '메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.',
+  )
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<string | null> {
+  if (!authClient) return '지금은 비밀번호를 다시 정할 수 없어요.'
+  const client = authClient
+  return attempt(
+    () => client.resetPassword({ token, newPassword }),
+    '비밀번호를 바꾸지 못했어요. 메일의 링크가 만료됐을 수 있어요. 다시 요청해 주세요.',
+  )
+}
+
+// ---------- 계정 삭제 ----------
+/** 로그인 계정 자체를 지운다. 서버에서 꺼져 있으면(Neon Auth 설정) 안내 문구를 돌려준다 */
+export async function deleteAccount(password: string): Promise<string | null> {
+  if (!authClient) return null
+  const client = authClient
+  try {
+    const { error } = await client.deleteUser({ password })
+    if (!error) return null
+    const e = error as { status?: number; code?: string }
+    if (e.status === 404 || e.code === 'NOT_FOUND')
+      return '로그인 계정 삭제는 아직 화면에서 할 수 없어요. 개인정보 처리방침의 문의처로 요청해 주세요.'
+    return message(error, '계정을 지우지 못했어요.')
+  } catch (e) {
+    return message(e, '계정을 지우지 못했어요.')
+  }
+}
+
 type AuthState = { status: 'loading' } | { status: 'signed-out' } | { status: 'signed-in'; user: AuthUser | null }
 
 // 화면 전체의 로그인 상태

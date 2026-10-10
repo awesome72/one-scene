@@ -104,11 +104,14 @@ def get_material_card(session: OwnedSessionDep) -> MaterialCard:
 def update_material(
     material_id: str, body: MaterialUpdate, session: OwnedSessionDep, db: DbDep
 ) -> MaterialOut:
-    """재료 빼 두기/되살리기. 재료 원문(text)은 바꿀 수 없다 (CLAUDE.md 제품 규칙 3)."""
+    """재료 빼 두기/되살리기, 블록 옮기기. 재료 원문(text)은 바꿀 수 없다 (CLAUDE.md 제품 규칙 3)."""
     material = db.get(Material, material_id)
     if material is None or material.session_id != session.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "재료를 찾을 수 없습니다.")
-    material.excluded = body.excluded
+    if body.excluded is not None:
+        material.excluded = body.excluded
+    if body.arc_block is not None:
+        material.arc_block = body.arc_block
     db.commit()
     return material_out(material)
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, STAGE_NAMES, type MaterialCardData } from '../api/client'
+import { api, ARC_BLOCKS, ARC_SHORT, STAGE_NAMES, type ArcBlock, type Material, type MaterialCardData } from '../api/client'
 import { josa } from '../lib/josa'
 
 // SKILL.md 6장 길이 기준
@@ -30,6 +30,45 @@ export function MaterialCard({
     await api.setExcluded(sessionId, materialId, excluded)
     setCard(await api.materialCard(sessionId))
   }
+
+  // 블록 옮기기: 자동 분류가 틀렸을 때 사용자가 고친다 (예: 첫 장면의 사물이 지금 다시 나온 말 → 여운)
+  const [moving, setMoving] = useState<string | null>(null)
+  const move = async (materialId: string, block: ArcBlock) => {
+    await api.moveMaterial(sessionId, materialId, block)
+    setMoving(null)
+    setCard(await api.materialCard(sessionId))
+  }
+  const row = (m: Material) => (
+    <div key={m.id} className="material-row">
+      <div className="row between">
+        <button
+          type="button"
+          className={`said ${m.excluded ? 'off' : ''}`}
+          aria-pressed={!m.excluded}
+          onClick={() => toggle(m.id, !m.excluded)}
+        >
+          “{m.text}”
+        </button>
+        <button
+          type="button"
+          className="link small"
+          aria-expanded={moving === m.id}
+          onClick={() => setMoving(moving === m.id ? null : m.id)}
+        >
+          옮기기
+        </button>
+      </div>
+      {moving === m.id && (
+        <div className="tag-list" aria-label="옮길 블록">
+          {ARC_BLOCKS.filter((b) => b !== m.arc_block).map((b) => (
+            <button type="button" key={b} className="tag" onClick={() => move(m.id, b)}>
+              {josa(ARC_SHORT[b], '으로', '로')}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 
   // 주제·길이는 사용자가 직접 정하거나 고칠 수 있다 (open-questions F2)
   const [editingTopic, setEditingTopic] = useState(false)
@@ -167,20 +206,18 @@ export function MaterialCard({
                     {b.label}
                     <span>{b.materials.length ? (active ? `재료 ${active}개` : '빼 둠') : '비어 있음'}</span>
                   </h3>
-                  {b.materials.map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      className={`said ${m.excluded ? 'off' : ''}`}
-                      aria-pressed={!m.excluded}
-                      onClick={() => toggle(m.id, !m.excluded)}
-                    >
-                      “{m.text}”
-                    </button>
-                  ))}
+                  {b.materials.map(row)}
                 </section>
               )
             })}
+            {card.unplaced.length > 0 && (
+              <section className="card-block">
+                <h3>
+                  아직 자리가 없는 재료<span>옮기기로 블록을 정할 수 있어요</span>
+                </h3>
+                {card.unplaced.map(row)}
+              </section>
+            )}
 
             {card.repeated.length > 0 && (
               <section className="card-block">

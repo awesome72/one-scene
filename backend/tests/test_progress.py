@@ -52,9 +52,12 @@ def test_progress_follows_materials_and_stage(client: TestClient, db_session: Se
 
     p = client.post(f"/sessions/{sid}/advance", json=APPROVE).json()["progress"]
     keys = {c["key"]: c for c in p["conditions"]}
-    assert keys["block_scene"]["done"] and not keys["block_meaning"]["done"]
+    # 보통 글: 장면·사건·현재는 재료 2개씩, 의미·여운은 하나
+    assert (keys["block_scene"]["have"], keys["block_scene"]["need"]) == (1, 2)
+    assert keys["block_scene"]["label"] == "장면 재료 2개"
+    assert keys["block_meaning"]["need"] == 1 and keys["block_resonance"]["need"] == 1
     assert (keys["scene_senses"]["have"], keys["scene_senses"]["need"]) == (0, 2)
-    assert 1 < p["journey"] < 2 and p["next_block"] == "event"
+    assert 1 < p["journey"] < 2 and p["next_block"] == "scene"
     assert p["turns_in_stage"] == 0  # 1단계의 대답은 세지 않는다
 
     _add(db_session, sid, "scene", "sense", "빗소리")
@@ -152,3 +155,15 @@ def test_new_session_removes_unanswered_ones(client: TestClient, db_session: Ses
     third = _start(client)["id"]  # answered는 남는다
     ids = {s["id"] for s in client.get("/sessions").json()}
     assert ids == {answered, third} and first not in ids
+
+
+def test_block_need_scales_with_target_length(client: TestClient, db_session: Session) -> None:
+    from app.engine import stage_machine
+
+    sid = _start(client)["id"]
+    s = db_session.get(WritingSession, sid)
+    s.stage = 2
+    for length, need in (("short", 1), ("medium", 2), ("long", 3), (None, 1)):
+        s.target_length = length
+        assert stage_machine.block_need(s, "event") == need
+        assert stage_machine.block_need(s, "meaning") == 1

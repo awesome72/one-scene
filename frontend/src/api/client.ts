@@ -346,6 +346,9 @@ export const api = {
   materialCard: (id: string) => request<MaterialCardData>('GET', `/sessions/${id}/material-card`),
   setExcluded: (id: string, materialId: string, excluded: boolean) =>
     request<Material>('PATCH', `/sessions/${id}/materials/${materialId}`, { excluded }),
+  // 재료를 다른 블록으로 옮긴다 (자동 분류가 틀렸을 때). 원문은 바뀌지 않는다
+  moveMaterial: (id: string, materialId: string, arc_block: ArcBlock) =>
+    request<Material>('PATCH', `/sessions/${id}/materials/${materialId}`, { arc_block }),
   advance: (id: string) => request<SessionDetail>('POST', `/sessions/${id}/advance`, { approved: true }),
   back: (id: string) => request<SessionDetail>('POST', `/sessions/${id}/back`, { approved: true }),
   sendTurn: (

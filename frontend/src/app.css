@@ -1176,3 +1176,36 @@ html.large-text #root {
 .coverage-bar i.thin {
   background: var(--mark);
 }
+
+/* 재료 카드: 블록 옮기기 */
+.material-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.material-row .row.between {
+  align-items: flex-start;
+  gap: 8px;
+}
+.material-row .said {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.link.small {
+  font-size: 12px;
+  padding: 4px 0;
+  white-space: nowrap;
+}
+.confirm-delete.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+.confirm-delete input {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+}

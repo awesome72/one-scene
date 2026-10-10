@@ -45,6 +45,18 @@ BLOCK_HINTS = {
 }
 
 
+# 목표 길이가 길수록 블록마다 재료가 더 있어야 한다 (여정 시뮬레이션: 보통 글 목표 2,500자에 초안이
+# 500~650자 — 블록마다 재료 하나로 마치면 글이 짧다). 의미·여운은 길이와 상관없이 하나면 된다
+BLOCK_NEED = {"short": 1, "medium": 2, "long": 3}
+LENGTH_SCALED_BLOCKS = ("scene", "event", "present")
+
+
+def block_need(session: WritingSession, block: str) -> int:
+    if block not in LENGTH_SCALED_BLOCKS:
+        return 1
+    return BLOCK_NEED.get(session.target_length or "short", 1)
+
+
 def conditions(session: WritingSession) -> list[Condition]:
     """현재 단계의 마감 조건과 지금까지 채운 정도."""
     if session.stage == 1:
@@ -58,11 +70,12 @@ def conditions(session: WritingSession) -> list[Condition]:
                       hint="재료 카드에서 짧은 글, 보통 글, 긴 글 중 하나 고르기"),
         ]
     if session.stage == 2:
-        out = [
-            Condition(f"block_{b}", f"{BLOCK_NAMES[b]} 재료", len(_in_block(session, b)),
-                      block=b, hint=BLOCK_HINTS[b])
-            for b in ARC_BLOCKS
-        ]
+        out = []
+        for b in ARC_BLOCKS:
+            need = block_need(session, b)
+            label = f"{BLOCK_NAMES[b]} 재료" + (f" {need}개" if need > 1 else "")
+            out.append(Condition(f"block_{b}", label, len(_in_block(session, b)), need=need,
+                                 block=b, hint=BLOCK_HINTS[b]))
         senses = [m for m in _in_block(session, "scene") if m.type in ("sense", "object")]
         out.append(Condition("scene_senses", "장면 블록의 감각·사물 재료 2개", len(senses),
                              need=2, block="scene",

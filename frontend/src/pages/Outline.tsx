@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Outline as OutlineData, type PatternId, type SessionDetail } from '../api/client'
 import { Coverage } from '../components/Coverage'
+import { DraftWait } from '../components/DraftWait'
 import { Journey } from '../components/Journey'
 import { josa } from '../lib/josa'
 import { go } from '../lib/route'
@@ -115,10 +116,14 @@ export function Outline({ id }: { id: string }) {
 
       <Coverage outline={outline} sessionId={id} />
 
-      {status && (
-        <p className="status" role="status">
-          <span className="pulse" /> {status}
-        </p>
+      {status && Object.values(STEP_TEXT).includes(status as never) ? (
+        <DraftWait status={status} />
+      ) : (
+        status && (
+          <p className="status" role="status">
+            <span className="pulse" /> {status}
+          </p>
+        )
       )}
       {error && <p className="error">{error}</p>}
 

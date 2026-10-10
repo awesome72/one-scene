@@ -55,7 +55,8 @@ cd frontend && npm run lint                          # oxlint
 - CI: `.github/workflows/ci.yml`이 main 푸시·PR마다 백엔드 `ruff`·`pytest`(`.env` 없이)와 프론트 `lint`·`build`를 돌린다. Vercel 배포는 CI와 별개로 진행되므로 CI 실패를 확인하면 바로 고친다.
 - Vercel 프로젝트 `one-scene` (https://one-scene.vercel.app), GitHub `awesome72/one-scene`(공개)의 `main`에 푸시하면 production 자동 배포. PR·다른 브랜치는 preview.
 - `vercel.json`의 Services: `frontend`(Vite, SPA 폴백)와 `backend`(FastAPI `app/main.py`). 공개 `/api/*`는 백엔드로 가고, 백엔드 쪽 rewrite가 `/api` 접두어를 떼므로 FastAPI 라우트에는 `/api`가 없다.
-- 운영 DB는 `DATABASE_URL`(Neon, `postgres://`를 `config.sqlalchemy_url`이 psycopg 3 주소로 바꿈). 없으면 Vercel에서는 `/tmp` SQLite (유지 안 됨). 스키마는 `create_all`뿐이라 컬럼을 바꾸면 운영 DB도 직접 손봐야 한다 (Alembic 도입 전).
+- 운영 DB는 `DATABASE_URL`(Neon, `postgres://`를 `config.sqlalchemy_url`이 psycopg 3 주소로 바꿈). 없으면 Vercel에서는 `/tmp` SQLite (유지 안 됨).
+- **스키마는 Alembic**(`backend/migrations`, `alembic.ini`): 서버가 켜질 때 `app/migrate.py`가 적용한다 (Postgres는 advisory lock, `create_all` 시절 DB는 기준선 0001로 stamp). 모델을 바꾸면 `cd backend && uv run alembic revision --autogenerate -m "설명"`으로 마이그레이션을 만든다 — 안 만들면 `tests/test_migrations.py`가 걸린다. `alembic.ini`는 ASCII만 (Windows cp949로 읽힌다).
 - 환경 변수는 `vercel env`로 관리 (`ANTHROPIC_API_KEY`, `MODEL_*`, `OPENAI_API_KEY`, `DAILY_LLM_LIMIT`, `DAILY_LLM_LIMIT_PER_USER`). 비용 안전장치는 하루 상한: AI 작업은 사용자별 60·전체 300 (턴·초안 + `usage_events`의 opening·tags), 음성은 사용자별 200 (`usage_events`의 stt·tts). 보안 헤더는 `vercel.json`의 `headers`. CSP는 적용 중: 외부 출처는 Google Fonts와 Neon Auth(`connect-src`, 주소가 바뀌면 함께 고칠 것)뿐이고, 새 외부 서비스를 붙이면 먼저 `Content-Security-Policy-Report-Only`로 확인한다.
 - CLI 배포(`vercel deploy`)는 로컬 파일을 올린다. 비밀·개인 글은 `.vercelignore`로 막는다. Windows Git Bash의 curl은 한글 JSON 본문을 깨뜨리므로 운영 API 확인은 httpx로 한다.
 
@@ -69,6 +70,7 @@ cd frontend && npm run lint                          # oxlint
 - 비용 기록(`engine/metering.py`): 라우터가 LLM을 쓰는 요청을 `metered()`(SSE)·`metered_call()`로 감싸면 그 안의 호출이 `llm_usage` 표에 토큰·비용과 함께 남는다 (contextvar라 엔진 함수 인자는 그대로). 단가표 `PRICES`도 여기 하나. 서버의 공용 `AnthropicLLM`은 `keep_usage=False`(메모리 누수 방지), 평가 스크립트는 `llm.usage`를 쓴다.
 - 모델 이름은 `.env`의 `MODEL_QUESTIONER/ASSEMBLER/FIDELITY`(Sonnet 5.5), `MODEL_EXTRACTOR/REVIEWER`(Haiku 4.5)를 `config.py`로만 참조한다. Haiku에는 `effort`를 보내지 않는다.
 - ORM → 응답 변환은 `views.py`, 스키마는 `schemas.py`(세션·턴·재료)와 `schemas_draft.py`(개요·초안·교정). SQLite가 시간대를 잃으므로 시각 필드는 `UtcDatetime`.
+- 비밀번호 재설정: 로그인 화면 '비밀번호를 잊으셨나요?' → `requestPasswordReset`(redirectTo = 사이트 첫 화면) → 메일 링크가 `?token=`을 붙여 돌려보내면 `ResetPassword` 화면(링크 15분). 계정 삭제: 보관함 '계정까지 지우기' → 비밀번호 확인(signIn) → `DELETE /me/data` → `deleteUser`. 둘 다 Neon Auth 쪽 설정(이메일 발송, deleteUser 허용)에 달려 있어, 실패하면 안내 문구를 보인다.
 - 인증(`app/auth.py`, `frontend/src/lib/auth.ts`): `NEON_AUTH_BASE_URL`(프론트는 `VITE_NEON_AUTH_URL`)이 있으면 Neon Auth 로그인 필수 — 프론트가 `getSession()`의 `session.token`(JWT)을 Bearer로 보내고, 백엔드가 JWKS(EdDSA)로 서명·만료·iss·aud를 검증해 `sub`를 사용자 ID로 쓴다. 없으면(로컬·테스트) `X-User-Id` 헤더(없으면 `dev-user`)로 동작한다. 세션 접근은 `deps.OwnedSessionDep`가 소유자를 확인한다.
 
 ### 한 턴 처리 (`engine/pipeline.py`, `POST /sessions/{id}/turns` SSE)
@@ -85,6 +87,8 @@ cd frontend && npm run lint                          # oxlint
 - 초안의 원천은 `drafts.sentence_map`(`paragraph, text, material_ids, is_blank, note`)이고 `body`는 파생값. 교정 표시 id는 `"{문장}:{시작}:{종류}"`, `lint_result[].dismissed`가 '그대로 두기'(B5). 교정 질문에 답하면 질문·답이 대화 턴으로 남고 답에서 재료를 뽑는다 (초안에는 '다시 만들기' 때 반영).
 - 빈칸: 같은 단락에서 연달아 나온 빈칸은 하나로 합친다(`merge_blanks`). 빈칸 교정 질문에 답하면 그 자리를 바로 채운다(`_fill_blank`, `fill_blank.md`): 답에서 뽑은 재료로만 쓴 문장을 진실성 검사에 통과시켜 빈칸 한 자리(두 문장이어도 한 칸, 뒤 표시 id가 그대로)에 넣고 `source: "filled"`. 못 쓰면 빈칸은 두고 재료로만 남는다.
 - AI 제안: 조립기는 빈칸마다 `suggestion`을 쓰고, 진실성 검사에서 걸린 문장은 버리지 않고 그 빈칸의 제안이 된다. `POST /drafts/{id}/sentences/{i}/accept`(고쳐 쓰기 가능)·`/accept-all`이 같은 초안 버전 안에서 `source: "accepted"`로 바꾼다. 조립 effort는 medium, 진실성 검사는 low (속도).
+- 2단계 마감: 장면·사건·현재 블록은 목표 길이에 따라 재료 1/2/3개(`block_need`), 의미·여운은 1개. 재료 카드에서 재료를 다른 블록으로 옮길 수 있다(`PATCH .../materials/{id}` `arc_block`, 자동 분류가 틀렸을 때).
+- 초안 조립 effort는 `ASSEMBLER_EFFORT`(기본 medium). 시뮬레이션: low는 4배 빠르고 비용 절반이지만 빈칸 비율 12→23%. 기다리는 동안 `DraftWait`가 보통 시간과 지난 시간을 보여 준다.
 - 계열 짜기 화면의 `Coverage`: 개요에 든 재료 글자 수를 '지금 재료로 쓸 수 있는 분량'으로 보여 준다 (시뮬레이션에서 초안 길이는 재료 글자의 0.65~1.3배). 목표의 30% 미만이면 대화로 돌아가기를 권한다.
 - 직접 고치기(`edit_draft`, `POST /drafts/{id}/edit`)는 LLM 없이 새 초안 버전을 만든다. 그대로 남은 문장은 출처를 유지하고, 고친 문장은 `source: "user"`(진실성 검사 대상 아님). '그대로 두기'는 (종류, 표시된 말)로 다음 버전에 이어진다.
 - 태그는 Haiku가 제안만 하고 사용자가 `PUT /tags`로 저장한다. 보관함의 다음 글감 = `gap` 태그 중 아직 새 글 첫 질문으로 쓰지 않은 것.
@@ -110,7 +114,8 @@ cd frontend && npm run lint                          # oxlint
 
 ## 이 환경(Windows)에서 겪은 함정
 - `uv run fastapi dev`의 자동 재시작이 가끔 이전 코드로 남는다. 백엔드를 고친 뒤 동작이 이상하면 서버를 직접 재시작한다.
-- 개발 DB(`backend/one_scene.db`)는 마이그레이션이 없다(`create_all`). 모델 컬럼을 바꾸면 지우고 다시 만든다.
+- 개발 DB(`backend/one_scene.db`)도 서버가 켜질 때 마이그레이션된다.
+- Git Bash heredoc 안의 Python 문자열에 `\n`을 쓰면 실제 줄바꿈으로 바뀌어 코드가 깨진다. 백슬래시가 든 코드는 Edit/Write 도구로 고친다.
 - 한글 출력은 `PYTHONUTF8=1`. 단 `python -I`는 이 환경 변수를 무시하므로 그때는 `-X utf8`.
 - Bash 도구의 heredoc에 따옴표가 섞인 긴 Python/TS 코드를 넣으면 셸 파싱이 실패할 수 있다. 파일 수정은 Edit/Write 도구로 한다.
 - 최신 Chromium의 `scrollIntoView()`는 Promise를 돌려준다. `useEffect` 화살표 함수에서 그대로 반환하면 React가 정리 함수로 호출하다 화면이 멈춘다. 중괄호로 감싼다.

@@ -222,6 +222,12 @@ def test_patch_session_and_exclude_material(client: TestClient, fake: FakeLLM) -
     # 원문은 바꿀 수 없다: text 필드는 무시된다
     res = client.patch(f"/sessions/{sid}/materials/{mid}", json={"excluded": False, "text": "x"})
     assert res.json()["text"] == "회의실이었어요"
+    # 블록 옮기기: 빼 두기 상태는 그대로, 아크 개수에 바로 반영
+    res = client.patch(f"/sessions/{sid}/materials/{mid}", json={"arc_block": "resonance"})
+    assert res.json()["arc_block"] == "resonance" and res.json()["excluded"] is False
+    arc = client.get(f"/sessions/{sid}").json()["arc"]
+    assert arc["resonance"] == 1 and arc["scene"] == 0
+    assert client.patch(f"/sessions/{sid}/materials/{mid}", json={"arc_block": "x"}).status_code == 422
 
 
 def test_turn_validation(client: TestClient, fake: FakeLLM) -> None:

@@ -4,6 +4,7 @@ import { DraftMeter } from '../components/DraftMeter'
 import { SourceNote } from '../components/SourceNote'
 import { ListenButton } from '../components/ListenButton'
 import { Quoted } from '../components/Quoted'
+import { DraftWait } from '../components/DraftWait'
 import { Journey } from '../components/Journey'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { copyText, download, markdown, plainText, safeFilename } from '../lib/exportText'
@@ -377,10 +378,14 @@ export function Draft({ id }: { id: string }) {
         </>
       )}
 
-      {status && (
-        <p className="status" role="status">
-          <span className="pulse" /> {status}
-        </p>
+      {status && Object.values(STEP_TEXT).includes(status as never) ? (
+        <DraftWait status={status} />
+      ) : (
+        status && (
+          <p className="status" role="status">
+            <span className="pulse" /> {status}
+          </p>
+        )
       )}
       {error && <p className="error">{error}</p>}
 

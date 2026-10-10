@@ -5,16 +5,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app import models  # noqa: F401  테이블 등록
-from app.db import Base, engine
+from app import (
+    migrate,
+    models,  # noqa: F401  테이블 등록
+)
+from app.db import engine
 from app.engine.llm import UNAVAILABLE_MESSAGE, LLMError, LLMUnavailable
 from app.routers import drafts, library, sessions, turns, voice
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # 개발 단계: 테이블 자동 생성. PostgreSQL 전환 전에 Alembic 마이그레이션으로 바꾼다
-    Base.metadata.create_all(engine)
+    # DB 스키마를 최신으로 (Alembic, app/migrate.py). create_all 시절 DB는 기준선으로 표시한다
+    migrate.upgrade(engine)
     yield
 
 

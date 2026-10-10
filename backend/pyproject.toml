@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "한 장면 — 묻는 AI, 쓰는 사람"
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.20.0",
     "anthropic>=1.12.1",
     "fastapi[standard]>=0.143.0",
     "openai>=3.28.0",

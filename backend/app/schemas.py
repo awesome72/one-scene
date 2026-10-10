@@ -115,7 +115,10 @@ class MaterialOut(BaseModel):
 
 
 class MaterialUpdate(BaseModel):
-    excluded: bool
+    # 보내지 않은 필드는 그대로 둔다. 재료 원문(text)은 바꿀 수 없다 (제품 규칙 3)
+    excluded: bool | None = None
+    # 사용자가 블록을 직접 옮긴다 (자동 분류가 틀렸을 때: 지금의 장면을 '여운'으로 등)
+    arc_block: ArcBlock | None = None
 
 
 class CardBlock(BaseModel):
