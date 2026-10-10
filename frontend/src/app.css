@@ -26,7 +26,7 @@ button:disabled {
 }
 .primary {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   border: 1px solid var(--ink);
 }
 .secondary {
@@ -248,7 +248,7 @@ mark {
 .checklist li.done .box {
   background: var(--ok);
   border-color: var(--ok);
-  color: #fff;
+  color: var(--on-ink);
 }
 .checklist li.done > span:nth-child(2) {
   color: var(--muted);
@@ -500,7 +500,7 @@ button:focus-visible {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(22, 33, 58, 0.35);
+  background: var(--backdrop);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -628,7 +628,7 @@ button:focus-visible {
 .pattern.on {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 .pattern.on span {
   color: var(--on-ink-sub);
@@ -738,7 +738,7 @@ button:focus-visible {
 .chip.on {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 .listen {
   font: inherit;
@@ -1114,7 +1114,7 @@ input:focus-visible {
 .score-row button.on {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 /* 큰 글자 보기 (lib/display.ts) */

@@ -4,7 +4,9 @@
   --ink-2: #34405e;
   --muted: #5b6272;
   --muted-2: #8a91a0;
+  --on-ink: #ffffff; /* 잉크색 바탕(주 버튼·선택된 칩) 위의 글자 */
   --on-ink-sub: #c4cad8;
+  --backdrop: rgba(22, 33, 58, 0.35);
   --bg: #f7f7f4;
   --surface: #ffffff;
   --line: #e1e2dc;
@@ -39,5 +41,28 @@ body {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 24px 20px;
+  /* 홈 화면에 추가해 전체 화면으로 열면 노치·상태 표시줄 아래로 내려온다 */
+  padding: max(24px, env(safe-area-inset-top)) 20px 24px;
+}
+
+/* 어두운 화면: 기기 설정을 따른다. 같은 이름의 토큰만 바꾸고, 화면 규칙은 토큰으로만 색을 쓴다 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8ebf2;
+    --ink-2: #c3c9d6;
+    --muted: #9aa1b0;
+    --muted-2: #848b9b;
+    --on-ink: #111522;
+    --on-ink-sub: #34405e;
+    --bg: #111522;
+    --surface: #1a1f2e;
+    --line: #2a3142;
+    --line-2: #343c50;
+    --mark: #e07a6e;
+    --mark-bg: #3a2326;
+    --ok: #7cc4a0;
+    --ok-bg: #1d3329;
+    --backdrop: rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
 }

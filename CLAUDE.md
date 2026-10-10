@@ -101,7 +101,8 @@ cd frontend && npm run lint                          # oxlint
 - 쓰는 중인 답은 `lib/draftStore.ts`로 브라우저에 보관하고, 보내기가 서버에 닿기 전에 실패하면 입력창에 되돌린다 (답을 잃지 않는 것이 최우선).
 - `api/client.ts`가 모든 API 호출과 타입을 가진다. POST SSE는 EventSource 대신 fetch 스트림을 직접 파싱한다. 상태의 원천은 서버다.
 - 음성(Phase 5): 서버 우선, 브라우저 대비. 말로 답하기는 `lib/recorder.ts`(MediaRecorder) → `POST /sessions/{id}/voice/transcribe` → 확인 화면(자동 전송 없음), 서버를 못 쓰면 `lib/speech.ts`(Web Speech). 읽어 주기는 `lib/tts.ts`가 `POST /sessions/{id}/voice/speech`(그 글의 코치·교정 질문만 허용) mp3를 재생하고, 실패하면 브라우저 음성. 백엔드는 `app/voice/`의 어댑터(OpenAI). `OPENAI_API_KEY`가 없으면 `/voice/*`가 501. 마이크를 켜기 전에 `stopSpeaking()`.
-- 모바일 우선(최대 430px). 디자인 토큰은 `index.css`의 CSS 변수(design-spec.md 2절). 사람의 말·글은 세리프(`--serif`), UI는 산세리프. 조사는 `lib/josa.ts`로 받침에 맞춘다. 문구는 목업 말투(존댓말, 짧게, 평가·칭찬 없음).
+- 모바일 우선(최대 430px). 디자인 토큰은 `index.css`의 CSS 변수(design-spec.md 2절). 어두운 화면은 같은 토큰을 `prefers-color-scheme: dark`에서 바꿔 기기 설정을 따른다 — 화면 규칙에 색 값을 직접 쓰지 말고 토큰(`--on-ink`, `--backdrop` 등)으로만 쓴다.
+- 홈 화면에 추가(PWA): `public/manifest.webmanifest`와 아이콘(서사 아크 곡선, `frontend/scripts/make_icons.py`로 생성). 서비스 워커는 없다(오래된 화면이 캐시에 남지 않게). 사람의 말·글은 세리프(`--serif`), UI는 산세리프. 조사는 `lib/josa.ts`로 받침에 맞춘다. 문구는 목업 말투(존댓말, 짧게, 평가·칭찬 없음).
 
 ## 이 환경(Windows)에서 겪은 함정
 - `uv run fastapi dev`의 자동 재시작이 가끔 이전 코드로 남는다. 백엔드를 고친 뒤 동작이 이상하면 서버를 직접 재시작한다.
