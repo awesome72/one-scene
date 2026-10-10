@@ -44,6 +44,22 @@ export function MaterialCard({
     setCard(await api.materialCard(sessionId))
   }
 
+  // 주제 후보: 사용자가 한 해석의 말(의미 블록, interpretation) 원문 그대로. 주제는 늘 사용자의 문장이다
+  const pickTopic = async (text: string) => {
+    await api.updateSession(sessionId, { topic_sentence: text })
+    setCard(await api.materialCard(sessionId))
+  }
+  const topicChoices = card
+    ? [...new Set(
+        card.blocks
+          .flatMap((b) => b.materials)
+          .filter((m) => !m.excluded && (m.type === 'interpretation' || m.arc_block === 'meaning') && m.text.length >= 8)
+          .map((m) => m.text),
+      )]
+        .sort((x, y) => y.length - x.length)
+        .slice(0, 3)
+    : []
+
   const next = card && card.stage < 4 ? STAGE_NAMES[card.stage + 1] : null
 
   return (
@@ -102,10 +118,25 @@ export function MaterialCard({
                     저장
                   </button>
                 </form>
+              ) : card.topic_sentence ? (
+                <p className="said">{card.topic_sentence}</p>
               ) : (
-                <p className={card.topic_sentence ? 'said' : 'hint'}>
-                  {card.topic_sentence ?? '아직 정하지 않았어요. 대화로 정해도 되고, 직접 적어도 돼요.'}
-                </p>
+                <>
+                  <p className="hint">
+                    {topicChoices.length
+                      ? '내가 한 말 중에서 하나를 고르거나, 직접 적어 주세요.'
+                      : '아직 정하지 않았어요. 직접 적어 주세요.'}
+                  </p>
+                  {topicChoices.length > 0 && (
+                    <div className="tag-list column" aria-label="주제로 쓸 내 말">
+                      {topicChoices.map((t) => (
+                        <button type="button" key={t} className="tag" onClick={() => pickTopic(t)}>
+                          “{t}”
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </section>
 

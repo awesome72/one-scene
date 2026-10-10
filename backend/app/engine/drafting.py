@@ -5,9 +5,12 @@ import re
 from collections.abc import AsyncIterator
 from typing import Any
 
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.engine import assembler, cliche_linter, fidelity, outline
+from app.config import get_settings
+from app.engine import assembler, cliche_linter, fidelity, outline, resources
+from app.engine.assembler import AssembledDraft, DraftParagraph, DraftSentence
 from app.engine.extractor import Extraction
 from app.engine.llm import LLM, LLMError
 from app.engine.pipeline import Event, _event, _extract, apply_extraction
@@ -169,6 +172,20 @@ def _body(sentence_map: list[dict[str, Any]]) -> str:
     return "\n\n".join(" ".join(p) for p in paragraphs)
 
 
+def merge_blanks(sentence_map: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """같은 단락에서 연달아 나온 빈칸을 하나로 합친다. 빈칸 셋이 나란히 있으면 사용자는 무엇부터
+    답해야 할지 모른다 (여정 시뮬레이션). 질문은 첫 빈칸 것을, AI 제안은 이어 붙인다."""
+    out: list[dict[str, Any]] = []
+    for s in sentence_map:
+        prev = out[-1] if out else None
+        if s["is_blank"] and prev and prev["is_blank"] and prev["paragraph"] == s["paragraph"]:
+            joined = " ".join(x for x in (prev.get("suggestion"), s.get("suggestion")) if x)
+            out[-1] = {**prev, "suggestion": joined or None}
+            continue
+        out.append(dict(s))
+    return out
+
+
 async def handle_draft(db: Session, llm: LLM, session: WritingSession) -> AsyncIterator[Event]:
     if not session.outline_items or not session.sequence_pattern:
         yield _event("error", message="먼저 단락 순서를 정해 주세요.")
@@ -188,11 +205,11 @@ async def handle_draft(db: Session, llm: LLM, session: WritingSession) -> AsyncI
                      detail=str(exc))
         return
 
-    sentence_map = [
+    sentence_map = merge_blanks([
         {"paragraph": s.paragraph, "text": s.text, "material_ids": s.material_ids,
          "is_blank": s.is_blank, "note": s.note, "suggestion": s.suggestion}
         for s in checked
-    ]
+    ])
     previous = session.drafts[-1] if session.drafts else None
     draft = Draft(
         version=(previous.version + 1) if previous else 1,
@@ -221,7 +238,11 @@ async def answer_hit(
     input_mode: str,
 ) -> tuple[list[Material], DraftOut]:
     """교정 질문에 대한 답: 질문과 답을 대화 기록에 남기고, 답에서 원문 재료를 뽑는다.
-    초안 자체는 고치지 않는다. 사용자가 '초안 다시 만들기'를 누르면 새 재료로 다시 조립한다."""
+
+    빈칸에 대한 답이면 그 자리를 바로 채운다 (fill_blank): 답의 재료로만 쓴 문장 한두 개가
+    진실성 검사를 통과하면 빈칸을 대신한다. 여정 시뮬레이션에서 빈칸에 답하고 다시 만들어도
+    빈칸이 줄지 않았다 (다시 조립하면 다른 자리가 빈다). 그 밖의 표시(상투어 등)에 대한 답은
+    재료로만 남고 '초안 다시 만들기' 때 반영된다."""
     hit = next((h for h in draft.lint_result or [] if h["id"] == hit_id), None)
     if hit is None:
         raise KeyError(hit_id)
@@ -236,14 +257,77 @@ async def answer_hit(
     db.commit()
     extraction: Extraction = await _extract(llm, session, text, question)
     added = apply_extraction(session, user_turn, extraction)
-    result = [dict(h) for h in draft.lint_result or []]
-    for h in result:
-        if h["id"] == hit_id:
-            h["dismissed"] = True
-            h["answered"] = True
-    draft.lint_result = result
+    db.commit()
+    filled = False
+    if hit["kind"] == "blank" and added:
+        filled = await _fill_blank(llm, session, draft, hit["sentence"], question, added, user_turn)
+    if not filled:
+        result = [dict(h) for h in draft.lint_result or []]
+        for h in result:
+            if h["id"] == hit_id:
+                h["dismissed"] = True
+                h["answered"] = True
+        draft.lint_result = result
     db.commit()
     return added, draft_out(draft, session)
+
+
+class FilledSentence(BaseModel):
+    text: str
+    material_ids: list[str] = Field(default_factory=list)
+
+
+class FilledBlank(BaseModel):
+    sentences: list[FilledSentence] = Field(default_factory=list)
+
+
+async def _fill_blank(
+    llm: LLM, session: WritingSession, draft: Draft, index: int, question: str,
+    added: list[Material], user_turn: Turn,
+) -> bool:
+    """빈칸 하나를 답의 재료로 채운다. 진실성 검사를 통과한 문장만 넣고, 하나도 없으면 빈칸을 둔다."""
+    smap = draft.sentence_map
+    if not 0 <= index < len(smap) or not smap[index].get("is_blank"):
+        return False
+    paragraph = smap[index]["paragraph"]
+    before = next((s["text"] for s in reversed(smap[:index]) if not s["is_blank"]), "(없음)")
+    after = next((s["text"] for s in smap[index + 1:] if not s["is_blank"]), "(없음)")
+    user = "\n".join([
+        f"앞 문장: {before}", f"뒤 문장: {after}", f"빈칸 질문: {question}",
+        f"사용자의 답: {user_turn.text}", "", "## 새 재료",
+        *[f"- {m.label} ({m.type}): {m.text}" for m in added],
+    ])
+    try:
+        out = await llm.parse(
+            model=get_settings().model_assembler, system=_fill_system(), user=user,
+            schema=FilledBlank, max_tokens=2000, effort="low",
+        )
+        assembled = AssembledDraft(paragraphs=[DraftParagraph(
+            outline_position=paragraph,
+            sentences=[DraftSentence(text=s.text, material_ids=s.material_ids) for s in out.sentences],
+        )])
+        checked = await fidelity.check(llm, assembled, session.materials, {user_turn.id: user_turn.text})
+    except LLMError:
+        log.exception("빈칸 채우기 실패 (session=%s)", session.id)
+        return False
+    good = [c for c in checked if not c.is_blank]
+    if not good:
+        return False
+    # 빈칸 한 자리에 그대로 넣는다 (두 문장이어도 한 칸): 뒤 문장들의 번호와 교정 표시 id가 바뀌지 않게
+    ids = list(dict.fromkeys(i for c in good for i in c.material_ids))
+    new = {"paragraph": paragraph, "text": " ".join(c.text for c in good), "material_ids": ids,
+           "is_blank": False, "note": None, "source": "filled"}
+    sentence_map = smap[:index] + [new] + smap[index + 1:]
+    draft.sentence_map = sentence_map
+    draft.body = _body(sentence_map)
+    draft.lint_result = _lint(sentence_map, draft.lint_result)
+    return True
+
+
+def _fill_system() -> str:
+    return "\n\n---\n\n".join(
+        [resources.prompt("core"), resources.prompt("stage4_revise"), resources.prompt("fill_blank")]
+    )
 
 
 # ---------- 4단계: 직접 고치기 ----------

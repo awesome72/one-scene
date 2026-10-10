@@ -28,10 +28,11 @@ def _add(db: Session, sid: str, block: str, type_: str = "scene", text: str = "�
 
 def test_new_session_progress_shows_stage1_conditions(client: TestClient) -> None:
     p = _start(client)["progress"]
-    assert [c["key"] for c in p["conditions"]] == ["topic", "opening_scene", "length"]
+    # 장면이 먼저 (주제는 장면에서 나온다. 여정 시뮬레이션에서 주제부터 쫓다 1단계가 길어졌다)
+    assert [c["key"] for c in p["conditions"]] == ["opening_scene", "topic", "length"]
     assert not any(c["done"] for c in p["conditions"])
     assert p["journey"] == 0 and p["stage_fraction"] == 0 and p["ready"] is False
-    assert p["next_need"] == "이 글이 무엇에 관한 이야기인지 한 문장으로"
+    assert p["next_need"] == "글이 시작될 한 순간"
     assert p["expected_turns"] == [8, 12] and p["turns_in_stage"] == 0
     # 남은 시간: 네 단계 전체 범위 (10~15 + 15~25 + 5~10 + 10~20)
     assert p["remaining_minutes"] == [40, 70]
@@ -107,3 +108,47 @@ def test_story_feedback_upsert_and_validation(client: TestClient, db_session: Se
     assert client.delete(f"/sessions/{sid}").status_code == 204
     db_session.expire_all()
     assert db_session.get(StoryFeedback, sid) is None
+
+
+def test_stage1_card_comes_early_when_only_card_choices_left(
+    client: TestClient, db_session: Session
+) -> None:
+    """1단계: 장면이 나오고 주제·길이만 남으면 대답 4번째에 카드를 띄운다 (대화로 쫓지 않는다)."""
+    from app.engine import stage_machine
+
+    sid = _start(client)["id"]
+    s = db_session.get(WritingSession, sid)
+    _add(db_session, sid, "scene")
+    assert not stage_machine.card_due(s)  # 대답 1번
+    for _ in range(3):
+        _add(db_session, sid, "event", "fact", "3년 동안")
+    assert stage_machine.card_due(s)
+    # 질문자에게는 카드에서 고르는 조건을 넘기지 않는다
+    assert stage_machine.conversational_missing(s) == []
+    assert set(stage_machine.missing(s)) == {"한 문장 주제", "목표 길이"}
+
+
+def test_merge_blanks_joins_consecutive_blanks_in_a_paragraph() -> None:
+    from app.engine.drafting import merge_blanks
+
+    def blank(p: int, q: str, sug: str | None) -> dict:
+        return {"paragraph": p, "text": f"[빈칸: {q}]", "material_ids": [], "is_blank": True,
+                "note": None, "suggestion": sug}
+
+    own = {"paragraph": 1, "text": "주간 회의 때였다.", "material_ids": ["m"], "is_blank": False,
+           "note": None, "suggestion": None}
+    out = merge_blanks([own, blank(1, "누가 있었어요?", "팀장이 있었다."), blank(1, "무엇을?", None),
+                        blank(1, "소리?", "볼펜 소리가 났다."), blank(2, "그 뒤?", None)])
+    assert [s["is_blank"] for s in out] == [False, True, True]
+    assert out[1]["text"] == "[빈칸: 누가 있었어요?]"
+    assert out[1]["suggestion"] == "팀장이 있었다. 볼펜 소리가 났다."
+    assert out[2]["paragraph"] == 2  # 다른 단락의 빈칸은 따로
+
+
+def test_new_session_removes_unanswered_ones(client: TestClient, db_session: Session) -> None:
+    first = _start(client)["id"]
+    answered = _start(client)["id"]  # first는 대답이 없어 지워진다
+    _add(db_session, answered, "scene")
+    third = _start(client)["id"]  # answered는 남는다
+    ids = {s["id"] for s in client.get("/sessions").json()}
+    assert ids == {answered, third} and first not in ids

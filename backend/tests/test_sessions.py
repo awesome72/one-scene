@@ -114,7 +114,11 @@ def _full_session(client: TestClient, db_session: Session, user: str = "alice") 
 
     sid = client.post("/sessions", json={}, headers={"X-User-Id": user}).json()["id"]
     s = db_session.get(WritingSession, sid)
-    turn = s.turns[0]
+    from app.models import Turn
+
+    turn = Turn(idx=1, role="user", text="회의실이었어요", stage=1)  # 대답이 있는 글 (빈 글은 새 글을 열 때 지워진다)
+    s.turns.append(turn)
+    db_session.flush()
     s.materials.append(Material(seq=1, turn_id=turn.id, text="회의실", type="place",
                                 arc_block="scene"))
     s.signals.append(Signal(kind="gap", value="그날 밤"))

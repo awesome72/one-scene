@@ -268,6 +268,11 @@ export function Chat({ id }: { id: string }) {
           <p className="question">
             <Quoted text={lastCoach.text} />
           </p>
+          {!turns.some((t) => t.role === 'user') && (
+            <p className="hint first-hint">
+              한두 문장이면 충분해요. 언제, 어디였는지부터 떠오르는 대로 말해 보세요.
+            </p>
+          )}
         </section>
       )}
       {after.map((t) => (

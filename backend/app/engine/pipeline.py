@@ -324,8 +324,8 @@ async def handle_user_turn(
         yield saved
         return
 
-    # 단계 마감 조건 충족 → 재료 카드 제안 (같은 단계에서는 한 번만)
-    if stage_machine.is_ready_to_close(session) and session.card_offered_stage != session.stage:
+    # 단계 마감 조건 충족(1단계는 주제·길이만 남았을 때도) → 재료 카드 제안 (같은 단계에서는 한 번만)
+    if stage_machine.card_due(session) and session.card_offered_stage != session.stage:
         session.card_offered_stage = session.stage
         db.commit()
         yield _event("card", stage=session.stage)

@@ -48,13 +48,14 @@ BLOCK_HINTS = {
 def conditions(session: WritingSession) -> list[Condition]:
     """현재 단계의 마감 조건과 지금까지 채운 정도."""
     if session.stage == 1:
+        # 장면이 먼저다: 주제는 장면을 말하다 보면 나온다. 주제·길이는 재료 카드에서 사용자가 고른다
         return [
-            Condition("topic", "한 문장 주제", int(bool(session.topic_sentence)),
-                      hint="이 글이 무엇에 관한 이야기인지 한 문장으로"),
             Condition("opening_scene", "오프닝 장면", len(_in_block(session, "scene")),
                       block="scene", hint="글이 시작될 한 순간"),
+            Condition("topic", "한 문장 주제", int(bool(session.topic_sentence)),
+                      hint="재료 카드에서 내 말 한 문장을 주제로 고르기"),
             Condition("length", "목표 길이", int(bool(session.target_length)),
-                      hint="짧은 글, 보통 글, 긴 글 중 하나"),
+                      hint="재료 카드에서 짧은 글, 보통 글, 긴 글 중 하나 고르기"),
         ]
     if session.stage == 2:
         out = [
@@ -96,6 +97,29 @@ def conditions(session: WritingSession) -> list[Condition]:
                              need=len(blanks), hint="초안의 빈칸에 답하기"))
     out.append(Condition("tags", "태그", int(bool(session.tags)), hint="시기·인물·장소 태그 저장"))
     return out
+
+
+# 대화가 아니라 재료 카드에서 사용자가 직접 정하는 조건 (질문자에게 넘기지 않는다)
+CHOSEN_ON_CARD = ("topic", "length")
+# 1단계 카드를 일찍 띄우는 대답 수: 장면이 나온 뒤 이만큼 이야기했으면 주제·길이를 고를 때다
+EARLY_CARD_TURNS = 4
+
+
+def card_due(session: WritingSession) -> bool:
+    """재료 카드를 띄울 때: 마감 조건이 다 찼거나, 1단계에서 장면이 나오고 주제·길이만 남았을 때."""
+    conds = conditions(session)
+    if all(c.done for c in conds):
+        return True
+    if session.stage != 1:
+        return False
+    left = {c.key for c in conds if not c.done}
+    turns = sum(1 for t in session.turns if t.role == "user" and t.stage == 1)
+    return left <= set(CHOSEN_ON_CARD) and turns >= EARLY_CARD_TURNS
+
+
+def conversational_missing(session: WritingSession) -> list[str]:
+    """질문자에게 보여 줄 남은 조건: 카드에서 고르는 것(주제·길이)은 빼고, 대화로 채울 것만."""
+    return [c.label for c in conditions(session) if not c.done and c.key not in CHOSEN_ON_CARD]
 
 
 def missing(session: WritingSession) -> list[str]:

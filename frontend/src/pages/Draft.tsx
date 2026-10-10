@@ -203,8 +203,13 @@ export function Draft({ id }: { id: string }) {
     setStatus('답을 받아 적고 있어요')
     try {
       const res = await api.answerHit(id, draft.id, hit.id, text.trim(), mode)
+      // 빈칸에 대한 답은 그 자리를 바로 채운다 (서버가 진실성 검사를 통과한 문장만 넣는다)
+      if (res.draft.blank_count < draft.blank_count) {
+        setNotice('답하신 말로 빈칸을 채웠어요. 문장을 누르면 출처가 보여요.')
+      } else {
+        setAnswered((n) => n + 1)
+      }
       setDraft(res.draft)
-      setAnswered((n) => n + 1)
       setSelected(null)
       setAnswer('')
     } catch (e) {

@@ -49,7 +49,8 @@ def session_state(session: WritingSession) -> dict[str, Any]:
         "skipped_topics": [s.value for s in signals if s.kind == "skipped"],
         "hesitations": [s.value for s in signals if s.kind == "hesitation"][-5:],
         "stage_ready": stage_machine.is_ready_to_close(session),
-        "stage_missing": stage_machine.missing(session),
+        # 주제·길이는 재료 카드에서 사용자가 고른다. 질문자가 대화로 쫓지 않게 뺀다
+        "stage_missing": stage_machine.conversational_missing(session),
     }
 
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.engine import cliche_linter, fidelity, outline, stage_machine
 from app.engine.assembler import AssembledDraft, DraftParagraph, DraftSentence
+from app.engine.drafting import FilledBlank, FilledSentence
 from app.engine.extractor import ExtractedMaterial, Extraction
 from app.engine.fidelity import FidelityResult, SentenceVerdict
 from app.engine.llm import get_llm
@@ -234,16 +235,31 @@ def test_draft_flow_dismiss_and_answer(
     res = client.post(f"/sessions/{sid}/drafts/{draft['id']}/hits/{kinds['cliche']['id']}/dismiss")
     assert res.json()["open_hits"] == 1
 
-    # 빈칸 질문에 답하기 → 원문 재료가 되고, 대화 기록에 질문·답이 남는다
+    # 빈칸 질문에 답하기 → 원문 재료가 되고, 대화 기록에 질문·답이 남고, 그 빈칸을 답의 재료로 바로 채운다
     fake.extractions.append(Extraction(materials=[
         ExtractedMaterial(text="볼펜 뚜껑을 열었다 닫았다", type="object", arc_block="event")
     ]))
+    fake.queue(FilledBlank(sentences=[
+        FilledSentence(text="나는 볼펜 뚜껑을 열었다 닫았다.", material_ids=["m6"]),
+        FilledSentence(text="딸깍 소리가 났다.", material_ids=["m6"]),
+    ]))
+    fake.queue(FidelityResult(verdicts=[SentenceVerdict(index=0, ok=True),
+                                        SentenceVerdict(index=1, ok=True)]))
     res = client.post(
         f"/sessions/{sid}/drafts/{draft['id']}/hits/{kinds['blank']['id']}/answer",
         json={"text": "볼펜 뚜껑을 열었다 닫았다 했어요"},
     ).json()
     assert [m["text"] for m in res["added"]] == ["볼펜 뚜껑을 열었다 닫았다"]
+    filled = res["draft"]["paragraphs"][1]["sentences"]
+    assert res["draft"]["blank_count"] == 0 and res["draft"]["version"] == 1
+    # 두 문장이어도 빈칸 한 자리에: 뒤 문장 번호(교정 표시 id)가 바뀌지 않는다
+    assert [s["text"] for s in filled] == ["나는 볼펜 뚜껑을 열었다 닫았다. 딸깍 소리가 났다."]
+    assert filled[0]["index"] == 2 and res["draft"]["paragraphs"][2]["sentences"][0]["index"] == 3
+    assert filled[0]["materials"][0]["text"] == "볼펜 뚜껑을 열었다 닫았다"
     assert res["draft"]["open_hits"] == 0
+    # 채우기에는 새 재료와 앞뒤 문장만 간다
+    fill_prompt = [c for c in fake.parse_calls if c["schema"] is FilledBlank][-1]["user"]
+    assert "m6 (object): 볼펜 뚜껑을 열었다 닫았다" in fill_prompt and "앞 문장:" in fill_prompt
     turns = client.get(f"/sessions/{sid}/turns").json()
     assert [t["text"] for t in turns[-2:]] == [
         "그때 손은 무엇을 하고 있었나요?", "볼펜 뚜껑을 열었다 닫았다 했어요"
@@ -281,8 +297,11 @@ def test_redraft_includes_materials_added_after_outline(
     fake.extractions.append(Extraction(materials=[
         ExtractedMaterial(text="볼펜으로 화이트보드를 두드렸어요", type="scene", arc_block="event")
     ]))
-    client.post(f"/sessions/{sid}/drafts/{first['id']}/hits/{hit['id']}/answer",
-                json={"text": "팀장님은 볼펜으로 화이트보드를 두드렸어요"})
+    # 채울 문장을 못 쓰면(빈 결과) 빈칸은 그대로 두고 표시만 닫는다. 재료는 다시 만들 때 쓰인다
+    fake.queue(FilledBlank(sentences=[]))
+    res = client.post(f"/sessions/{sid}/drafts/{first['id']}/hits/{hit['id']}/answer",
+                      json={"text": "팀장님은 볼펜으로 화이트보드를 두드렸어요"}).json()
+    assert res["draft"]["blank_count"] == 1 and res["draft"]["open_hits"] == 0
 
     fake.queue(AssembledDraft(paragraphs=[blank_para]))
     client.post(f"/sessions/{sid}/drafts")

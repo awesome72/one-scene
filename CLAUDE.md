@@ -38,6 +38,7 @@ cd backend && PYTHONUTF8=1 uv run pytest             # 오프라인 테스트 (�
 cd backend && PYTHONUTF8=1 uv run pytest tests/test_turns.py::test_turn_happy_path   # 하나만
 cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s        # 실제 API (비용)
 cd backend && PYTHONUTF8=1 uv run python -m evals.eval_questions --label 메모        # 질문 품질 평가 (~$0.5, 채점은 Batch API로 몇 분 대기, --no-batch는 바로) → experiments/eval/
+cd backend && PYTHONUTF8=1 uv run python -m evals.simulate_journey                  # 글 한 편 여정 시뮬레이션: 가상 사용자(evals/persona.md)가 1~4단계를 실제로 씀 (~$0.6) → experiments/journey/
 cd backend && PYTHONUTF8=1 uv run python -m evals.bench_cost                        # 턴당 호출 수·비용 (~$0.1, 두 번째 실행이 캐시 따뜻한 값)
 cd backend && PYTHONUTF8=1 uv run python -m evals.usage_report --days 7             # 운영 비용·단계별 이탈 보고 (llm_usage, journey_events, DATABASE_URL을 Neon으로)
 cd backend && uv run python -m app.prompt_sync       # SKILL.md → prompts/core.md, stage*.md 재생성
@@ -72,7 +73,7 @@ cd frontend && npm run lint                          # oxlint
 ### 한 턴 처리 (`engine/pipeline.py`, `POST /sessions/{id}/turns` SSE)
 1. 사용자 턴 저장 → `extractor`(Haiku). `keep_verbatim`이 원문에 없는 조각을 버리고(공백·따옴표 차이만 허용, `find_verbatim`), `ensure_dialogue`가 놓친 따옴표 대사를 원문 그대로 더한다.
 2. `apply_extraction`: 재료(`seq`, 프롬프트에서는 `m{seq}`), 신호(`repeated`는 사용자 발화 전체에서 매번 다시 셈, `gap`, `skipped`, `hesitation`). 주제 문장·목표 길이는 비어 있을 때만 채운다 (이후는 사용자가 PATCH).
-3. `distress`면 질문 대신 `data/fixed_replies.yaml` 고정 응답. 단계 마감 조건(`stage_machine.missing`)이 처음 채워지면 `card` 이벤트를 단계당 한 번(`card_offered_stage`).
+3. `distress`면 질문 대신 `data/fixed_replies.yaml` 고정 응답. `stage_machine.card_due`(마감 조건이 다 참, 또는 1단계에서 장면이 나오고 주제·길이만 남은 채 대답 4번)이면 `card` 이벤트를 단계당 한 번(`card_offered_stage`). **주제 문장·목표 길이는 재료 카드에서 사용자가 고른다** — 질문자 상태의 `stage_missing`에는 `conversational_missing`(이 둘 빼고)만 넣고, `questioner.md`가 주제·길이·교훈·독자를 대화로 묻지 못하게 한다 (여정 시뮬레이션: 이것을 대화로 쫓느라 1단계가 23번까지 늘고 교훈 문장이 초안에 들어갔다).
 4. 속도 설계: 추출과 질문 생성(`questioner.stream`)을 **동시에** 시작하고, 질문은 `question_delta`로 글자가 생기는 대로 보낸다. 실시간 경로에는 `reviewer.rule_check`(물음표 1개, 두 질문 잇기, 문장 수, 상투어, 인용 원문, 직전 질문 되풀이)만 두고, 걸리면 `question_reset` 후 피드백을 넣어 최대 3회 다시 만든다. 코치 턴 저장은 추출(고통 신호 판정)이 끝난 뒤에 한다. `data/fixed_replies.yaml`의 `distress_markers`가 보이는 답은 추출이 끝날 때까지 질문을 보내지 않고, 그 밖의 답에서 뒤늦게 고통 신호가 잡히면 `question_reset` 후 고정 응답. LLM 검수는 질문을 보낸 뒤 `meta.review`에 기록만 한다(`_review_later`).
 - SSE 이벤트: `status(asking)` → `question_delta`* (→ `question_reset` → `question_delta`*)… · `materials` · `card`? → `question` | `error`. `materials`는 질문 조각 사이에 끼어 올 수 있다. `POST /sessions/{id}/coach`는 사용자 발화 없이 새 단계의 여는 질문을 만들고, `TurnCreate.skip=true`는 추출 없이 직전 질문을 넘어간 주제로 기록한다. `TurnCreate.stuck=true`('막혔어요')는 추출 없이 `questioner_stuck.md`를 이번 질문에만 붙여(`_ask`의 `hint`) 같은 장면을 더 작은 질문으로 다시 묻는다.
 - 프롬프트 조립(`prompt_builder.py`, 비용 설계): system = [core + 단계 모듈 + questioner.md (1시간 캐시 — 단계마다 모든 사용자가 같은 앞부분)], messages = 대화 기록(마지막 사용자 말에 5분 캐시) + **끝에 세션 상태 YAML을 `role: system` 메시지로** — 지난 대화 기록까지 캐시된다. 대화 중간 system 메시지를 못 받는 모델(`MID_CONVERSATION_SYSTEM` 밖, Haiku 등)은 상태를 마지막 사용자 말의 캐시 표시 뒤 블록으로. 질문자는 생각 끄기(`thinking: between_tools`, Sonnet 5.5)·effort low. 사후 LLM 검수는 `REVIEW_SAMPLE_RATE`(기본 10%)만, "네" 같은 6자 이하 짧은 답은 추출 생략(`_trivial`). **messages는 user로 시작하고 대화 기록은 user로 끝나야 한다** (Sonnet 5.5는 prefill 불가). 코치 턴이 연달아 있으면 사이에 `stage_opened.md`를, 맨 앞에는 `session_start.md`를 끼운다.
@@ -81,13 +82,14 @@ cd frontend && npm run lint                          # oxlint
 - `outline.plan`: 패턴 4개(linear/return/frame/cross) × 재료 → 단락 순서·분량(SKILL.md 6장 비율). LLM 없이 결정적. `arc_block`이 없는 재료는 개요에 들어가지 않는다.
 - `handle_draft`(SSE `status(assembling|checking)` → `draft`): **조립 전에 저장된 패턴으로 개요를 다시 계산한다** (교정 답으로 생긴 재료 반영). `assembler`(재료 번호로 출처 표시) → `fidelity.structural`(출처 없음·없는 재료 → 빈칸) → `fidelity.semantic`(재료 + 그 재료가 나온 사용자 발화 대비) → `cliche_linter`.
 - 초안의 원천은 `drafts.sentence_map`(`paragraph, text, material_ids, is_blank, note`)이고 `body`는 파생값. 교정 표시 id는 `"{문장}:{시작}:{종류}"`, `lint_result[].dismissed`가 '그대로 두기'(B5). 교정 질문에 답하면 질문·답이 대화 턴으로 남고 답에서 재료를 뽑는다 (초안에는 '다시 만들기' 때 반영).
+- 빈칸: 같은 단락에서 연달아 나온 빈칸은 하나로 합친다(`merge_blanks`). 빈칸 교정 질문에 답하면 그 자리를 바로 채운다(`_fill_blank`, `fill_blank.md`): 답에서 뽑은 재료로만 쓴 문장을 진실성 검사에 통과시켜 빈칸 한 자리(두 문장이어도 한 칸, 뒤 표시 id가 그대로)에 넣고 `source: "filled"`. 못 쓰면 빈칸은 두고 재료로만 남는다.
 - AI 제안: 조립기는 빈칸마다 `suggestion`을 쓰고, 진실성 검사에서 걸린 문장은 버리지 않고 그 빈칸의 제안이 된다. `POST /drafts/{id}/sentences/{i}/accept`(고쳐 쓰기 가능)·`/accept-all`이 같은 초안 버전 안에서 `source: "accepted"`로 바꾼다. 조립 effort는 medium, 진실성 검사는 low (속도).
 - 직접 고치기(`edit_draft`, `POST /drafts/{id}/edit`)는 LLM 없이 새 초안 버전을 만든다. 그대로 남은 문장은 출처를 유지하고, 고친 문장은 `source: "user"`(진실성 검사 대상 아님). '그대로 두기'는 (종류, 표시된 말)로 다음 버전에 이어진다.
 - 태그는 Haiku가 제안만 하고 사용자가 `PUT /tags`로 저장한다. 보관함의 다음 글감 = `gap` 태그 중 아직 새 글 첫 질문으로 쓰지 않은 것.
 
 ### 프롬프트와 데이터 (`backend/app/prompts`, `backend/app/data`)
 - `core.md`, `stage1_topic.md` ~ `stage4_revise.md`는 **SKILL.md에서 자동 생성**된다. 직접 고치지 말고 SKILL.md를 고친 뒤 `app.prompt_sync`를 실행한다. `tests/test_prompt_sync.py`가 동기화와 원문 보존을 검사한다.
-- 나머지(`questioner`, `questioner_stuck`, `extractor`, `reviewer`, `assembler`, `fidelity`, `tagger`, `questioner_feedback`, `session_start`, `stage_opened`)는 직접 쓴 파일이다. 코드 안에 프롬프트 문자열을 두지 않는다. 평가 채점자 프롬프트만 `backend/evals/judge.md`.
+- 나머지(`questioner`, `questioner_stuck`, `fill_blank`, `extractor`, `reviewer`, `assembler`, `fidelity`, `tagger`, `questioner_feedback`, `session_start`, `stage_opened`)는 직접 쓴 파일이다. 코드 안에 프롬프트 문자열을 두지 않는다. 평가 채점자 프롬프트만 `backend/evals/judge.md`.
 - `data/cliches.yaml`은 SKILL.md 7장 사전(`examples`·`source`를 테스트가 검사). 그 밖에 `reviewer_rules.yaml`, `fixed_replies.yaml`, `opening_questions.yaml`.
 
 ### 테스트

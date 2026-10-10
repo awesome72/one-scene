@@ -54,6 +54,14 @@ def list_opening_questions() -> list[str]:
 def create_session(body: SessionCreate, db: DbDep, user: CurrentUserDep) -> SessionDetail:
     """새 글 시작. 첫 질문을 코치 턴으로 저장해 돌려준다."""
     question = body.opening_question or opening_questions()[0]
+    # 한 번도 답하지 않은 글은 지운다: 질문만 보고 돌아간 글이 홈의 '쓰는 중인 글'에 쌓이지 않게
+    # (운영에서 글 4편 중 2편이 대답 0개였다)
+    empty = [
+        s.id for s in db.scalars(select(WritingSession).where(
+            WritingSession.user_id == user.id, WritingSession.status == "active"))
+        if not any(t.role == "user" for t in s.turns)
+    ]
+    _delete_sessions(db, empty)
     session = WritingSession(user_id=user.id)
     session.turns.append(Turn(idx=0, role="coach", text=question, stage=MIN_STAGE))
     db.add(session)
