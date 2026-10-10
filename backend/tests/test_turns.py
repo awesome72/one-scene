@@ -10,7 +10,7 @@ from app.engine.extractor import ExtractedMaterial, Extraction
 from app.engine.llm import LLMError, get_llm
 from app.main import app
 from app.models import WritingSession
-from tests.fakes import FakeLLM, failing_review
+from tests.fakes import FakeLLM, failing_review, state_text
 
 UTTER = "회의실이었어요. 팀장님이 또 같은 얘기를 하는데, 아 이건 아니다 싶었어요. 창밖만 보고 있었어요."
 
@@ -102,7 +102,7 @@ def test_rule_failure_triggers_regeneration_with_feedback(
     assert "question_reset" in kinds  # 화면은 흘러가던 질문을 지우고 다시 받는다
     assert events[-1][1]["turn"]["text"].startswith("'창밖만'")
     # 두 번째 생성 요청에는 탈락 사유가 피드백으로 들어간다
-    second_state = fake.text_calls[1]["system"][1]["text"]
+    second_state = state_text(fake.text_calls[1])
     assert "물음표가 2개" in second_state
     assert db_session.get(WritingSession, sid).turns[-1].meta["passed"] is True
 
@@ -151,7 +151,7 @@ def test_skip_request_is_remembered(client: TestClient, fake: FakeLLM) -> None:
     # 질문 생성은 추출과 동시에 시작하므로, 이번 턴의 넘어가기는 다음 턴의 상태부터 들어간다
     # (이번 턴 질문자도 대화 기록에서 "넘어갈게요"를 직접 본다)
     _send(client, sid, text="고등학교 때 버스 얘기를 할게요")
-    state = fake.text_calls[-1]["system"][1]["text"]
+    state = state_text(fake.text_calls[-1])
     assert "skipped_topics:\n- 아버지 이야기" in state
 
 
@@ -239,7 +239,7 @@ def test_skip_button_records_last_question_without_extraction(
     events = _send(client, sid, text="이 질문은 넘어갈게요.", skip=True)
     assert "extracting" not in [d.get("step") for k, d in events if k == "status"]
     assert [c for c in fake.parse_calls if c["schema"] is Extraction] == []
-    state = fake.text_calls[0]["system"][1]["text"]
+    state = state_text(fake.text_calls[0])
     assert f"skipped_topics:\n- {first_q}" in state
 
 
@@ -252,12 +252,14 @@ def test_stage_opening_question_after_advance(client: TestClient, fake: FakeLLM)
     events = parse_sse(res.text)
     assert events[-1][0] == "question"
     assert events[-1][1]["turn"]["stage"] == 2
-    messages = fake.text_calls[-1]["messages"]
-    assert messages[-1]["role"] == "user" and "단락 구성" in messages[-1]["content"]
+    messages = [m for m in fake.text_calls[-1]["messages"] if m["role"] != "system"]
+    last = messages[-1]
+    text = last["content"] if isinstance(last["content"], str) else last["content"][0]["text"]
+    assert last["role"] == "user" and "단락 구성" in text
 
     # 다음 턴에서는 연달아 있는 코치 턴 사이에 단계 시작 표시가 들어가 역할이 번갈아 나온다
     _send(client, sid, text="볼펜을 쥐고 있었어요.")
-    roles = [m["role"] for m in fake.text_calls[-1]["messages"]]
+    roles = [m["role"] for m in fake.text_calls[-1]["messages"] if m["role"] != "system"]
     assert all(a != b for a, b in pairwise(roles))
     assert roles[0] == "user" and roles[-1] == "user"
 
@@ -315,3 +317,16 @@ def test_streaming_starts_before_extraction_finishes(client: TestClient, fake: F
     sid = _start(client)
     kinds = [k for k, _ in _send(client, sid)]
     assert kinds.index("question_delta") < kinds.index("materials") < kinds.index("question")
+
+
+def test_other_ai_requests_count_toward_daily_limit(
+    client: TestClient, fake: FakeLLM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "daily_llm_limit_per_user", 2)
+    sid = _start(client)
+    client.post(f"/sessions/{sid}/advance", json={"approved": True})
+    assert client.post(f"/sessions/{sid}/coach").status_code == 200  # 여는 질문 1건
+    assert client.post(f"/sessions/{sid}/turns", json={"text": "첫 답"}).status_code == 200  # 2건
+    assert client.post(f"/sessions/{sid}/coach").status_code == 429

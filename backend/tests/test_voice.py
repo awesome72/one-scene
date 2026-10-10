@@ -112,3 +112,15 @@ def test_voice_is_private(client: TestClient, voice: FakeVoice) -> None:
     res = client.post(f"/sessions/{sid}/voice/transcribe", headers=other,
                       files={"audio": ("a.webm", b"x", "audio/webm")})
     assert res.status_code == 404
+
+
+def test_voice_has_its_own_daily_limit(client: TestClient, voice: FakeVoice,
+                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(get_settings(), "daily_voice_limit_per_user", 2)
+    monkeypatch.setattr(get_settings(), "daily_llm_limit_per_user", 1)
+    sid = _start(client, "버리지 못한 물건이 있어요?")
+    # 음성은 AI 상한(1)에 세지 않는다
+    assert _upload(client, sid).status_code == 200
+    assert client.post(f"/sessions/{sid}/voice/speech", json={"text": "버리지 못한 물건이 있어요?"}).status_code == 200
+    res = _upload(client, sid)
+    assert res.status_code == 429 and "음성" in res.json()["detail"]

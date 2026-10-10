@@ -206,3 +206,31 @@ def test_ensure_dialogue_keeps_existing_and_fills_block() -> None:
     ])
     out = ensure_dialogue(raw, utter)
     assert len(out.materials) == 1 and out.materials[0].arc_block == "event"
+
+
+def test_prompt_caches_history_with_state_at_end() -> None:
+    """비용: 상태는 대화 뒤 system 메시지로, 캐시 표시는 마지막 사용자 말에."""
+    s = _session(1)
+    s.turns[0].role = "coach"
+    s.turns.append(Turn(idx=1, role="user", text="회의실이었어요", stage=1))
+    prompt = prompt_builder.build(s, feedback="다시 써라", model="claude-sonnet-5-5")
+    assert len(prompt["system"]) == 1 and prompt["system"][0]["cache_control"]
+    *_history, last_user, state = prompt["messages"]
+    assert last_user["role"] == "user"
+    assert last_user["content"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert state["role"] == "system" and state["content"].endswith("다시 써라")
+    # 지원하지 않는 모델은 예전 배치
+    old = prompt_builder.build(s, model="claude-haiku-4-5-20251001")
+    assert len(old["system"]) == 2 and old["messages"][-1]["role"] == "user"
+
+
+@pytest.mark.parametrize(
+    ("text", "trivial"),
+    [("네", True), ("맞아요.", True), ("모르겠어요", True), ("넘어갈게요", False),
+     ("싫어요", False), ('"그만"', False), ("죽고 싶어", False),
+     ("회의실이었어요. 창밖만 봤어요.", False)],
+)
+def test_trivial_replies_skip_extraction(text: str, trivial: bool) -> None:
+    from app.engine.pipeline import _trivial
+
+    assert _trivial(text) is trivial

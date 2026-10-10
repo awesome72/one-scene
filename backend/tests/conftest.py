@@ -25,3 +25,11 @@ def client(db_session: Session) -> Iterator[TestClient]:
     # 컨텍스트 매니저로 열지 않는다: lifespan이 실제 DB 파일을 만들지 않게
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def review_every_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """테스트는 사후 LLM 검수를 표본이 아니라 매번 돌려 결과를 고정한다."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "review_sample_rate", 1.0)

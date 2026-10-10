@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.db import DbDep
-from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep
+from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep, record_usage
 from app.engine import stage_machine, tagging
 from app.engine.llm import LLM, get_llm
 from app.engine.tagging import TagSet, TagSuggestion
@@ -49,8 +49,11 @@ def get_tags(session: OwnedSessionDep) -> TagSet:
 
 
 @router.post("/sessions/{session_id}/tags/suggest", dependencies=[LlmQuotaDep])
-async def suggest_tags(session: OwnedSessionDep, llm: LlmDep) -> TagSuggestion:
+async def suggest_tags(
+    session: OwnedSessionDep, llm: LlmDep, db: DbDep, user: CurrentUserDep
+) -> TagSuggestion:
     """태그 제안. 저장하지 않는다 — 사용자가 고른 것만 PUT으로 저장한다."""
+    record_usage(db, user, "tags")
     return await tagging.suggest(llm, session)
 
 

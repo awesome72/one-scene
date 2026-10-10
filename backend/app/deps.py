@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from app.auth import AuthError, BannedUser, auth_mode, verify
 from app.config import get_settings
 from app.db import DbDep
-from app.models import Draft, Turn, User, WritingSession
+from app.models import Draft, Turn, UsageEvent, User, WritingSession
 
 DEV_USER_ID = "dev-user"
 
@@ -63,16 +63,49 @@ OwnedSessionDep = Annotated[WritingSession, Depends(get_owned_session)]
 
 
 def _jobs_today(db: DbDep, user_id: str | None = None) -> int:
-    """오늘(UTC) AI 작업 수: 사용자 발화(추출+질문)와 초안 조립을 한 건씩 센다."""
+    """오늘(UTC) AI 작업 수: 사용자 발화(추출+질문), 초안 조립, 그 밖의 AI·음성 요청을 한 건씩 센다."""
     today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     turns = select(func.count()).select_from(Turn).where(
         Turn.role == "user", Turn.created_at >= today
     )
     drafts = select(func.count()).select_from(Draft).where(Draft.created_at >= today)
+    others = select(func.count()).select_from(UsageEvent).where(
+        UsageEvent.created_at >= today, UsageEvent.kind.in_(AI_KINDS)
+    )
     if user_id is not None:
         turns = turns.join(WritingSession).where(WritingSession.user_id == user_id)
         drafts = drafts.join(WritingSession).where(WritingSession.user_id == user_id)
-    return (db.scalar(turns) or 0) + (db.scalar(drafts) or 0)
+        others = others.where(UsageEvent.user_id == user_id)
+    return (db.scalar(turns) or 0) + (db.scalar(drafts) or 0) + (db.scalar(others) or 0)
+
+
+AI_KINDS = ("opening", "tags")  # Claude를 부르는 요청 → AI 상한
+VOICE_KINDS = ("stt", "tts")  # OpenAI 음성 → 음성 상한 (건당 비용이 작아 따로 넉넉하게)
+
+
+def require_voice_quota(db: DbDep, user: CurrentUserDep) -> None:
+    limit = get_settings().daily_voice_limit_per_user
+    if limit <= 0:
+        return
+    today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    used = db.scalar(select(func.count()).select_from(UsageEvent).where(
+        UsageEvent.user_id == user.id, UsageEvent.created_at >= today,
+        UsageEvent.kind.in_(VOICE_KINDS),
+    )) or 0
+    if used >= limit:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "오늘은 음성을 더 쓸 수 없어요. 글로 이어서 써 주세요.",
+        )
+
+
+VoiceQuotaDep = Depends(require_voice_quota)
+
+
+def record_usage(db: DbDep, user: User, kind: str) -> None:
+    """턴·초안이 아닌 AI·음성 요청을 하루 상한에 센다 (opening|tags|stt|tts)."""
+    db.add(UsageEvent(user_id=user.id, kind=kind))
+    db.commit()
 
 
 def require_llm_quota(db: DbDep, user: CurrentUserDep) -> None:

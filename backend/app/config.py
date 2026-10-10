@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     daily_llm_limit: int = 300
     # 한 사람의 하루 AI 작업 상한 (글 한 편 ≈ 40~70턴이라 하루 한 편 남짓)
     daily_llm_limit_per_user: int = 80
+    # 질문을 보낸 뒤 도는 LLM 검수(기록용)를 몇 %만 돌릴지. 평가 스크립트는 1.0으로 돌린다 (비용)
+    review_sample_rate: float = 0.1
+    # 받아쓰기·읽어 주기 하루 상한 (사용자당). 건당 약 $0.001이라 AI 상한과 따로 넉넉하게
+    daily_voice_limit_per_user: int = 200
 
     @property
     def sqlalchemy_url(self) -> str:

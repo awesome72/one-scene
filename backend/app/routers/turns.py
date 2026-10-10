@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from app.db import DbDep
-from app.deps import LlmQuotaDep, OwnedSessionDep
+from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep, record_usage
 from app.engine.llm import LLM, get_llm
 from app.engine.pipeline import Event, handle_stage_open, handle_user_turn
 from app.schemas import TurnCreate
@@ -35,11 +35,12 @@ async def post_turn(
 
 @router.post("/coach", response_class=EventSourceResponse, dependencies=[LlmQuotaDep])
 async def post_coach(
-    session: OwnedSessionDep, db: DbDep, llm: LlmDep
+    session: OwnedSessionDep, db: DbDep, llm: LlmDep, user: CurrentUserDep
 ) -> AsyncIterable[ServerSentEvent]:
     """사용자 발화 없이 코치 질문 하나 (단계를 넘기거나 되돌린 뒤의 여는 질문).
 
     이벤트: status(asking|reviewing) → question | error
     """
+    record_usage(db, user, "opening")
     async for event in handle_stage_open(db, llm, session):
         yield _sse(event)

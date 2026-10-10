@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep
+from app.db import DbDep
+from app.deps import CurrentUserDep, OwnedSessionDep, VoiceQuotaDep, record_usage
 from app.models import WritingSession
 from app.voice.base import SpeechToText, TextToSpeech, VoiceError
 
@@ -70,9 +71,13 @@ def voice_config(_: CurrentUserDep, stt: SttDep, tts: TtsDep) -> VoiceConfig:
     return VoiceConfig(stt=stt is not None, tts=tts is not None)
 
 
-@router.post("/sessions/{session_id}/voice/transcribe", dependencies=[LlmQuotaDep])
+@router.post("/sessions/{session_id}/voice/transcribe", dependencies=[VoiceQuotaDep])
 async def transcribe(
-    session: OwnedSessionDep, stt: SttDep, audio: Annotated[UploadFile, File()]
+    session: OwnedSessionDep,
+    stt: SttDep,
+    audio: Annotated[UploadFile, File()],
+    db: DbDep,
+    user: CurrentUserDep,
 ) -> Transcript:
     """녹음 → 글. 자동 전송하지 않는다 — 사용자가 확인·수정한 뒤 /turns로 보낸다. 녹음은 저장하지 않는다."""
     if stt is None:
@@ -88,6 +93,7 @@ async def transcribe(
         )
     if not data:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "녹음이 비어 있어요.")
+    record_usage(db, user, "stt")
     try:
         text = await stt.transcribe(
             data,
@@ -102,13 +108,16 @@ async def transcribe(
     return Transcript(text=text.strip())
 
 
-@router.post("/sessions/{session_id}/voice/speech", dependencies=[LlmQuotaDep])
-async def speech(body: SpeechRequest, session: OwnedSessionDep, tts: TtsDep) -> Response:
+@router.post("/sessions/{session_id}/voice/speech", dependencies=[VoiceQuotaDep])
+async def speech(
+    body: SpeechRequest, session: OwnedSessionDep, tts: TtsDep, db: DbDep, user: CurrentUserDep
+) -> Response:
     """코치 질문·교정 질문 → mp3."""
     if tts is None:
         raise _unavailable()
     if body.text not in speakable_texts(session):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "이 글의 질문만 읽어 줄 수 있어요.")
+    record_usage(db, user, "tts")
     try:
         audio = await tts.speak(body.text)
     except VoiceError:

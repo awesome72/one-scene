@@ -6,11 +6,13 @@
 
 import asyncio
 import logging
+import random
 from collections.abc import AsyncIterator
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.engine import extractor, prompt_builder, questioner, resources, reviewer, stage_machine
 from app.engine.extractor import Extraction
 from app.engine.llm import LLM, LLMError
@@ -141,6 +143,9 @@ async def _review_later(
     meta = dict(turn.meta or {})
     if not meta.get("passed"):
         return
+    # 비용: 사용자에게 영향이 없는 기록용 검수라 일부만 표본으로 돌린다 (REVIEW_SAMPLE_RATE)
+    if random.random() >= get_settings().review_sample_rate:
+        return
     try:
         review = await reviewer.run(
             llm,
@@ -263,7 +268,11 @@ async def handle_user_turn(
     hold_all = _looks_distressed(text)
     queue: asyncio.Queue = asyncio.Queue()
     ask_task = asyncio.create_task(_pump(_ask(llm, session), queue))
-    extract_task = asyncio.create_task(_extract(llm, session, text, last_question))
+    if _trivial(text):
+        # 비용: "네", "맞아요" 같은 짧은 답에는 재료가 없으니 추출을 부르지 않는다
+        extract_task = asyncio.create_task(_no_extraction())
+    else:
+        extract_task = asyncio.create_task(_extract(llm, session, text, last_question))
     held: list[Event] = []  # 아직 보내지 않은 질문 이벤트 (위험 표현, 또는 저장 대기 중인 _final)
     streamed = False
     getter: asyncio.Task | None = asyncio.create_task(queue.get())
@@ -309,6 +318,25 @@ async def handle_user_turn(
 
     async for event in _ask_and_save(db, llm, session, text, queue=queue, held=held):
         yield event
+
+
+TRIVIAL_MAX_CHARS = 6
+_KEEP_FOR_EXTRACTION = ("넘어", "싫", "패스", "그만")
+
+
+def _trivial(text: str) -> bool:
+    """재료 추출이 필요 없는 아주 짧은 답 (넘어가기·위험 표현은 제외)."""
+    t = text.strip()
+    return (
+        len(t.replace(" ", "")) <= TRIVIAL_MAX_CHARS
+        and not any(k in t for k in _KEEP_FOR_EXTRACTION)
+        and not any(q in t for q in "\"“”‘’'")
+        and not _looks_distressed(t)
+    )
+
+
+async def _no_extraction() -> Extraction:
+    return Extraction()
 
 
 def _looks_distressed(text: str) -> bool:

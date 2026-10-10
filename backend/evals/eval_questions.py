@@ -267,6 +267,8 @@ async def main() -> None:
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     llm = AnthropicLLM()
+    # 평가는 사후 LLM 검수를 표본이 아니라 매번 돌린다 (검수 1차 통과 지표)
+    get_settings().review_sample_rate = 1.0
     judge_model = get_settings().model_fidelity  # 고품질 모델로 독립 채점
 
     sem = asyncio.Semaphore(args.concurrency)

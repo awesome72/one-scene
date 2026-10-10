@@ -225,3 +225,15 @@ class Tag(Base):
     value: Mapped[str] = mapped_column(Text)
 
     session: Mapped[WritingSession] = relationship(back_populates="tags")
+
+
+class UsageEvent(Base):
+    """턴·초안 말고도 AI·음성 API를 부르는 요청 (여는 질문, 태그 제안, 받아쓰기, 읽어 주기).
+    하루 상한(deps.require_llm_quota)이 함께 센다."""
+
+    __tablename__ = "usage_events"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)

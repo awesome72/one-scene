@@ -65,3 +65,11 @@ class FakeLLM:
         if self.responses.get(schema):
             return self.responses[schema].popleft()
         raise AssertionError(f"예상하지 못한 스키마 {schema}")
+
+
+def state_text(call: dict[str, Any]) -> str:
+    """질문자 요청에서 세션 상태 블록: 대화 끝 system 메시지(캐시용 배치) 또는 예전 system[1]."""
+    last = call["messages"][-1]
+    if last["role"] == "system":
+        return last["content"]
+    return call["system"][1]["text"]

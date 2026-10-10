@@ -16,6 +16,8 @@ T = TypeVar("T", bound=BaseModel)
 # 서버 측 refusal fallback("default" 형식)을 받는 모델 (claude-api 스킬 기준)
 FALLBACK_MODELS = {"claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"}
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# 생각(thinking)을 끌 수 있는 모델과 그 방법 (claude-api 스킬: Sonnet 5.5는 between_tools, effort high 이하)
+THINKING_OFF = {"claude-sonnet-5-5": {"type": "between_tools"}}
 
 
 class LLMError(RuntimeError):
@@ -35,6 +37,7 @@ class LLM(Protocol):
         messages: list[dict[str, Any]],
         max_tokens: int,
         effort: str | None = None,
+        thinking_off: bool = False,
     ) -> str: ...
 
     def stream_text(
@@ -45,6 +48,7 @@ class LLM(Protocol):
         messages: list[dict[str, Any]],
         max_tokens: int,
         effort: str | None = None,
+        thinking_off: bool = False,
     ) -> AsyncIterator[str]:
         """글자가 생기는 대로 조각을 낸다 (화면에 질문을 실시간으로 보이기 위해)."""
         ...
@@ -74,10 +78,13 @@ class AnthropicLLM:
         # 호출별 토큰 사용량 (평가 스크립트가 비용 계산에 쓴다)
         self.usage: list[dict[str, Any]] = []
 
-    def _extra(self, model: str, effort: str | None) -> dict[str, Any]:
+    def _extra(self, model: str, effort: str | None, thinking_off: bool = False) -> dict[str, Any]:
         extra: dict[str, Any] = {}
         if effort and _supports_effort(model):
             extra["output_config"] = {"effort": effort}
+        if thinking_off and model in THINKING_OFF:
+            # 비용·속도: 짧은 질문 한 줄에는 생각 토큰(출력 요금)이 필요 없다
+            extra["thinking"] = THINKING_OFF[model]
         if model in FALLBACK_MODELS:
             # 안전 분류기의 오탐이 서비스 중단이 되지 않게 서버 측 fallback을 켠다
             extra["betas"] = [FALLBACK_BETA]
@@ -104,13 +111,14 @@ class AnthropicLLM:
         messages: list[dict[str, Any]],
         max_tokens: int,
         effort: str | None = None,
+        thinking_off: bool = False,
     ) -> str:
         message = await self.client.beta.messages.create(
             model=model,
             max_tokens=max_tokens,
             system=system,  # type: ignore[arg-type]
             messages=messages,  # type: ignore[arg-type]
-            **self._extra(model, effort),
+            **self._extra(model, effort, thinking_off),
         )
         self._check(message, model)
         return "".join(b.text for b in message.content if b.type == "text").strip()
@@ -123,13 +131,14 @@ class AnthropicLLM:
         messages: list[dict[str, Any]],
         max_tokens: int,
         effort: str | None = None,
+        thinking_off: bool = False,
     ) -> AsyncIterator[str]:
         async with self.client.beta.messages.stream(
             model=model,
             max_tokens=max_tokens,
             system=system,  # type: ignore[arg-type]
             messages=messages,  # type: ignore[arg-type]
-            **self._extra(model, effort),
+            **self._extra(model, effort, thinking_off),
         ) as stream:
             async for chunk in stream.text_stream:
                 yield chunk

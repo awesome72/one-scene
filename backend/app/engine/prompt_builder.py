@@ -101,17 +101,36 @@ def feedback_text(reasons: list[str], rejected: str) -> str:
     )
 
 
+# 대화 중간 system 메시지를 받는 모델 (claude-api 스킬 기준). 그 밖의 모델은 예전 순서로 대비한다
+MID_CONVERSATION_SYSTEM = {
+    "claude-sonnet-5-5", "claude-opus-5-5", "claude-opus-5", "claude-opus-4-8",
+    "claude-fable-5", "claude-fable-5-1",
+}
+
+
 def build(
-    session: WritingSession, feedback: str | None = None, opening: bool = False
+    session: WritingSession,
+    feedback: str | None = None,
+    opening: bool = False,
+    model: str | None = None,
 ) -> dict[str, Any]:
-    return {
-        "system": [
-            {
-                "type": "text",
-                "text": stable_system(session.stage),
-                "cache_control": {"type": "ephemeral"},
-            },
-            {"type": "text", "text": state_block(session, feedback)},
-        ],
-        "messages": history(session, session.stage if opening else None),
+    """질문자 요청.
+
+    비용: 매 턴 바뀌는 세션 상태를 대화 기록 **뒤**의 system 메시지로 두고, 마지막 사용자 말에
+    캐시 표시를 단다. 그러면 [고정 프롬프트 + 지난 대화 기록]이 다음 턴에 캐시에서 읽힌다
+    (상태가 앞에 있으면 대화 기록이 매 턴 정가로 다시 계산된다).
+    """
+    stable = {"type": "text", "text": stable_system(session.stage),
+              "cache_control": {"type": "ephemeral"}}
+    state = state_block(session, feedback)
+    messages = history(session, session.stage if opening else None)
+    if model not in MID_CONVERSATION_SYSTEM:
+        return {"system": [stable, {"type": "text", "text": state}], "messages": messages}
+    last = messages[-1]  # history()는 늘 user로 끝난다
+    messages[-1] = {
+        "role": "user",
+        "content": [{"type": "text", "text": last["content"],
+                     "cache_control": {"type": "ephemeral"}}],
     }
+    messages.append({"role": "system", "content": state})
+    return {"system": [stable], "messages": messages}
