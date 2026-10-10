@@ -8,6 +8,7 @@ import { Journey } from '../components/Journey'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { copyText, download, markdown, plainText, safeFilename } from '../lib/exportText'
 import { go } from '../lib/route'
+import { withPeriod } from '../lib/draftStore'
 import { useVoiceInput } from '../lib/recorder'
 import { useStopSpeakingOnUnmount } from '../lib/tts'
 
@@ -207,7 +208,10 @@ export function Draft({ id }: { id: string }) {
       setSelected(null)
       setAnswer('')
     } catch (e) {
-      setError(String((e as Error).message))
+      // 답이 사라지지 않게: 말로 한 답도 글 입력창에 되돌린다
+      setAnswer(text)
+      setAnswering('text')
+      setError(`${withPeriod(String((e as Error).message))} 쓰신 답은 입력창에 그대로 있어요.`)
     } finally {
       setStatus(null)
     }

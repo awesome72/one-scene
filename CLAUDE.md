@@ -51,6 +51,7 @@ cd frontend && npm run lint                          # oxlint
 ```
 
 ## 배포
+- CI: `.github/workflows/ci.yml`이 main 푸시·PR마다 백엔드 `ruff`·`pytest`(`.env` 없이)와 프론트 `lint`·`build`를 돌린다. Vercel 배포는 CI와 별개로 진행되므로 CI 실패를 확인하면 바로 고친다.
 - Vercel 프로젝트 `one-scene` (https://one-scene.vercel.app), GitHub `awesome72/one-scene`(공개)의 `main`에 푸시하면 production 자동 배포. PR·다른 브랜치는 preview.
 - `vercel.json`의 Services: `frontend`(Vite, SPA 폴백)와 `backend`(FastAPI `app/main.py`). 공개 `/api/*`는 백엔드로 가고, 백엔드 쪽 rewrite가 `/api` 접두어를 떼므로 FastAPI 라우트에는 `/api`가 없다.
 - 운영 DB는 `DATABASE_URL`(Neon, `postgres://`를 `config.sqlalchemy_url`이 psycopg 3 주소로 바꿈). 없으면 Vercel에서는 `/tmp` SQLite (유지 안 됨). 스키마는 `create_all`뿐이라 컬럼을 바꾸면 운영 DB도 직접 손봐야 한다 (Alembic 도입 전).
@@ -97,6 +98,7 @@ cd frontend && npm run lint                          # oxlint
 - 진행 신호 세 층 (2026-10-10 개선안): 서버 `engine/progress.py`가 세션 응답의 `progress`(여정 0~5, 마감 조건 `stage_machine.conditions` 개수, 다음 할 일, 단계 대답 수·보통 범위, 남은 시간 범위, ready)를 계산하고 화면은 그대로 그린다. 여정 막대 `Journey`(모든 화면 위), 아크 곡선 `ArcCurve`(아직 필요한 블록에 점선 고리), 체크리스트 `ProgressSheet`, 승인 직후 `StageTransition`, 대답의 밑줄·방금 생긴 재료 `Answer`. 평가·칭찬 없이 개수·조건·범위만, '다음 할 일'은 질문 위에 두지 않는다(답을 조건에 맞추지 않게). 남은 시간은 홈·전환 화면에만. 초안 화면은 `DraftMeter`(내 말·고친 문장·AI 제안·빈칸)와 `SourceNote`(문장을 누르면 재료가 나온 대답 원문, `MaterialOut.turn_id`).
 - 그 밖의 경험: 첫 안내 세 장 `Onboarding`과 큰 글자 보기(`lib/display.ts`, 이 브라우저에만 저장), 사흘 이상 쉬면 `Resume`('지난번 여기까지'), 서버 받아쓰기 중 소리 크기 `LevelMeter`(`Recorder.level()`), 완성 화면의 '내 이야기 같다' 1~5 `StoryScore`(`story_feedback`, `PUT /sessions/{id}/feedback`).
 - 해시 라우팅(`lib/route.ts`): `#/`, `#/library`, `#/s/{id}`(대화), `#/s/{id}/outline`, `/draft`, `/finish`.
+- 쓰는 중인 답은 `lib/draftStore.ts`로 브라우저에 보관하고, 보내기가 서버에 닿기 전에 실패하면 입력창에 되돌린다 (답을 잃지 않는 것이 최우선).
 - `api/client.ts`가 모든 API 호출과 타입을 가진다. POST SSE는 EventSource 대신 fetch 스트림을 직접 파싱한다. 상태의 원천은 서버다.
 - 음성(Phase 5): 서버 우선, 브라우저 대비. 말로 답하기는 `lib/recorder.ts`(MediaRecorder) → `POST /sessions/{id}/voice/transcribe` → 확인 화면(자동 전송 없음), 서버를 못 쓰면 `lib/speech.ts`(Web Speech). 읽어 주기는 `lib/tts.ts`가 `POST /sessions/{id}/voice/speech`(그 글의 코치·교정 질문만 허용) mp3를 재생하고, 실패하면 브라우저 음성. 백엔드는 `app/voice/`의 어댑터(OpenAI). `OPENAI_API_KEY`가 없으면 `/voice/*`가 501. 마이크를 켜기 전에 `stopSpeaking()`.
 - 모바일 우선(최대 430px). 디자인 토큰은 `index.css`의 CSS 변수(design-spec.md 2절). 사람의 말·글은 세리프(`--serif`), UI는 산세리프. 조사는 `lib/josa.ts`로 받침에 맞춘다. 문구는 목업 말투(존댓말, 짧게, 평가·칭찬 없음).

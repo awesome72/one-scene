@@ -10,6 +10,7 @@ import { ProgressSheet } from '../components/ProgressSheet'
 import { Resume } from '../components/Resume'
 import { StageTransition } from '../components/StageTransition'
 import { VoiceSheet } from '../components/VoiceSheet'
+import { loadDraft, saveDraft, withPeriod } from '../lib/draftStore'
 import { go } from '../lib/route'
 import { useVoiceInput } from '../lib/recorder'
 import { speak, stopSpeaking, ttsSupported, useReadAloud, useStopSpeakingOnUnmount } from '../lib/tts'
@@ -29,8 +30,10 @@ export function Chat({ id }: { id: string }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [mode, setMode] = useState<'idle' | 'typing' | 'voice'>('idle')
-  const [draft, setDraft] = useState('')
+  // 쓰다 만 답이 있으면 입력창을 열어 둔 채로 시작한다 (lib/draftStore.ts)
+  const [draft, setDraft] = useState(() => loadDraft(id))
+  const [mode, setMode] = useState<'idle' | 'typing' | 'voice'>(() => (loadDraft(id) ? 'typing' : 'idle'))
+  useEffect(() => saveDraft(id, draft), [id, draft])
   const [cardOpen, setCardOpen] = useState(false)
   const [progressOpen, setProgressOpen] = useState(false)
   const [resumeOpen, setResumeOpen] = useState(true)
@@ -137,7 +140,24 @@ export function Chat({ id }: { id: string }) {
     try {
       await api.sendTurn(id, { text, input_mode, skip, stuck }, onEvent)
     } catch (e) {
-      setError(String((e as Error).message))
+      // 서버에 닿기 전에 실패했으면(네트워크, 하루 상한, 로그인 만료) 답은 저장되지 않았다.
+      // 서버 기록으로 확인해서, 저장되지 않았으면 쓴 답을 입력창에 되돌린다
+      const message = String((e as Error).message)
+      const saved = await api.turns(id).catch(() => null)
+      const lastUser = saved ? [...saved].reverse().find((t) => t.role === 'user') : undefined
+      if (saved && lastUser?.text === text) {
+        setTurns(saved)
+        setError(message)
+      } else {
+        setTurns((t) => t.filter((x) => x.id !== optimistic.id))
+        if (!skip && !stuck) {
+          setDraft(text)
+          setMode('typing')
+          setError(`${withPeriod(message)} 쓰신 답은 입력창에 그대로 있어요.`)
+        } else {
+          setError(message)
+        }
+      }
     } finally {
       setStatus(null)
     }
