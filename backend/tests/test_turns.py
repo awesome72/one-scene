@@ -330,3 +330,17 @@ def test_other_ai_requests_count_toward_daily_limit(
     assert client.post(f"/sessions/{sid}/coach").status_code == 200  # 여는 질문 1건
     assert client.post(f"/sessions/{sid}/turns", json={"text": "첫 답"}).status_code == 200  # 2건
     assert client.post(f"/sessions/{sid}/coach").status_code == 429
+
+
+def test_turn_records_llm_usage(client: TestClient, fake: FakeLLM, db_session: Session) -> None:
+    """운영 비용 감시: 한 턴의 LLM 호출(추출·질문·검수)이 llm_usage에 남는다."""
+    from sqlalchemy import select
+
+    from app.models import LlmUsage
+
+    sid = _start(client)
+    _send(client, sid)
+    rows = db_session.scalars(select(LlmUsage)).all()
+    assert len(rows) >= 2  # 추출 + 질문 (사후 검수는 저장 뒤에 끝날 수 있다)
+    assert {r.kind for r in rows} == {"turn"} and {r.session_id for r in rows} == {sid}
+    assert all(r.user_id == "dev-user" and r.input_tokens == 100 for r in rows)

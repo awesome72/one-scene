@@ -1,0 +1,3826 @@
+{
+ "label": "비용 2: 1시간 캐시·추출 프롬프트 축약 (Sonnet)",
+ "metrics": {
+  "coach_turns": 40,
+  "single_question": 1.0,
+  "single_question_rule": 1.0,
+  "first_pass": 0.8,
+  "llm_review_pass": 0.825,
+  "final_passed": 1.0,
+  "avg_attempts": 1.025,
+  "judge_follows_user": 0.975,
+  "judge_single_question": 0.975,
+  "judge_concrete": 0.95,
+  "judge_no_interpretation": 0.925,
+  "judge_respects_skip": 1.0,
+  "judge_generic": 0.025,
+  "quote_verbatim": 1.0,
+  "quote_count": 33,
+  "dialogue_captured": 1.0,
+  "dialogue_count": 5,
+  "materials": 108,
+  "arc_assigned": 0.9537037037037037,
+  "avg_seconds": 4.7875,
+  "avg_question_seconds": 2.82125,
+  "avg_first_delta_seconds": 0.8130000000000001
+ },
+ "cost_usd": 0.4446488,
+ "results": [
+  {
+   "id": "quit",
+   "name": "퇴사",
+   "tags": [
+    "dialogue",
+    "repeat"
+   ],
+   "turns": [
+    {
+     "user": "회의실이었어요. 팀장님이 또 같은 얘기를 하는데, 아 이건 아니다 싶었어요. 창밖만 보고 있었어요.",
+     "prev_question": "그만두기로 마음먹은 그 순간, 어디에 있었어요?",
+     "coach": "\"또 같은 얘기\"라고 하셨어요. 그날 팀장님이 한 그 얘기에서, 기억나는 문장이 있어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"또 같은 얘기\"라고 하셨어요. 그날 팀장님이 한 그 얘기에서, 기억나는 문장이 있어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "532321d3830c48108b78ec0233f16eee",
+       "label": "m1",
+       "text": "회의실",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "0fb225f9b28e40f3916041255962d647",
+       "label": "m2",
+       "text": "팀장님이 또 같은 얘기를 하는데",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "d596268c1c2d483d86ccbaf927e0b478",
+       "label": "m3",
+       "text": "아 이건 아니다 싶었어요",
+       "type": "interpretation",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "d93fad4a6f1a496693c322763af3f8fd",
+       "label": "m4",
+       "text": "창밖만 보고 있었어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.4,
+     "first_delta_seconds": 1.42,
+     "question_seconds": 3.63,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "\"이번 분기만 버티자.\" 그 말을 3년 동안 들었어요. 처음 들은 건 입사 첫 해 겨울 워크숍이었어요.",
+     "prev_question": "\"또 같은 얘기\"라고 하셨어요. 그날 팀장님이 한 그 얘기에서, 기억나는 문장이 있어요?",
+     "coach": "\"입사 첫 해 겨울 워크숍\"이라고 하셨어요. 그 말을 처음 들었던 그 자리에서, 팀장님은 어디에 서 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"입사 첫 해 겨울 워크숍\"이라고 하셨어요. 그 말을 처음 들었던 그 자리에서, 팀장님은 어디에 서 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "39e5629fbd6544768f9e590b4eb81007",
+       "label": "m5",
+       "text": "\"이번 분기만 버티자.\"",
+       "type": "dialogue",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "b6867747b18d4d709d04f426d70fbaba",
+       "label": "m6",
+       "text": "그 말을 3년 동안 들었어요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "05b3a2ae069448bcb5db270cc4a9700f",
+       "label": "m7",
+       "text": "입사 첫 해 겨울 워크숍",
+       "type": "time",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.75,
+     "question_seconds": 2.71,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "창밖에는 주차장이 있었어요. 제 차가 보였어요. 그냥 저 차 타고 집에 가고 싶다, 그 생각만 했어요.",
+     "prev_question": "\"입사 첫 해 겨울 워크숍\"이라고 하셨어요. 그 말을 처음 들었던 그 자리에서, 팀장님은 어디에 서 계셨어요?",
+     "coach": "\"저 차 타고 집에 가고 싶다\"고 하셨어요. 그 생각을 하던 순간, 손에는 무엇이 들려 있었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"저 차 타고 집에 가고 싶다\"고 하셨어요. 그 생각을 하던 순간, 손에는 무엇이 들려 있었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "3b81af68927846ba8b8bcd8f35521806",
+       "label": "m8",
+       "text": "창밖에는 주차장이 있었어요",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "ea294d58189d456e806e2cfb916229bd",
+       "label": "m9",
+       "text": "제 차가 보였어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "31b79bd163cc4f4aae7ed7efd930cce6",
+       "label": "m10",
+       "text": "그냥 저 차 타고 집에 가고 싶다",
+       "type": "interpretation",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.71,
+     "question_seconds": 2.76,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "사직서는 그 주 금요일에 냈어요. 팀장님은 \"생각 좀 더 해 봐\"라고만 하셨어요.",
+     "prev_question": "\"저 차 타고 집에 가고 싶다\"고 하셨어요. 그 생각을 하던 순간, 손에는 무엇이 들려 있었어요?",
+     "coach": "\"생각 좀 더 해 봐\"라고 하셨어요. 그 말을 듣고 팀장님 방을 나설 때, 어떤 모습이었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"생각 좀 더 해 봐\"라고 하셨어요. 그 말을 듣고 팀장님 방을 나설 때, 어떤 모습이었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "9cced2b04984467c90c93a215e20e304",
+       "label": "m11",
+       "text": "사직서는 그 주 금요일에 냈어요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "1260291d9bc84bfda0b4fc1f7f4f1fd8",
+       "label": "m12",
+       "text": "\"생각 좀 더 해 봐\"",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.5,
+     "first_delta_seconds": 0.74,
+     "question_seconds": 2.93,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "회의실",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "팀장님",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "같은 얘기",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "창밖",
+     "count": 2
+    },
+    {
+     "kind": "gap",
+     "value": "팀장님의 반복되는 말",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "이번 분기만 버티자",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "3년",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "주차장",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "팀장님의 위치",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "사직서",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "금요일",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "생각 좀 더 해 봐",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "사직서를 들고 있던 손",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "팀장님의 표정이나 목소리",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "moving",
+   "name": "이사",
+   "tags": [
+    "repeat",
+    "oral"
+   ],
+   "turns": [
+    {
+     "user": "어 그니까 지난달에 이사를 했는데요, 짐을 다 빼고 나서 빈 방을 한 번 더 봤거든요. 벽에 액자 걸었던 자국이 있었어요.",
+     "prev_question": "최근, 별일 아닌데 자꾸 생각나는 순간이 있어요?",
+     "coach": "\"액자 걸었던 자국이 있었어요\"라고 하셨어요. 그 자국 앞에 서 있을 때, 그 액자에는 무엇이 담겨 있었는지 기억나세요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"액자 걸었던 자국이 있었어요\"라고 하셨어요. 그 자국 앞에 서 있을 때, 그 액자에는 무엇이 담겨 있었는지 기억나세요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "3539f83056f549c5a947c8f4cd3ec5a9",
+       "label": "m1",
+       "text": "지난달에 이사를 했는데요",
+       "type": "time",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "3aa204f53ebb488c976731fadad1e653",
+       "label": "m2",
+       "text": "짐을 다 빼고 나서 빈 방을 한 번 더 봤거든요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "b0313c0b29ce44a88d08bd07af4eb6e7",
+       "label": "m3",
+       "text": "벽에 액자 걸었던 자국이 있었어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.2,
+     "first_delta_seconds": 1.6,
+     "question_seconds": 3.47,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "액자 자국이 네모나게 하얗게 남아 있었어요. 거기만 하얗고 나머지는 누렇게 바래 있었어요. 8년을 살았거든요.",
+     "prev_question": "\"액자 걸었던 자국이 있었어요\"라고 하셨어요. 그 자국 앞에 서 있을 때, 그 액자에는 무엇이 담겨 있었는지 기억나세요?",
+     "coach": "\"거기만 하얗고 나머지는 누렇게 바래 있었어요\"라고 하셨어요. 그 하얀 네모 앞에서 어디에 서서 무엇을 하고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"거기만 하얗고 나머지는 누렇게 바래 있었어요\"라고 하셨어요. 그 하얀 네모 앞에서 어디에 서서 무엇을 하고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "593a6bd479eb4483995449f3389f0725",
+       "label": "m4",
+       "text": "액자 자국이 네모나게 하얗게 남아 있었어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "c3e895e4e6c84dc5aa4cfece8ba0ec18",
+       "label": "m5",
+       "text": "거기만 하얗고 나머지는 누렇게 바래 있었어요",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "4d7e12a3bd1740c890008c19ca18f51a",
+       "label": "m6",
+       "text": "8년을 살았거든요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.84,
+     "question_seconds": 2.81,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "그 액자는 결혼사진이었어요. 이혼하고 나서 떼어 냈는데 자국은 그대로였던 거죠. 8년 동안 그 자국 앞을 지나다녔어요.",
+     "prev_question": "\"거기만 하얗고 나머지는 누렇게 바래 있었어요\"라고 하셨어요. 그 하얀 네모 앞에서 어디에 서서 무엇을 하고 계셨어요?",
+     "coach": "\"결혼사진이었어요\"라고 하셨어요. 이혼하고 그 사진을 떼어 낸 날, 벽 앞에서 무엇을 하셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"결혼사진이었어요\"라고 하셨어요. 이혼하고 그 사진을 떼어 낸 날, 벽 앞에서 무엇을 하셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "b96725efe7a743648d23b84e18e09b69",
+       "label": "m7",
+       "text": "그 액자는 결혼사진이었어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "db7e673aff194fa0847184d50a1df51c",
+       "label": "m8",
+       "text": "이혼하고 나서 떼어 냈는데",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "123b66f3907d42ebb136841b23213e38",
+       "label": "m9",
+       "text": "자국은 그대로였던 거죠",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "aaf8f00a45c74b1487ea9d266f91c55b",
+       "label": "m10",
+       "text": "8년 동안 그 자국 앞을 지나다녔어요",
+       "type": "fact",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.7,
+     "first_delta_seconds": 0.67,
+     "question_seconds": 2.97,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "마지막에 불 끄고 나올 때 그 자국을 손으로 한 번 쓸어 봤어요. 왜 그랬는지는 모르겠어요.",
+     "prev_question": "\"결혼사진이었어요\"라고 하셨어요. 이혼하고 그 사진을 떼어 낸 날, 벽 앞에서 무엇을 하셨어요?",
+     "coach": "그 자국을 손으로 한 번 쓸어 봤다고 하셨어요. 손바닥에 닿은 벽의 느낌은 어땠어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "그 자국을 손으로 한 번 쓸어 봤다고 하셨어요. 손바닥에 닿은 벽의 느낌은 어땠어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "c6bd9b70341d4bbf821870b3dd380f8e",
+       "label": "m11",
+       "text": "불 끄고 나올 때 그 자국을 손으로 한 번 쓸어 봤어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "674c14dbe6a240ce913fb3e75d01852d",
+       "label": "m12",
+       "text": "왜 그랬는지는 모르겠어요",
+       "type": "interpretation",
+       "arc_block": "meaning",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.5,
+     "first_delta_seconds": 0.95,
+     "question_seconds": 2.68,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "빈 방",
+     "count": 1
+    },
+    {
+     "kind": "hesitation",
+     "value": "어 그니까",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "액자 자국",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "바래 있었어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "결혼사진",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "자국",
+     "count": 5
+    },
+    {
+     "kind": "repeated",
+     "value": "8년",
+     "count": 2
+    },
+    {
+     "kind": "gap",
+     "value": "그 벽",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "그 자국",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "father",
+   "name": "아버지의 시계",
+   "tags": [
+    "hesitate"
+   ],
+   "turns": [
+    {
+     "user": "아버지가 차시던 손목시계요. 서랍 맨 안쪽에 신문지에 싸여 있었어요. 시계는 3시 17분에 멈춰 있었어요.",
+     "prev_question": "버리지 못하고 아직 갖고 있는 물건이 있어요?",
+     "coach": "\"3시 17분에 멈춰 있었어요\"라고 하셨어요. 그 시계가 멈춘 날이 언제였는지, 기억나는 장면이 있어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"3시 17분에 멈춰 있었어요\"라고 하셨어요. 그 시계가 멈춘 날이 언제였는지, 기억나는 장면이 있어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "18b4af483b9b4a12aefff956818104b2",
+       "label": "m1",
+       "text": "아버지가 차시던 손목시계",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "630c2ed88dab411e840abd9d383d5def",
+       "label": "m2",
+       "text": "서랍 맨 안쪽에 신문지에 싸여 있었어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "3cac24d690054128887f275cc5b5f6b4",
+       "label": "m3",
+       "text": "시계는 3시 17분에 멈춰 있었어요",
+       "type": "fact",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.2,
+     "first_delta_seconds": 1.37,
+     "question_seconds": 3.43,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "그게... 뭐랄까, 아버지 돌아가신 날이 새벽이었는데, 시간이 그때였는지는 사실 모르겠어요. 그냥 그렇게 믿고 싶었던 것 같기도 하고요.",
+     "prev_question": "\"3시 17분에 멈춰 있었어요\"라고 하셨어요. 그 시계가 멈춘 날이 언제였는지, 기억나는 장면이 있어요?",
+     "coach": "\"그렇게 믿고 싶었던 것 같기도 하고요\"라고 하셨어요. 그 시계를 신문지에 싸서 서랍 맨 안쪽에 넣던 날, 손에 어떤 감각이 남아 있어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"그렇게 믿고 싶었던 것 같기도 하고요\"라고 하셨어요. 그 시계를 신문지에 싸서 서랍 맨 안쪽에 넣던 날, 손에 어떤 감각이 남아 있어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "258ff20476d143659859e14a4c1548d1",
+       "label": "m4",
+       "text": "아버지 돌아가신 날이 새벽이었는데",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "7f6c163d15a342eba6198cf49798e35c",
+       "label": "m5",
+       "text": "시간이 그때였는지는 사실 모르겠어요",
+       "type": "interpretation",
+       "arc_block": null,
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "6723e6f43ad64a09b0eed3c797a1a080",
+       "label": "m6",
+       "text": "그냥 그렇게 믿고 싶었던 것 같기도 하고요",
+       "type": "interpretation",
+       "arc_block": "meaning",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.8,
+     "first_delta_seconds": 0.87,
+     "question_seconds": 2.89,
+     "judge": {
+      "generic": true,
+      "follows_user": false,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": "사용자의 말을 한 구절 인용했지만 질문은 사용자가 말한 적 없는 '신문지에 싸서 서랍에 넣던 날'이라는 장면을 지어내 묻고 있어서, 아버지가 돌아가신 새벽이나 '믿고 싶었다'는 말을 파고들지 못하고 시계에 관한 어느 대답 뒤에나 붙일 수 있는 질문이 되었다."
+     }
+    },
+    {
+     "user": "아버지는 그 시계를 밥 먹을 때도 안 푸셨어요. 손목에 시곗줄 자국이 하얗게 나 있었어요.",
+     "prev_question": "\"그렇게 믿고 싶었던 것 같기도 하고요\"라고 하셨어요. 그 시계를 신문지에 싸서 서랍 맨 안쪽에 넣던 날, 손에 어떤 감각이 남아 있어요?",
+     "coach": "\"손목에 시곗줄 자국이 하얗게 나 있었어요\"라고 하셨어요. 그 하얀 자국이 보이던 순간에, 아버지는 무엇을 하고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"손목에 시곗줄 자국이 하얗게 나 있었어요\"라고 하셨어요. 그 하얀 자국이 보이던 순간에, 아버지는 무엇을 하고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "32261c49437143bcac627df03187a927",
+       "label": "m7",
+       "text": "아버지는 그 시계를 밥 먹을 때도 안 푸셨어요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "8df78bc1471d4b0395deee63db5a77b3",
+       "label": "m8",
+       "text": "손목에 시곗줄 자국이 하얗게 나 있었어요",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.4,
+     "first_delta_seconds": 0.64,
+     "question_seconds": 2.68,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "지금은 제 책상 위에 둬요. 건전지를 갈면 갈 텐데, 아직 안 갈았어요.",
+     "prev_question": "\"손목에 시곗줄 자국이 하얗게 나 있었어요\"라고 하셨어요. 그 하얀 자국이 보이던 순간에, 아버지는 무엇을 하고 계셨어요?",
+     "coach": "지금은 책상 위에 둔다고 하셨어요. 아직 안 갈았다는 건 건전지를 앞에 두고 어떤 순간이 있었다는 거예요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "지금은 책상 위에 둔다고 하셨어요. 아직 안 갈았다는 건 건전지를 앞에 두고 어떤 순간이 있었다는 거예요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "질문이 두 개입니다. '건전지를 앞에 두고 어떤 순간이 있었다'는 것은 코치가 지어낸 추측이며, 건전지를 갈려다 말았던 장면이 있었는지부터 물어야 합니다.",
+        "건전지를 갈지 않은 이유에 대한 추측('건전지를 앞에 두고 어떤 순간')을 질문에 넣어서 답을 유도하고 있습니다.",
+        "사용자의 말 '아직 안 갔어요'를 '앞에 두고 어떤 순간'이라고 해석해 정리하고 의미를 붙이고 있습니다."
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "98f12433177845568dce6f2da55d7550",
+       "label": "m9",
+       "text": "제 책상 위에 둬요",
+       "type": "object",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "216423e7ee14412d879bc8963aae3666",
+       "label": "m10",
+       "text": "건전지를 갈면 갈 텐데, 아직 안 갈았어요",
+       "type": "fact",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 6.5,
+     "first_delta_seconds": 0.72,
+     "question_seconds": 2.58,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": false,
+      "no_interpretation": false,
+      "respects_skip": true,
+      "reason": "\"아직 안 갈았다는 건 ~ 어떤 순간이 있었다는 거예요?\"는 사용자가 말하지 않은 '순간'을 코치가 추측해 끼워 넣은 해석이며, 질문도 모호해서 시간·장소·동작 같은 구체적 장면 재료를 짚어 주지 못한다."
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "3시 17분",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "신문지에 싸여",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "아버지",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "아버지 돌아가신 날",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "새벽",
+     "count": 1
+    },
+    {
+     "kind": "hesitation",
+     "value": "그게... 뭐랄까",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "시곗줄 자국",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "하얗게",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "책상 위",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "first_salary",
+   "name": "첫 월급",
+   "tags": [
+    "dialogue",
+    "emotion"
+   ],
+   "turns": [
+    {
+     "user": "첫 월급 받은 날이요. 엄마한테 빨간 내복을 사 드렸어요. 촌스럽다고 웃으셨어요.",
+     "prev_question": "처음으로 무언가를 했던 날 중에 가장 먼저 떠오르는 게 뭐예요?",
+     "coach": "\"촌스럽다고 웃으셨어요\"라고 하셨어요. 그 내복을 건네던 순간, 엄마는 어디에 서 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"촌스럽다고 웃으셨어요\"라고 하셨어요. 그 내복을 건네던 순간, 엄마는 어디에 서 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "4e3f965fa83a40808cceaccb853ce464",
+       "label": "m1",
+       "text": "첫 월급 받은 날",
+       "type": "time",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "1284021741f24d978c3b36de0c0d9944",
+       "label": "m2",
+       "text": "엄마한테 빨간 내복을 사 드렸어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "dfb5b55fb4784ff19184e97bc06a61dd",
+       "label": "m3",
+       "text": "촌스럽다고 웃으셨어요",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.1,
+     "first_delta_seconds": 1.35,
+     "question_seconds": 3.38,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "엄마가 \"이런 걸 요즘 누가 사냐\"면서도 그 자리에서 입어 보셨어요. 그날 너무 뿌듯했어요.",
+     "prev_question": "\"촌스럽다고 웃으셨어요\"라고 하셨어요. 그 내복을 건네던 순간, 엄마는 어디에 서 계셨어요?",
+     "coach": "\"그 자리에서 입어 보셨어요\"라고 하셨어요. 엄마가 입어 보신 그 내복은 어떤 모습이었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"그 자리에서 입어 보셨어요\"라고 하셨어요. 엄마가 입어 보신 그 내복은 어떤 모습이었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "b09729133e0a4383b9da5e6e01a2036b",
+       "label": "m4",
+       "text": "엄마가 \"이런 걸 요즘 누가 사냐\"면서도 그 자리에서 입어 보셨어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "d8480e17d9e841748316ce8f5beb04b1",
+       "label": "m5",
+       "text": "그날 너무 뿌듯했어요",
+       "type": "interpretation",
+       "arc_block": "meaning",
+       "emotion_word": true,
+       "excluded": false
+      },
+      {
+       "id": "bc1fa24f3f1c4853a10de3aa499a4317",
+       "label": "m6",
+       "text": "\"이런 걸 요즘 누가 사냐\"",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.73,
+     "question_seconds": 2.79,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "월급이 162만 원이었어요. 내복은 3만 9천 원이었고요. 남은 돈은 거의 다 자취방 월세로 나갔어요.",
+     "prev_question": "\"그 자리에서 입어 보셨어요\"라고 하셨어요. 엄마가 입어 보신 그 내복은 어떤 모습이었어요?",
+     "coach": "\"월급이 162만 원이었어요\"라고 하셨어요. 월급이 들어온 걸 확인한 순간, 어디에서 무엇을 하고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"월급이 162만 원이었어요\"라고 하셨어요. 월급이 들어온 걸 확인한 순간, 어디에서 무엇을 하고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "질문이 두 개입니다. '어디에서 하고 계셨어요'와 '무엇을 하고 계셨어요'를 '그리고'로 잇지 않았더라도 한 문장에서 장소와 행동을 따로 묻고 있습니다."
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "f4bc794ff01a4f05a843472b0da5c302",
+       "label": "m7",
+       "text": "월급이 162만 원이었어요",
+       "type": "fact",
+       "arc_block": null,
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "433169607a1040f4a85b76720bd0e607",
+       "label": "m8",
+       "text": "내복은 3만 9천 원이었고요",
+       "type": "fact",
+       "arc_block": null,
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "d4e55255285c47249b79df7ac80c16b0",
+       "label": "m9",
+       "text": "남은 돈은 거의 다 자취방 월세로 나갔어요",
+       "type": "fact",
+       "arc_block": null,
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.4,
+     "first_delta_seconds": 0.66,
+     "question_seconds": 2.56,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "엄마는 그 내복을 아직도 겨울마다 입으세요. 지난 설에 갔을 때도 입고 계셨어요.",
+     "prev_question": "\"월급이 162만 원이었어요\"라고 하셨어요. 월급이 들어온 걸 확인한 순간, 어디에서 무엇을 하고 계셨어요?",
+     "coach": "\"아직도 겨울마다 입으세요\"라고 하셨어요. 지난 설에 그 내복을 입고 계신 엄마를 처음 본 순간, 어디서 보셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"아직도 겨울마다 입으세요\"라고 하셨어요. 지난 설에 그 내복을 입고 계신 엄마를 처음 본 순간, 어디서 보셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "두 가지를 물으면 안 됩니다: '처음 본 순간'과 '어디서 보셨어요'는 별개의 질문입니다"
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "d6059619f9dc4760bd1ac615eda91209",
+       "label": "m10",
+       "text": "엄마는 그 내복을 아직도 겨울마다 입으세요",
+       "type": "fact",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "7b96ac847cb9408da834cd2c4c44e3eb",
+       "label": "m11",
+       "text": "지난 설에 갔을 때도 입고 계셨어요",
+       "type": "scene",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.7,
+     "question_seconds": 2.78,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "첫 월급",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "빨간 내복",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "엄마",
+     "count": 3
+    },
+    {
+     "kind": "gap",
+     "value": "엄마의 반응",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "뿌듯했어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "그 자리에서 입어 보셨어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "월세",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "내복",
+     "count": 3
+    },
+    {
+     "kind": "repeated",
+     "value": "겨울마다",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "아직도",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "지난 설날 엄마의 모습",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "friend",
+   "name": "연락이 끊긴 친구",
+   "tags": [
+    "emotion",
+    "skip"
+   ],
+   "turns": [
+    {
+     "user": "고등학교 때 제일 친했던 친구한테 연락하려다 말았어요. 카톡 프로필에 아기 사진이 올라와 있더라고요.",
+     "prev_question": "요즘 누군가에게 말하려다 만 이야기가 있어요?",
+     "coach": "\"연락하려다 말았어요\"라고 하셨어요. 그 아기 사진을 보고 난 뒤, 손에 든 휴대폰으로 맨 처음 무엇을 하셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"연락하려다 말았어요\"라고 하셨어요. 그 아기 사진을 보고 난 뒤, 손에 든 휴대폰으로 맨 처음 무엇을 하셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "6a806bb94d5a43bba5aa17806099f51c",
+       "label": "m1",
+       "text": "고등학교 때 제일 친했던 친구한테 연락하려다 말았어요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "b20233038bf445bb8cefd5a7631cd570",
+       "label": "m2",
+       "text": "카톡 프로필에 아기 사진이 올라와 있더라고요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.5,
+     "first_delta_seconds": 0.65,
+     "question_seconds": 2.87,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "우리가 마지막으로 만난 게 7년 전 그 친구 결혼식이었어요. 제가 축사를 했는데, 좀 서운했어요. 제 얘기를 별로 안 들어 주는 것 같아서요.",
+     "prev_question": "\"연락하려다 말았어요\"라고 하셨어요. 그 아기 사진을 보고 난 뒤, 손에 든 휴대폰으로 맨 처음 무엇을 하셨어요?",
+     "coach": "\"제가 축사를 했는데, 좀 서운했어요\"라고 하셨어요. 그 축사를 하던 순간, 친구는 어디서 무엇을 하고 있었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"제가 축사를 했는데, 좀 서운했어요\"라고 하셨어요. 그 축사를 하던 순간, 친구는 어디서 무엇을 하고 있었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "축사를 하던 순간 친구의 위치와 행동을 동시에 물으므로 두 질문을 하나로 잇고 있습니다.",
+        "'어디서'와 '무엇을'은 답을 두 가지로 나누어 물으므로 하나의 질문으로 단순화해야 합니다."
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "f2abde849c534b75ad5a7047e5dfeb5b",
+       "label": "m3",
+       "text": "우리가 마지막으로 만난 게 7년 전 그 친구 결혼식이었어요",
+       "type": "time",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "1e8618261e2943fa8fe8860a1ba6dd04",
+       "label": "m4",
+       "text": "제가 축사를 했는데",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "7e59107002de429c8e61ee6706488bae",
+       "label": "m5",
+       "text": "좀 서운했어요",
+       "type": "interpretation",
+       "arc_block": "meaning",
+       "emotion_word": true,
+       "excluded": false
+      },
+      {
+       "id": "b18c1d87b25643b69b46ace9da2e9915",
+       "label": "m6",
+       "text": "제 얘기를 별로 안 들어 주는 것 같아서요",
+       "type": "interpretation",
+       "arc_block": "meaning",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 6.5,
+     "first_delta_seconds": 0.81,
+     "question_seconds": 3.54,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "그 결혼식 얘기는 좀 넘어갈게요.",
+     "prev_question": "\"제가 축사를 했는데, 좀 서운했어요\"라고 하셨어요. 그 축사를 하던 순간, 친구는 어디서 무엇을 하고 있었어요?",
+     "coach": "그 부분은 여기서 두고 갈게요. 카톡 프로필에서 아기 사진을 본 그 순간으로 돌아가 볼게요. 그때 어디에 앉아 있거나 서 있었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "그 부분은 여기서 두고 갈게요. 카톡 프로필에서 아기 사진을 본 그 순간으로 돌아가 볼게요. 그때 어디에 앉아 있거나 서 있었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 3.7,
+     "first_delta_seconds": 0.72,
+     "question_seconds": 1.95,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "고등학교 때는 매일 같이 버스를 탔어요. 마을버스 맨 뒷자리요. 이어폰 한쪽씩 나눠 꼈어요.",
+     "prev_question": "그 부분은 여기서 두고 갈게요. 카톡 프로필에서 아기 사진을 본 그 순간으로 돌아가 볼게요. 그때 어디에 앉아 있거나 서 있었어요?",
+     "coach": "마을버스 맨 뒷자리, 이어폰 한쪽씩 나눠 꼈다고 하셨어요. 그때 둘이 같이 듣던 노래는 뭐였어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "마을버스 맨 뒷자리, 이어폰 한쪽씩 나눠 꼈다고 하셨어요. 그때 둘이 같이 듣던 노래는 뭐였어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "6688050048f0434ca2b9d614615d44f0",
+       "label": "m7",
+       "text": "고등학교 때는 매일 같이 버스를 탔어요",
+       "type": "scene",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "326f7e8143de474b87af286274de5b7f",
+       "label": "m8",
+       "text": "마을버스 맨 뒷자리요",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "fb2d4e14a0b241dd996507221d7ea2c5",
+       "label": "m9",
+       "text": "이어폰 한쪽씩 나눠 꼈어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.1,
+     "first_delta_seconds": 0.68,
+     "question_seconds": 2.36,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "고등학교 때 제일 친했던 친구",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "연락하려다 말았어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "아기 사진",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "그 친구",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "7년 전",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "그 친구 결혼식",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "축사",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "서운했어요",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "그 친구의 반응",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "축사 내용",
+     "count": 1
+    },
+    {
+     "kind": "skipped",
+     "value": "그 결혼식",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "매일",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "버스",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "뒷자리",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "이어폰",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "hospital",
+   "name": "병원 대기실",
+   "tags": [
+    "repeat",
+    "hesitate"
+   ],
+   "turns": [
+    {
+     "user": "엄마 검사 결과 들으러 같이 갔던 날이요. 대기실에서 번호표를 계속 만지작거렸어요. 214번이었어요.",
+     "prev_question": "그때 내가 다르게 했더라면, 하고 떠오르는 장면이 있어요?",
+     "coach": "\"번호표를 계속 만지작거렸어요\"라고 하셨어요. 214번 번호표를 쥐고 있던 그 손은 어떻게 하고 있었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"번호표를 계속 만지작거렸어요\"라고 하셨어요. 214번 번호표를 쥐고 있던 그 손은 어떻게 하고 있었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "831134525e254a40a24465fd81b9eaf7",
+       "label": "m1",
+       "text": "엄마 검사 결과 들으러 같이 갔던 날",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "4502f5a4848342229421226b6d5d10f4",
+       "label": "m2",
+       "text": "대기실에서 번호표를 계속 만지작거렸어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "577bb306407c4644a39bcdd669d137fc",
+       "label": "m3",
+       "text": "214번",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.7,
+     "first_delta_seconds": 0.68,
+     "question_seconds": 2.87,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "전광판에 번호가 하나씩 넘어가는데, 213번에서 한참 안 넘어갔어요. 한참을요. 엄마는 계속 괜찮다고만 하셨어요.",
+     "prev_question": "\"번호표를 계속 만지작거렸어요\"라고 하셨어요. 214번 번호표를 쥐고 있던 그 손은 어떻게 하고 있었어요?",
+     "coach": "\"213번에서 한참 안 넘어갔어요\"라고 하셨어요. 그 한참 동안, 엄마는 어떤 모습으로 앉아 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"213번에서 한참 안 넘어갔어요\"라고 하셨어요. 그 한참 동안, 엄마는 어떤 모습으로 앉아 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "b8b5122bb80a476d87bd98e543b12af1",
+       "label": "m4",
+       "text": "전광판에 번호가 하나씩 넘어가는데",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "ca205d1fdafa43d4b370a4b8e677a180",
+       "label": "m5",
+       "text": "213번에서 한참 안 넘어갔어요",
+       "type": "fact",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "5c48f04b42cd464ea0640c5b0fdb5cea",
+       "label": "m6",
+       "text": "엄마는 계속 괜찮다고만 하셨어요",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.7,
+     "first_delta_seconds": 0.7,
+     "question_seconds": 2.82,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "의사 선생님 말은 사실 잘 기억이 안 나요. 그... 모니터에 사진 같은 걸 보여 주셨던 것만 기억나요.",
+     "prev_question": "\"213번에서 한참 안 넘어갔어요\"라고 하셨어요. 그 한참 동안, 엄마는 어떤 모습으로 앉아 계셨어요?",
+     "coach": "\"모니터에 사진 같은 걸 보여 주셨던 것만 기억나요\"라고 하셨어요. 그 사진을 보고 있을 때 엄마는 어디를 보고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"모니터에 사진 같은 걸 보여 주셨던 것만 기억나요\"라고 하셨어요. 그 사진을 보고 있을 때 엄마는 어디를 보고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "a72a647099b34c9187757b6e0066824f",
+       "label": "m7",
+       "text": "의사 선생님 말은 사실 잘 기억이 안 나요",
+       "type": "fact",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "93903cd8c1ed4d36bf663eab2d4ff416",
+       "label": "m8",
+       "text": "그... 모니터에 사진 같은 걸 보여 주셨던 것만 기억나요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.2,
+     "first_delta_seconds": 0.78,
+     "question_seconds": 2.82,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "돌아오는 길에 엄마가 칼국수 먹자고 하셨어요. 저는 한 젓가락도 못 먹었는데 엄마는 다 드셨어요.",
+     "prev_question": "\"모니터에 사진 같은 걸 보여 주셨던 것만 기억나요\"라고 하셨어요. 그 사진을 보고 있을 때 엄마는 어디를 보고 계셨어요?",
+     "coach": "\"한 젓가락도 못 먹었는데 엄마는 다 드셨어요\"라고 하셨어요. 엄마가 칼국수를 다 드시는 동안, 맞은편에서 무엇을 하고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"한 젓가락도 못 먹었는데 엄마는 다 드셨어요\"라고 하셨어요. 엄마가 칼국수를 다 드시는 동안, 맞은편에서 무엇을 하고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "4538ea11ae3f4888b83a6e76668aa071",
+       "label": "m9",
+       "text": "돌아오는 길에 엄마가 칼국수 먹자고 하셨어요",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "a6a0b6d8d0dd4c2a903a31c0ddfa7836",
+       "label": "m10",
+       "text": "저는 한 젓가락도 못 먹었는데 엄마는 다 드셨어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.8,
+     "first_delta_seconds": 0.68,
+     "question_seconds": 2.99,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "엄마 검사 결과",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "번호표",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "만지작거렸어요",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "엄마 검사 결과",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "전광판",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "213번",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "한참",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "괜찮다고",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "엄마",
+     "count": 1
+    },
+    {
+     "kind": "hesitation",
+     "value": "그...",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "의사 선생님의 말",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "모니터에 보인 사진",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "칼국수",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "다 드셨어요",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "돌아오는 길",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "엄마의 심정",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "first_home",
+   "name": "처음 혼자 살던 집",
+   "tags": [
+    "oral"
+   ],
+   "turns": [
+    {
+     "user": "처음 혼자 살던 반지하 원룸이요. 창문이 길이랑 높이가 같아서 사람들 발목만 보였어요.",
+     "prev_question": "처음으로 무언가를 했던 날 중에 가장 먼저 떠오르는 게 뭐예요?",
+     "coach": "‘사람들 발목만 보였어요’라고 하셨어요. 그 창문으로 가장 자주 본 발목은 누구 것이었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "‘사람들 발목만 보였어요’라고 하셨어요. 그 창문으로 가장 자주 본 발목은 누구 것이었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "090d6c487848403d90e19a8c62a8887c",
+       "label": "m1",
+       "text": "처음 혼자 살던 반지하 원룸",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "a997d85473934e8cbb19cbe0cb09abf4",
+       "label": "m2",
+       "text": "창문이 길이랑 높이가 같아서",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "3ea7b7ee4f224603ab88779e3964ae15",
+       "label": "m3",
+       "text": "사람들 발목만 보였어요",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 3.8,
+     "first_delta_seconds": 0.75,
+     "question_seconds": 2.06,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "비 오는 날엔 창문으로 우산 끝이랑 장화만 지나갔어요. 진짜 완전 신기했어요. 하루 종일 발만 봤어요.",
+     "prev_question": "‘사람들 발목만 보였어요’라고 하셨어요. 그 창문으로 가장 자주 본 발목은 누구 것이었어요?",
+     "coach": "‘하루 종일 발만 봤어요’라고 하셨는데, 그날 비 오는 소리는 어떻게 들렸어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "‘하루 종일 발만 봤어요’라고 하셨는데, 그날 비 오는 소리는 어떻게 들렸어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "4106ca1318864cd782b6f965119fed1c",
+       "label": "m4",
+       "text": "비 오는 날엔 창문으로 우산 끝이랑 장화만 지나갔어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "4f97af6ff5ee41ad884b1014078d12e8",
+       "label": "m5",
+       "text": "진짜 완전 신기했어요",
+       "type": "interpretation",
+       "arc_block": null,
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "989b3cc11eb94607a7c39927efc89d09",
+       "label": "m6",
+       "text": "하루 종일 발만 봤어요",
+       "type": "fact",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.93,
+     "question_seconds": 2.9,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "첫날 밤엔 이불도 없어서 패딩 덮고 잤어요. 바닥이 차가워서 잠을 거의 못 잤어요.",
+     "prev_question": "‘하루 종일 발만 봤어요’라고 하셨는데, 그날 비 오는 소리는 어떻게 들렸어요?",
+     "coach": "‘패딩 덮고 잤어요’라고 하셨어요. 그 밤에 잠이 안 올 때 무엇을 보고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "‘패딩 덮고 잤어요’라고 하셨어요. 그 밤에 잠이 안 올 때 무엇을 보고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "65803e35ec8944f0a859b12db76aaeb7",
+       "label": "m7",
+       "text": "첫날 밤엔 이불도 없어서 패딩 덮고 잤어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "18ea5895f8714c7f9b76ec6d803646a8",
+       "label": "m8",
+       "text": "바닥이 차가워서",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "47632d817c754c2d9f4b5afec3026143",
+       "label": "m9",
+       "text": "잠을 거의 못 잤어요",
+       "type": "fact",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.8,
+     "first_delta_seconds": 0.79,
+     "question_seconds": 3.0,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "지금 사는 집은 7층이에요. 가끔 일부러 1층 카페 창가에 앉아서 지나가는 발을 봐요.",
+     "prev_question": "‘패딩 덮고 잤어요’라고 하셨어요. 그 밤에 잠이 안 올 때 무엇을 보고 계셨어요?",
+     "coach": "‘일부러 1층 카페 창가에 앉아서’라고 하셨어요. 거기 앉아서 지나가는 발을 보고 계실 때, 반지하 창문 앞의 나는 어디쯤 있어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "‘일부러 1층 카페 창가에 앉아서’라고 하셨어요. 거기 앉아서 지나가는 발을 보고 계실 때, 반지하 창문 앞의 나는 어디쯤 있어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "'나는 어디쯤 있어요?'는 장면의 재료가 아니라 감정·의미·상태를 묻는 추상적인 질문입니다.",
+        "'반지하 창문 앞의 나는'이라고 사용자 대신 의미를 붙이며 두 시간대를 연결하는 해석을 제시하고 있습니다."
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "cfbd542331db48889b7668cfc9198e60",
+       "label": "m10",
+       "text": "지금 사는 집은 7층이에요",
+       "type": "place",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "1b402e91a7a8488bb383d62efb5793ce",
+       "label": "m11",
+       "text": "가끔 일부러 1층 카페 창가에 앉아서 지나가는 발을 봐요",
+       "type": "scene",
+       "arc_block": "resonance",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.1,
+     "first_delta_seconds": 0.79,
+     "question_seconds": 2.06,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": false,
+      "no_interpretation": false,
+      "respects_skip": true,
+      "reason": "사용자가 말하지 않은 '반지하 창문 앞의 나'를 코치가 끌어와 두 장면을 연결하는 해석을 깔았고, '어디쯤 있어요?'는 시간·장소·동작 같은 장면 재료가 아니라 추상적인 관계·위치를 묻는 질문이라 구체적이지 않다."
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "처음 혼자 살던",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "반지하 원룸",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "발목만",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "우산 끝",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "장화",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "이불도 없어서",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "바닥이 차가워서",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "잠을 거의 못 잤어요",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "첫날 밤",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "7층",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "1층 카페 창가",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "지나가는 발",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "그 밤에 본 것",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "exam",
+   "name": "떨어진 시험",
+   "tags": [
+    "emotion",
+    "dialogue"
+   ],
+   "turns": [
+    {
+     "user": "세 번째 임용 시험 떨어졌을 때 아빠가 \"밥은 먹었냐\"고만 물어보셨어요. 그 말이 아직도 기억나요.",
+     "prev_question": "누군가 한 말 중에 아직도 그대로 기억나는 문장이 있어요?",
+     "coach": "\"밥은 먹었냐\"고만 물어보셨다고 하셨어요. 그 말을 들은 곳이 어디였고, 아빠는 그때 무엇을 하고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"밥은 먹었냐\"고만 물어보셨다고 하셨어요. 그 말을 들은 곳이 어디였고, 아빠는 그때 무엇을 하고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "두 가지를 따로 묻고 있습니다. '그 말을 들은 곳이 어디였어요?'와 '아빠는 그때 무엇을 하고 계셨어요?'를 하나의 질문으로 합쳐야 합니다."
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "e0ea49459f334c60a7884c267749c0f1",
+       "label": "m1",
+       "text": "세 번째 임용 시험 떨어졌을 때",
+       "type": "time",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "31adacfaa98c443db59fb940fde5b129",
+       "label": "m2",
+       "text": "아빠가",
+       "type": "person",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "62f7729b9caa4965bc0f98c2922d3424",
+       "label": "m3",
+       "text": "\"밥은 먹었냐\"",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "143a7d063f6e4e0287c31d42391e9599",
+       "label": "m4",
+       "text": "그 말이 아직도 기억나요",
+       "type": "interpretation",
+       "arc_block": "meaning",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.8,
+     "first_delta_seconds": 0.68,
+     "question_seconds": 3.08,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": false,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": "장소와 아빠의 행동을 한꺼번에 묻는 두 개의 질문이라 질문이 정확히 하나가 아니다."
+     }
+    },
+    {
+     "user": "발표는 오전 10시였어요. 독서실 화장실에서 휴대폰으로 확인했어요. 수험번호를 세 번 다시 쳐 봤어요.",
+     "prev_question": "\"밥은 먹었냐\"고만 물어보셨다고 하셨어요. 그 말을 들은 곳이 어디였고, 아빠는 그때 무엇을 하고 계셨어요?",
+     "coach": "수험번호를 세 번 다시 쳐 봤다고 하셨어요. 세 번째 쳤을 때 화면에는 무엇이 떠 있었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "수험번호를 세 번 다시 쳐 봤다고 하셨어요. 세 번째 쳤을 때 화면에는 무엇이 떠 있었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "1cfd7e0775694773b08e93064912e388",
+       "label": "m5",
+       "text": "발표는 오전 10시였어요",
+       "type": "time",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "81e6b03c71f7465a9bc6eaa1cd9b89b3",
+       "label": "m6",
+       "text": "독서실 화장실에서",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "f586fa9b1a7846739ea9a1fd25fba2a9",
+       "label": "m7",
+       "text": "휴대폰으로 확인했어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "6af252acdf7842f69b4871f6587eecdf",
+       "label": "m8",
+       "text": "수험번호를 세 번 다시 쳐 봤어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.2,
+     "first_delta_seconds": 0.71,
+     "question_seconds": 2.37,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "너무 슬펐어요. 그날 집에 가는 버스에서 창문에 머리를 계속 기대고 있었어요.",
+     "prev_question": "수험번호를 세 번 다시 쳐 봤다고 하셨어요. 세 번째 쳤을 때 화면에는 무엇이 떠 있었어요?",
+     "coach": "창문에 머리를 계속 기대고 있었다고 하셨어요. 그 버스 안에서 창문 밖으로 무엇이 지나가고 있었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "창문에 머리를 계속 기대고 있었다고 하셨어요. 그 버스 안에서 창문 밖으로 무엇이 지나가고 있었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "6c5cf29ff4ee4c95b9a975c509d74b7f",
+       "label": "m9",
+       "text": "너무 슬펐어요",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": true,
+       "excluded": false
+      },
+      {
+       "id": "f9b354b51e5741e0838238776871b5ed",
+       "label": "m10",
+       "text": "그날 집에 가는 버스에서 창문에 머리를 계속 기대고 있었어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.5,
+     "first_delta_seconds": 0.71,
+     "question_seconds": 2.67,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "집에 오니까 아빠가 김치찌개를 끓여 놓으셨어요. 아빠는 요리를 안 하시는 분이거든요.",
+     "prev_question": "창문에 머리를 계속 기대고 있었다고 하셨어요. 그 버스 안에서 창문 밖으로 무엇이 지나가고 있었어요?",
+     "coach": "아빠는 요리를 안 하시는 분이라고 하셨어요. 김치찌개가 끓고 있는 걸 본 순간, 아빠는 어디에 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "아빠는 요리를 안 하시는 분이라고 하셨어요. 김치찌개가 끓고 있는 걸 본 순간, 아빠는 어디에 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "73f7927d3d8d4a05991db204348fa0c1",
+       "label": "m11",
+       "text": "집에 오니까 아빠가 김치찌개를 끓여 놓으셨어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "6e411f0e75044aefaceb67f51d213c8e",
+       "label": "m12",
+       "text": "아빠는 요리를 안 하시는 분이거든요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.5,
+     "first_delta_seconds": 0.79,
+     "question_seconds": 2.64,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "세 번째 임용 시험 떨어졌을 때",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "밥은 먹었냐",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "기억",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "아버지의 반응",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "수험번호를 세 번",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "다시 쳐 봤어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "버스",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "창문",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "김치찌개",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "dog",
+   "name": "반려견",
+   "tags": [
+    "repeat"
+   ],
+   "turns": [
+    {
+     "user": "우리 강아지 콩이 목줄이요. 현관 신발장 옆 고리에 아직 걸려 있어요.",
+     "prev_question": "버리지 못하고 아직 갖고 있는 물건이 있어요?",
+     "coach": "\"신발장 옆 고리에 아직 걸려 있어요\"라고 하셨어요. 마지막으로 그 목줄을 손에 든 날, 어디서 무엇을 하고 계셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"신발장 옆 고리에 아직 걸려 있어요\"라고 하셨어요. 마지막으로 그 목줄을 손에 든 날, 어디서 무엇을 하고 계셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": false,
+       "reasons": [
+        "질문이 두 개입니다: '어디서' 무엇을 하고 있었는지를 '어디서'와 '무엇을'로 나누어 물었으므로 하나로 통합하거나 순서를 정해 묻기를 순차적으로 진행해야 합니다."
+       ]
+      }
+     },
+     "materials": [
+      {
+       "id": "b85cc18f31934baa80d4e216cbff15c6",
+       "label": "m1",
+       "text": "우리 강아지 콩이 목줄",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "3715b4da317c46ed953a1bb417beee0f",
+       "label": "m2",
+       "text": "현관 신발장 옆 고리에 아직 걸려 있어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 5.5,
+     "first_delta_seconds": 0.77,
+     "question_seconds": 2.79,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "콩이는 목줄 걸린 소리만 나면 현관으로 뛰어왔어요. 짤랑 하는 소리요. 그 소리만 나면 꼬리를 흔들었어요.",
+     "prev_question": "\"신발장 옆 고리에 아직 걸려 있어요\"라고 하셨어요. 마지막으로 그 목줄을 손에 든 날, 어디서 무엇을 하고 계셨어요?",
+     "coach": "\"목줄 걸린 소리만 나면 현관으로 뛰어왔어요\"라고 하셨어요. 그 짤랑 소리를 마지막으로 들은 날, 콩이는 어떻게 했어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"짤랑 하는 소리만 나면 꼬리를 흔들었어요\"라고 하셨어요. 그 소리가 마지막으로 난 건 언제였고, 그때 콩이는 어떻게 했어요?",
+        "passed": false,
+        "reasons": [
+         "인용 '짤랑 하는 소리만 나면 꼬리를 흔들었어요'이 사용자가 한 말과 다르다. 따옴표 안에는 사용자 말을 어미까지 그대로 옮긴다."
+        ]
+       },
+       {
+        "question": "\"목줄 걸린 소리만 나면 현관으로 뛰어왔어요\"라고 하셨어요. 그 짤랑 소리를 마지막으로 들은 날, 콩이는 어떻게 했어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "30214a533e324670be4c37e2793d2d25",
+       "label": "m3",
+       "text": "콩이는 목줄 걸린 소리만 나면 현관으로 뛰어왔어요",
+       "type": "scene",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "29fa8cc243154fedae616e9d64e9e5a3",
+       "label": "m4",
+       "text": "짤랑 하는 소리요",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "39c766a3685e4cc39a151d3248921c44",
+       "label": "m5",
+       "text": "그 소리만 나면 꼬리를 흔들었어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_reset",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.8,
+     "first_delta_seconds": 0.87,
+     "question_seconds": 2.96,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "작년 봄에 열네 살로 갔어요. 마지막 몇 달은 산책을 못 해서 목줄을 쓸 일이 없었어요.",
+     "prev_question": "\"목줄 걸린 소리만 나면 현관으로 뛰어왔어요\"라고 하셨어요. 그 짤랑 소리를 마지막으로 들은 날, 콩이는 어떻게 했어요?",
+     "coach": "\"마지막 몇 달은 산책을 못 해서 목줄을 쓸 일이 없었어요\"라고 하셨어요. 그 몇 달 동안, 신발장 옆 고리에 걸린 목줄은 어떻게 눈에 들어왔어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"마지막 몇 달은 산책을 못 해서 목줄을 쓸 일이 없었어요\"라고 하셨어요. 그 몇 달 동안, 신발장 옆 고리에 걸린 목줄은 어떻게 눈에 들어왔어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "3f5c0f82d4fd4bf9891ce62cc0a9a2fe",
+       "label": "m6",
+       "text": "작년 봄에 열네 살로 갔어요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "de7ee105d0f1497cb074634d4cbe7d6e",
+       "label": "m7",
+       "text": "마지막 몇 달은 산책을 못 해서 목줄을 쓸 일이 없었어요",
+       "type": "fact",
+       "arc_block": "event",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.6,
+     "first_delta_seconds": 0.64,
+     "question_seconds": 2.89,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": false,
+      "respects_skip": true,
+      "reason": "사용자가 말한 적 없는 '신발장 옆 고리에 걸린 목줄'이라는 장면을 코치가 임의로 만들어 넣었고, '눈에 들어왔어요'라는 표현도 사용자 대신 의미를 얹는 것이라 no_interpretation이 false다."
+     }
+    },
+    {
+     "user": "지금도 외출할 때 그 고리를 보면 손이 한 번 멈춰요. 짤랑 소리가 날까 봐요.",
+     "prev_question": "\"마지막 몇 달은 산책을 못 해서 목줄을 쓸 일이 없었어요\"라고 하셨어요. 그 몇 달 동안, 신발장 옆 고리에 걸린 목줄은 어떻게 눈에 들어왔어요?",
+     "coach": "\"외출할 때 그 고리를 보면 손이 한 번 멈춰요\"라고 하셨어요. 손이 멈추는 그 순간, 짤랑 소리 대신 집 안에서는 무엇이 들려요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"외출할 때 그 고리를 보면 손이 한 번 멈춰요\"라고 하셨어요. 손이 멈추는 그 순간, 짤랑 소리 대신 집 안에서는 무엇이 들려요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "d8799b5b0fab461093a8b9c02d06884e",
+       "label": "m8",
+       "text": "지금도 외출할 때 그 고리를 보면 손이 한 번 멈춰요",
+       "type": "scene",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "be39bc37a56143c1be567f98a408b6b9",
+       "label": "m9",
+       "text": "짤랑 소리가 날까 봐요",
+       "type": "interpretation",
+       "arc_block": "resonance",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.7,
+     "first_delta_seconds": 0.7,
+     "question_seconds": 2.9,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "콩이 목줄",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "현관 신발장 옆 고리",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "아직",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "강아지 콩이",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "목줄 걸린 소리",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "짤랑",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "꼬리를 흔들었어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "열네 살",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "작년 봄",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "마지막 몇 달",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "산책을 못 해",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "콩이의 마지막 날",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "고리",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "짤랑 소리",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "신발장 옆 고리",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "외출할 때",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  },
+  {
+   "id": "grandma",
+   "name": "할머니의 부엌",
+   "tags": [
+    "dialogue",
+    "oral"
+   ],
+   "turns": [
+    {
+     "user": "할머니 부엌이요. 시골집 부엌인데 아궁이가 있었어요. 할머니는 늘 쪼그려 앉아서 불을 보셨어요.",
+     "prev_question": "그 이야기를 떠올리면 가장 먼저 보이는 장면이 뭐예요?",
+     "coach": "\"쪼그려 앉아서 불을 보셨어요\"라고 하셨어요. 그때 불은 어떤 모습이었어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"쪼그려 앉아서 불을 보셨어요\"라고 하셨어요. 그때 불은 어떤 모습이었어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "f0a2f8a7d3b5467b82102cca43c992d5",
+       "label": "m1",
+       "text": "할머니 부엌",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "ae3d4a8e0b7c4dc9996c06049fd48b04",
+       "label": "m2",
+       "text": "시골집 부엌",
+       "type": "place",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "ece1d8a2d2824f37958c9ff7ce6e92c3",
+       "label": "m3",
+       "text": "아궁이가 있었어요",
+       "type": "object",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "2ee97c77b84d46b1aee901995003b09c",
+       "label": "m4",
+       "text": "할머니는 늘 쪼그려 앉아서 불을 보셨어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.9,
+     "first_delta_seconds": 0.72,
+     "question_seconds": 3.13,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "제가 옆에 앉으면 \"연기 들어간다, 저리 가\" 하시면서도 고구마를 하나 넣어 주셨어요.",
+     "prev_question": "\"쪼그려 앉아서 불을 보셨어요\"라고 하셨어요. 그때 불은 어떤 모습이었어요?",
+     "coach": "\"연기 들어간다, 저리 가\" 하시면서 고구마를 넣어 주셨다고 하셨어요. 그 고구마는 어떻게 건네받았어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"연기 들어간다, 저리 가\" 하시면서 고구마를 넣어 주셨다고 하셨어요. 그 고구마는 어떻게 건네받았어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "9cea32b8d5d5425592c8e30ccf975ecf",
+       "label": "m5",
+       "text": "연기 들어간다, 저리 가",
+       "type": "dialogue",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "e638e4278da74916bd79dde0afe13ccd",
+       "label": "m6",
+       "text": "고구마를 하나 넣어 주셨어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.8,
+     "first_delta_seconds": 0.81,
+     "question_seconds": 2.87,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "고구마가 다 익으면 부지깽이로 꺼내서 신문지에 굴리셨어요. 손이 새까매졌어요. 할머니 손도 제 손도요.",
+     "prev_question": "\"연기 들어간다, 저리 가\" 하시면서 고구마를 넣어 주셨다고 하셨어요. 그 고구마는 어떻게 건네받았어요?",
+     "coach": "\"손이 새까매졌어요. 할머니 손도 제 손도요\"라고 하셨어요. 새까매진 손으로 그 고구마를 어떻게 드셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"손이 새까매졌어요. 할머니 손도 제 손도요\"라고 하셨어요. 새까매진 손으로 그 고구마를 어떻게 드셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "22a94a7173234cacada11a892a6ff27f",
+       "label": "m7",
+       "text": "고구마가 다 익으면 부지깽이로 꺼내서 신문지에 굴리셨어요",
+       "type": "scene",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "773f58b0337a47918ea0fa6df88556e5",
+       "label": "m8",
+       "text": "손이 새까매졌어요",
+       "type": "sense",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "6679a08d7fd4475aa30769b1275f42c1",
+       "label": "m9",
+       "text": "할머니 손도 제 손도요",
+       "type": "interpretation",
+       "arc_block": "scene",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.1,
+     "first_delta_seconds": 0.75,
+     "question_seconds": 2.21,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    },
+    {
+     "user": "그 집은 지금 헐리고 없어요. 작년에 가 봤는데 아궁이 있던 자리에 주차장이 생겼더라고요.",
+     "prev_question": "\"손이 새까매졌어요. 할머니 손도 제 손도요\"라고 하셨어요. 새까매진 손으로 그 고구마를 어떻게 드셨어요?",
+     "coach": "\"아궁이 있던 자리에 주차장이 생겼더라고요\"라고 하셨어요. 그 자리에 서서 맨 먼저 무엇을 하셨어요?",
+     "meta": {
+      "attempts": [
+       {
+        "question": "\"아궁이 있던 자리에 주차장이 생겼더라고요\"라고 하셨어요. 그 자리에 서서 맨 먼저 무엇을 하셨어요?",
+        "passed": true,
+        "reasons": []
+       }
+      ],
+      "passed": true,
+      "review": {
+       "passed": true,
+       "reasons": []
+      }
+     },
+     "materials": [
+      {
+       "id": "8d75cead746b4bba86da75b1b9b89be1",
+       "label": "m10",
+       "text": "그 집은 지금 헐리고 없어요",
+       "type": "fact",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "c77c06659f44482993f07550a897bc74",
+       "label": "m11",
+       "text": "작년에 가 봤는데",
+       "type": "scene",
+       "arc_block": "present",
+       "emotion_word": false,
+       "excluded": false
+      },
+      {
+       "id": "7d231f02a14e41b681477c41f3cb107f",
+       "label": "m12",
+       "text": "아궁이 있던 자리에 주차장이 생겼더라고요",
+       "type": "scene",
+       "arc_block": "resonance",
+       "emotion_word": false,
+       "excluded": false
+      }
+     ],
+     "events": [
+      "status",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "question_delta",
+      "materials",
+      "question"
+     ],
+     "seconds": 4.9,
+     "first_delta_seconds": 0.69,
+     "question_seconds": 3.05,
+     "judge": {
+      "generic": false,
+      "follows_user": true,
+      "single_question": true,
+      "concrete": true,
+      "no_interpretation": true,
+      "respects_skip": true,
+      "reason": ""
+     }
+    }
+   ],
+   "signals": [
+    {
+     "kind": "repeated",
+     "value": "할머니",
+     "count": 3
+    },
+    {
+     "kind": "repeated",
+     "value": "부엌",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "아궁이",
+     "count": 2
+    },
+    {
+     "kind": "gap",
+     "value": "할머니의 표정이나 손동작",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "연기 들어간다",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "저리 가",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "고구마",
+     "count": 2
+    },
+    {
+     "kind": "repeated",
+     "value": "부지깽이",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "신문지",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "손이 새까매졌어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "헐리고 없어요",
+     "count": 1
+    },
+    {
+     "kind": "repeated",
+     "value": "주차장",
+     "count": 1
+    },
+    {
+     "kind": "gap",
+     "value": "그 집 (할머니 집인 것으로 추정)",
+     "count": 1
+    }
+   ],
+   "topic": null,
+   "length": null
+  }
+ ]
+}

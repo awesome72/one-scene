@@ -14,16 +14,11 @@ import yaml
 from sqlalchemy.orm import sessionmaker
 
 from app.db import Base, make_engine
+from app.engine import metering
 from app.engine.llm import AnthropicLLM
 from app.engine.pipeline import handle_user_turn
 from app.models import Turn, User, WritingSession
-from evals.eval_questions import PRICES, SCENARIOS
-
-
-def price(u: dict) -> float:
-    p = PRICES.get(u["model"], {"in": 0, "out": 0, "cache_read": 0})
-    return (u["input"] * p["in"] + u["cache_write"] * p["in"] * 1.25
-            + u["cache_read"] * p["cache_read"] + u["output"] * p["out"]) / 1_000_000
+from evals.eval_questions import SCENARIOS
 
 
 async def main() -> None:
@@ -52,7 +47,7 @@ async def main() -> None:
     for u in llm.usage:
         m = by_model[u["model"]]
         m["calls"] += 1
-        m["cost"] += price(u)
+        m["cost"] += metering.cost(u)
         for k in ("input", "cache_read", "cache_write", "output"):
             m[k] += u[k]
     n = len(answers)

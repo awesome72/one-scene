@@ -6,6 +6,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from app.engine import metering
 from app.engine.extractor import Extraction
 from app.engine.reviewer import Review
 
@@ -44,18 +45,27 @@ class FakeLLM:
     def queue(self, response: BaseModel) -> None:
         self.responses.setdefault(type(response), deque()).append(response)
 
+    @staticmethod
+    def _meter(kwargs: dict[str, Any]) -> None:
+        """실제 클라이언트처럼 사용량을 기록한다 (운영 비용 기록 테스트용, 비용 0)."""
+        metering.record({"model": kwargs.get("model") or "fake", "input": 100, "output": 10,
+                         "cache_read": 0, "cache_write": 0})
+
     async def text(self, **kwargs: Any) -> str:
+        self._meter(kwargs)
         self.text_calls.append(kwargs)
         return self.questions.popleft() if self.questions else "그때 어디에 있었어요?"
 
     async def stream_text(self, **kwargs: Any) -> AsyncIterator[str]:
         """실제처럼 몇 글자씩 나눠 낸다. 요청은 text_calls에 같이 기록한다."""
+        self._meter(kwargs)
         self.text_calls.append(kwargs)
         text = self.questions.popleft() if self.questions else "그때 어디에 있었어요?"
         for i in range(0, len(text), 5):
             yield text[i : i + 5]
 
     async def parse(self, **kwargs: Any) -> Any:
+        self._meter(kwargs)
         self.parse_calls.append(kwargs)
         schema = kwargs["schema"]
         if schema is Extraction:
@@ -68,8 +78,8 @@ class FakeLLM:
 
 
 def state_text(call: dict[str, Any]) -> str:
-    """질문자 요청에서 세션 상태 블록: 대화 끝 system 메시지(캐시용 배치) 또는 예전 system[1]."""
+    """질문자 요청에서 세션 상태 블록: 대화 끝 system 메시지 또는 마지막 사용자 말의 끝 블록."""
     last = call["messages"][-1]
     if last["role"] == "system":
         return last["content"]
-    return call["system"][1]["text"]
+    return last["content"][-1]["text"]

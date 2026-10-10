@@ -155,8 +155,9 @@ def test_prompt_puts_stable_part_first_and_state_after() -> None:
     s.turns.append(Turn(idx=1, role="user", text="회의실이었어요", stage=1))
     s.signals.append(Signal(kind="skipped", value="어머니 이야기"))
     prompt = prompt_builder.build(s, feedback="다시 써라")
-    stable, state = prompt["system"]
-    assert stable["cache_control"] == {"type": "ephemeral"}
+    (stable,) = prompt["system"]
+    state = prompt["messages"][-1]["content"][-1]
+    assert stable["cache_control"]["type"] == "ephemeral"
     assert "다섯 가지 철칙" in stable["text"] and "1단계. 주제 설정" in stable["text"]
     assert "자동 생성 파일" not in stable["text"]  # 안내 주석은 모델에 안 보낸다
     assert "어머니 이야기" in state["text"] and state["text"].endswith("다시 써라")
@@ -214,14 +215,18 @@ def test_prompt_caches_history_with_state_at_end() -> None:
     s.turns[0].role = "coach"
     s.turns.append(Turn(idx=1, role="user", text="회의실이었어요", stage=1))
     prompt = prompt_builder.build(s, feedback="다시 써라", model="claude-sonnet-5-5")
-    assert len(prompt["system"]) == 1 and prompt["system"][0]["cache_control"]
+    assert prompt["system"][0]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
     *_history, last_user, state = prompt["messages"]
     assert last_user["role"] == "user"
     assert last_user["content"][-1]["cache_control"] == {"type": "ephemeral"}
     assert state["role"] == "system" and state["content"].endswith("다시 써라")
-    # 지원하지 않는 모델은 예전 배치
-    old = prompt_builder.build(s, model="claude-haiku-4-5-20251001")
-    assert len(old["system"]) == 2 and old["messages"][-1]["role"] == "user"
+    # 대화 중간 system을 못 받는 모델: 상태는 마지막 사용자 말의 캐시 표시 뒤 블록
+    haiku = prompt_builder.build(s, feedback="다시 써라", model="claude-haiku-4-5-20251001")
+    assert len(haiku["system"]) == 1
+    cached, tail = haiku["messages"][-1]["content"]
+    assert haiku["messages"][-1]["role"] == "user"
+    assert cached["cache_control"] == {"type": "ephemeral"} and cached["text"] == "회의실이었어요"
+    assert "cache_control" not in tail and tail["text"].endswith("다시 써라")
 
 
 @pytest.mark.parametrize(

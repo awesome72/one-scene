@@ -37,8 +37,9 @@ cd backend && uv run fastapi dev                     # http://127.0.0.1:8000, /d
 cd backend && PYTHONUTF8=1 uv run pytest             # 오프라인 테스트 (가짜 LLM)
 cd backend && PYTHONUTF8=1 uv run pytest tests/test_turns.py::test_turn_happy_path   # 하나만
 cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s        # 실제 API (비용)
-cd backend && PYTHONUTF8=1 uv run python -m evals.eval_questions --label 메모        # 질문 품질 평가 (~$0.6) → experiments/eval/
-cd backend && PYTHONUTF8=1 uv run python -m evals.bench_cost                        # 턴당 호출 수·비용 (~$0.1)
+cd backend && PYTHONUTF8=1 uv run python -m evals.eval_questions --label 메모        # 질문 품질 평가 (~$0.5, 채점은 Batch API로 몇 분 대기, --no-batch는 바로) → experiments/eval/
+cd backend && PYTHONUTF8=1 uv run python -m evals.bench_cost                        # 턴당 호출 수·비용 (~$0.1, 두 번째 실행이 캐시 따뜻한 값)
+cd backend && PYTHONUTF8=1 uv run python -m evals.usage_report --days 7             # 운영 비용 보고 (llm_usage, DATABASE_URL을 Neon으로)
 cd backend && uv run python -m app.prompt_sync       # SKILL.md → prompts/core.md, stage*.md 재생성
 cd backend && uv run ruff check .                    # 린트 (--fix 가능)
 cd backend && uv add <패키지>
@@ -53,7 +54,7 @@ cd frontend && npm run lint                          # oxlint
 - Vercel 프로젝트 `one-scene` (https://one-scene.vercel.app), GitHub `awesome72/one-scene`(공개)의 `main`에 푸시하면 production 자동 배포. PR·다른 브랜치는 preview.
 - `vercel.json`의 Services: `frontend`(Vite, SPA 폴백)와 `backend`(FastAPI `app/main.py`). 공개 `/api/*`는 백엔드로 가고, 백엔드 쪽 rewrite가 `/api` 접두어를 떼므로 FastAPI 라우트에는 `/api`가 없다.
 - 운영 DB는 `DATABASE_URL`(Neon, `postgres://`를 `config.sqlalchemy_url`이 psycopg 3 주소로 바꿈). 없으면 Vercel에서는 `/tmp` SQLite (유지 안 됨). 스키마는 `create_all`뿐이라 컬럼을 바꾸면 운영 DB도 직접 손봐야 한다 (Alembic 도입 전).
-- 환경 변수는 `vercel env`로 관리 (`ANTHROPIC_API_KEY`, `MODEL_*`, `OPENAI_API_KEY`, `DAILY_LLM_LIMIT`, `DAILY_LLM_LIMIT_PER_USER`). 비용 안전장치는 하루 상한: AI 작업은 사용자별 80·전체 300 (턴·초안 + `usage_events`의 opening·tags), 음성은 사용자별 200 (`usage_events`의 stt·tts). 보안 헤더는 `vercel.json`의 `headers` (CSP는 브라우저 확인 뒤 추가할 것).
+- 환경 변수는 `vercel env`로 관리 (`ANTHROPIC_API_KEY`, `MODEL_*`, `OPENAI_API_KEY`, `DAILY_LLM_LIMIT`, `DAILY_LLM_LIMIT_PER_USER`). 비용 안전장치는 하루 상한: AI 작업은 사용자별 60·전체 300 (턴·초안 + `usage_events`의 opening·tags), 음성은 사용자별 200 (`usage_events`의 stt·tts). 보안 헤더는 `vercel.json`의 `headers` (CSP는 브라우저 확인 뒤 추가할 것).
 - CLI 배포(`vercel deploy`)는 로컬 파일을 올린다. 비밀·개인 글은 `.vercelignore`로 막는다. Windows Git Bash의 curl은 한글 JSON 본문을 깨뜨리므로 운영 API 확인은 httpx로 한다.
 
 ## 아키텍처
@@ -62,6 +63,7 @@ cd frontend && npm run lint                          # oxlint
 `routers/` (sessions, turns, drafts, library) → `engine/` → `models.py`.
 - **LLM 호출은 `engine/` 안에서만.** 엔진은 `engine/llm.py`의 `LLM` 프로토콜(`text`, `parse`)에만 의존한다. 라우터는 `Depends(get_llm)`으로 받고, 테스트는 이를 `tests/fakes.py`의 `FakeLLM`으로 바꾼다 (`fake.queue(<pydantic 응답>)`, `fake.extractions`, `fake.questions`, `fake.reviews`).
 - `AnthropicLLM`은 `client.beta.messages`를 쓰고 `FALLBACK_MODELS`에는 `fallbacks="default"`를 붙인다. 구조화 출력은 `beta.messages.parse(output_format=PydanticModel)`. 호출별 토큰 사용량을 `self.usage`에 쌓는다 (평가 비용 계산용).
+- 비용 기록(`engine/metering.py`): 라우터가 LLM을 쓰는 요청을 `metered()`(SSE)·`metered_call()`로 감싸면 그 안의 호출이 `llm_usage` 표에 토큰·비용과 함께 남는다 (contextvar라 엔진 함수 인자는 그대로). 단가표 `PRICES`도 여기 하나. 서버의 공용 `AnthropicLLM`은 `keep_usage=False`(메모리 누수 방지), 평가 스크립트는 `llm.usage`를 쓴다.
 - 모델 이름은 `.env`의 `MODEL_QUESTIONER/ASSEMBLER/FIDELITY`(Sonnet 5.5), `MODEL_EXTRACTOR/REVIEWER`(Haiku 4.5)를 `config.py`로만 참조한다. Haiku에는 `effort`를 보내지 않는다.
 - ORM → 응답 변환은 `views.py`, 스키마는 `schemas.py`(세션·턴·재료)와 `schemas_draft.py`(개요·초안·교정). SQLite가 시간대를 잃으므로 시각 필드는 `UtcDatetime`.
 - 인증(`app/auth.py`, `frontend/src/lib/auth.ts`): `NEON_AUTH_BASE_URL`(프론트는 `VITE_NEON_AUTH_URL`)이 있으면 Neon Auth 로그인 필수 — 프론트가 `getSession()`의 `session.token`(JWT)을 Bearer로 보내고, 백엔드가 JWKS(EdDSA)로 서명·만료·iss·aud를 검증해 `sub`를 사용자 ID로 쓴다. 없으면(로컬·테스트) `X-User-Id` 헤더(없으면 `dev-user`)로 동작한다. 세션 접근은 `deps.OwnedSessionDep`가 소유자를 확인한다.
@@ -72,7 +74,7 @@ cd frontend && npm run lint                          # oxlint
 3. `distress`면 질문 대신 `data/fixed_replies.yaml` 고정 응답. 단계 마감 조건(`stage_machine.missing`)이 처음 채워지면 `card` 이벤트를 단계당 한 번(`card_offered_stage`).
 4. 속도 설계: 추출과 질문 생성(`questioner.stream`)을 **동시에** 시작하고, 질문은 `question_delta`로 글자가 생기는 대로 보낸다. 실시간 경로에는 `reviewer.rule_check`(물음표 1개, 두 질문 잇기, 문장 수, 상투어, 인용 원문, 직전 질문 되풀이)만 두고, 걸리면 `question_reset` 후 피드백을 넣어 최대 3회 다시 만든다. 코치 턴 저장은 추출(고통 신호 판정)이 끝난 뒤에 한다. `data/fixed_replies.yaml`의 `distress_markers`가 보이는 답은 추출이 끝날 때까지 질문을 보내지 않고, 그 밖의 답에서 뒤늦게 고통 신호가 잡히면 `question_reset` 후 고정 응답. LLM 검수는 질문을 보낸 뒤 `meta.review`에 기록만 한다(`_review_later`).
 - SSE 이벤트: `status(asking)` → `question_delta`* (→ `question_reset` → `question_delta`*)… · `materials` · `card`? → `question` | `error`. `materials`는 질문 조각 사이에 끼어 올 수 있다. `POST /sessions/{id}/coach`는 사용자 발화 없이 새 단계의 여는 질문을 만들고, `TurnCreate.skip=true`는 추출 없이 직전 질문을 넘어간 주제로 기록한다.
-- 프롬프트 조립(`prompt_builder.py`, 비용 설계): system = [core + 단계 모듈 + questioner.md (cache_control)], messages = 대화 기록(마지막 사용자 말에 cache_control) + **끝에 세션 상태 YAML을 `role: system` 메시지로** — 지난 대화 기록까지 캐시된다. 대화 중간 system 메시지를 못 받는 모델(`MID_CONVERSATION_SYSTEM` 밖)은 상태를 system[1]에 두는 예전 배치. 질문자는 생각 끄기(`thinking: between_tools`, Sonnet 5.5)·effort low. 사후 LLM 검수는 `REVIEW_SAMPLE_RATE`(기본 10%)만, "네" 같은 6자 이하 짧은 답은 추출 생략(`_trivial`). **messages는 user로 시작하고 대화 기록은 user로 끝나야 한다** (Sonnet 5.5는 prefill 불가). 코치 턴이 연달아 있으면 사이에 `stage_opened.md`를, 맨 앞에는 `session_start.md`를 끼운다.
+- 프롬프트 조립(`prompt_builder.py`, 비용 설계): system = [core + 단계 모듈 + questioner.md (1시간 캐시 — 단계마다 모든 사용자가 같은 앞부분)], messages = 대화 기록(마지막 사용자 말에 5분 캐시) + **끝에 세션 상태 YAML을 `role: system` 메시지로** — 지난 대화 기록까지 캐시된다. 대화 중간 system 메시지를 못 받는 모델(`MID_CONVERSATION_SYSTEM` 밖, Haiku 등)은 상태를 마지막 사용자 말의 캐시 표시 뒤 블록으로. 질문자는 생각 끄기(`thinking: between_tools`, Sonnet 5.5)·effort low. 사후 LLM 검수는 `REVIEW_SAMPLE_RATE`(기본 10%)만, "네" 같은 6자 이하 짧은 답은 추출 생략(`_trivial`). **messages는 user로 시작하고 대화 기록은 user로 끝나야 한다** (Sonnet 5.5는 prefill 불가). 코치 턴이 연달아 있으면 사이에 `stage_opened.md`를, 맨 앞에는 `session_start.md`를 끼운다.
 
 ### 개요·초안·교정 (`engine/drafting.py`)
 - `outline.plan`: 패턴 4개(linear/return/frame/cross) × 재료 → 단락 순서·분량(SKILL.md 6장 비율). LLM 없이 결정적. `arc_block`이 없는 재료는 개요에 들어가지 않는다.

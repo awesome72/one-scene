@@ -1,7 +1,7 @@
 """질문자 프롬프트 조립: core.md + 단계 모듈 + 출력 규칙 + 세션 상태 YAML + 최근 대화.
 
-캐시를 위해 바뀌지 않는 부분(core + 단계 + 출력 규칙)을 앞 블록에 두고 cache_control을 붙인다.
-매 턴 바뀌는 세션 상태와 재시도 피드백은 그 뒤 블록에 둔다.
+캐시를 위해 바뀌지 않는 부분(core + 단계 + 출력 규칙)을 system에 두고 1시간 캐시를 붙인다.
+매 턴 바뀌는 세션 상태와 재시도 피드백은 대화 기록 뒤에 둔다 (`build` 참고).
 """
 
 from typing import Any
@@ -19,6 +19,7 @@ STAGE_MODULES = {
     4: "stage4_revise",
 }
 MAX_HISTORY_TURNS = 40
+STABLE_TTL = "1h"
 
 
 def stable_system(stage: int) -> str:
@@ -120,17 +121,22 @@ def build(
     캐시 표시를 단다. 그러면 [고정 프롬프트 + 지난 대화 기록]이 다음 턴에 캐시에서 읽힌다
     (상태가 앞에 있으면 대화 기록이 매 턴 정가로 다시 계산된다).
     """
+    # 고정 프롬프트는 단계마다 모든 사용자가 같으므로 1시간 캐시로 오래 데워 둔다.
+    # 대화 기록은 사용자마다 달라 5분 캐시 (긴 TTL 표시는 짧은 것보다 앞에 와야 한다)
     stable = {"type": "text", "text": stable_system(session.stage),
-              "cache_control": {"type": "ephemeral"}}
+              "cache_control": {"type": "ephemeral", "ttl": STABLE_TTL}}
     state = state_block(session, feedback)
     messages = history(session, session.stage if opening else None)
-    if model not in MID_CONVERSATION_SYSTEM:
-        return {"system": [stable, {"type": "text", "text": state}], "messages": messages}
     last = messages[-1]  # history()는 늘 user로 끝난다
-    messages[-1] = {
-        "role": "user",
-        "content": [{"type": "text", "text": last["content"],
-                     "cache_control": {"type": "ephemeral"}}],
-    }
-    messages.append({"role": "system", "content": state})
+    blocks: list[dict[str, Any]] = [
+        {"type": "text", "text": last["content"], "cache_control": {"type": "ephemeral"}}
+    ]
+    if model in MID_CONVERSATION_SYSTEM:
+        messages[-1] = {"role": "user", "content": blocks}
+        messages.append({"role": "system", "content": state})
+    else:
+        # 대화 중간 system 메시지를 못 받는 모델(Haiku 등): 상태를 마지막 사용자 말의 캐시 표시
+        # 뒤 블록으로. 캐시되는 앞부분은 같아서 대화 기록 캐시는 그대로 얻는다
+        blocks.append({"type": "text", "text": state})
+        messages[-1] = {"role": "user", "content": blocks}
     return {"system": [stable], "messages": messages}

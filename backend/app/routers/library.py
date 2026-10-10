@@ -8,6 +8,7 @@ from app.db import DbDep
 from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep, record_usage
 from app.engine import stage_machine, tagging
 from app.engine.llm import LLM, get_llm
+from app.engine.metering import metered_call
 from app.engine.tagging import TagSet, TagSuggestion
 from app.models import WritingSession
 from app.schemas import SessionDetail, StageApproval, UtcDatetime
@@ -54,7 +55,7 @@ async def suggest_tags(
 ) -> TagSuggestion:
     """태그 제안. 저장하지 않는다 — 사용자가 고른 것만 PUT으로 저장한다."""
     record_usage(db, user, "tags")
-    return await tagging.suggest(llm, session)
+    return await metered_call(tagging.suggest(llm, session), db, user.id, session.id, "tags")
 
 
 @router.put("/sessions/{session_id}/tags")

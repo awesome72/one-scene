@@ -10,6 +10,7 @@ import anthropic
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.engine import metering
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -70,12 +71,16 @@ def _supports_effort(model: str) -> bool:
 
 
 class AnthropicLLM:
-    def __init__(self, client: anthropic.AsyncAnthropic | None = None) -> None:
+    def __init__(
+        self, client: anthropic.AsyncAnthropic | None = None, keep_usage: bool = True
+    ) -> None:
         settings = get_settings()
         self.client = client or anthropic.AsyncAnthropic(
             api_key=settings.anthropic_api_key or None
         )
-        # 호출별 토큰 사용량 (평가 스크립트가 비용 계산에 쓴다)
+        # 호출별 토큰 사용량 (평가 스크립트가 비용 계산에 쓴다). 서버의 공용 인스턴스는 쌓지 않는다
+        # (오래 사는 함수 인스턴스에서 끝없이 자라므로). 운영 기록은 metering이 요청별로 남긴다
+        self.keep_usage = keep_usage
         self.usage: list[dict[str, Any]] = []
 
     def _extra(self, model: str, effort: str | None, thinking_off: bool = False) -> dict[str, Any]:
@@ -93,13 +98,19 @@ class AnthropicLLM:
 
     def _check(self, message: Any, model: str) -> None:
         u = message.usage
-        self.usage.append({
+        creation = getattr(u, "cache_creation", None)
+        usage = {
             "model": model,
             "input": u.input_tokens,
             "output": u.output_tokens,
             "cache_read": u.cache_read_input_tokens or 0,
             "cache_write": u.cache_creation_input_tokens or 0,
-        })
+            # 1시간 캐시 쓰기는 단가가 다르다 (입력의 2배)
+            "cache_write_1h": getattr(creation, "ephemeral_1h_input_tokens", 0) or 0,
+        }
+        if self.keep_usage:
+            self.usage.append(usage)
+        metering.record(usage)
         if message.stop_reason == "refusal":
             raise LLMRefusal(f"refusal ({getattr(message, '_request_id', '')})")
 
@@ -174,5 +185,5 @@ _llm: LLM | None = None
 def get_llm() -> LLM:
     global _llm
     if _llm is None:
-        _llm = AnthropicLLM()
+        _llm = AnthropicLLM(keep_usage=False)
     return _llm

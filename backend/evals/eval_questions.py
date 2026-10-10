@@ -25,7 +25,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config import REPO_DIR, get_settings
 from app.db import Base, make_engine
-from app.engine import reviewer
+from app.engine import metering, reviewer
 from app.engine.extractor import find_verbatim
 from app.engine.llm import AnthropicLLM
 from app.engine.pipeline import handle_user_turn
@@ -41,13 +41,6 @@ TARGETS = {
     "follows_user": 0.85,
     "first_pass": 0.80,
 }
-# $/1M 토큰 (claude-api 스킬 기준, 2026-09). 캐시 쓰기는 입력의 1.25배
-PRICES = {
-    "claude-sonnet-5-5": {"in": 2.0, "out": 10.0, "cache_read": 0.20},
-    "claude-haiku-4-5-20251001": {"in": 1.0, "out": 5.0, "cache_read": 0.10},
-    "claude-haiku-4-5": {"in": 1.0, "out": 5.0, "cache_read": 0.10},
-    "claude-opus-5-5": {"in": 4.0, "out": 20.0, "cache_read": 0.20},
-}
 QUOTED = re.compile(r"[‘'\"“]([^‘'\"“”’]{2,60})[’'\"”]")
 
 
@@ -62,18 +55,7 @@ class Judgement(BaseModel):
 
 
 def cost(usage: list[dict[str, Any]]) -> float:
-    total = 0.0
-    for u in usage:
-        p = PRICES.get(u["model"])
-        if not p:
-            continue
-        total += (
-            u["input"] * p["in"]
-            + u["cache_write"] * p["in"] * 1.25
-            + u["cache_read"] * p["cache_read"]
-            + u["output"] * p["out"]
-        ) / 1_000_000
-    return total
+    return sum(metering.cost(u) for u in usage)
 
 
 def quotes_in(text: str) -> list[str]:
@@ -122,14 +104,49 @@ async def run_scenario(factory: sessionmaker, llm: AnthropicLLM, sc: dict) -> di
                 "length": session.target_length}
 
 
-async def judge(llm: AnthropicLLM, model: str, t: dict) -> Judgement:
-    user = (
+def judge_user(t: dict) -> str:
+    return (
         f"<코치의 직전 질문>\n{t['prev_question']}\n</코치의 직전 질문>\n\n"
         f"<사용자의 마지막 말>\n{t['user']}\n</사용자의 마지막 말>\n\n"
         f"<채점할 코치 응답>\n{t['coach']}\n</채점할 코치 응답>"
     )
+
+
+async def judge(llm: AnthropicLLM, model: str, t: dict) -> Judgement:
     return await llm.parse(model=model, system=(HERE / "judge.md").read_text("utf-8"),
-                           user=user, schema=Judgement, max_tokens=2000)
+                           user=judge_user(t), schema=Judgement, max_tokens=2000)
+
+
+async def judge_batch(llm: AnthropicLLM, model: str, turns: list[dict]) -> list[Judgement]:
+    """채점을 Message Batches API로 (요금 절반, 보통 몇 분 안에 끝난다)."""
+    from anthropic.lib._parse._transform import transform_schema
+
+    system = (HERE / "judge.md").read_text("utf-8")
+    fmt = {"type": "json_schema", "schema": transform_schema(Judgement)}
+    batch = await llm.client.beta.messages.batches.create(requests=[
+        {"custom_id": f"j{i}", "params": {
+            "model": model, "max_tokens": 2000, "system": system,
+            "messages": [{"role": "user", "content": judge_user(t)}],
+            "output_config": {"format": fmt},
+        }}
+        for i, t in enumerate(turns)
+    ])
+    while batch.processing_status != "ended":
+        await asyncio.sleep(15)
+        batch = await llm.client.beta.messages.batches.retrieve(batch.id)
+    out: dict[int, Judgement] = {}
+    async for r in await llm.client.beta.messages.batches.results(batch.id):
+        i = int(r.custom_id[1:])
+        if r.result.type != "succeeded":  # 실패한 것만 일반 호출로 다시
+            out[i] = await judge(llm, model, turns[i])
+            continue
+        msg = r.result.message
+        llm.usage.append({"model": model, "input": msg.usage.input_tokens,
+                          "output": msg.usage.output_tokens, "cache_read": 0,
+                          "cache_write": 0, "batch": True})
+        text = "".join(b.text for b in msg.content if b.type == "text")
+        out[i] = Judgement.model_validate_json(text)
+    return [out[i] for i in range(len(turns))]
 
 
 def rate(values: list[bool]) -> float:
@@ -255,6 +272,8 @@ async def main() -> None:
     ap.add_argument("--only", default="", help="쉼표로 구분한 시나리오 id")
     ap.add_argument("--label", default="", help="결과에 남길 메모 (예: '기준선', 'F5 수정 후')")
     ap.add_argument("--concurrency", type=int, default=4)
+    ap.add_argument("--no-batch", action="store_true",
+                    help="채점을 Batch API(요금 절반, 몇 분 대기) 대신 바로 부른다")
     args = ap.parse_args()
 
     scenarios = yaml.safe_load(SCENARIOS.read_text("utf-8"))
@@ -284,7 +303,10 @@ async def main() -> None:
     print("채점 중…", flush=True)
     to_judge = [t for r in results for t in r["turns"]
                 if t["coach"] and not (t["meta"] or {}).get("fixed")]
-    judgements = await asyncio.gather(*(judge(llm, judge_model, t) for t in to_judge))
+    if args.no_batch:
+        judgements = await asyncio.gather(*(judge(llm, judge_model, t) for t in to_judge))
+    else:
+        judgements = await judge_batch(llm, judge_model, to_judge)
     for t, j in zip(to_judge, judgements, strict=True):
         t["judge"] = j.model_dump()
 

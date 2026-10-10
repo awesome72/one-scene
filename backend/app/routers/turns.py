@@ -7,6 +7,7 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 from app.db import DbDep
 from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep, record_usage
 from app.engine.llm import LLM, get_llm
+from app.engine.metering import metered
 from app.engine.pipeline import Event, handle_stage_open, handle_user_turn
 from app.schemas import TurnCreate
 
@@ -27,9 +28,8 @@ async def post_turn(
 
     이벤트: status(extracting|asking|reviewing) → materials → card(선택) → question | error
     """
-    async for event in handle_user_turn(
-        db, llm, session, body.text, body.input_mode, skip=body.skip
-    ):
+    events = handle_user_turn(db, llm, session, body.text, body.input_mode, skip=body.skip)
+    async for event in metered(events, db, session.user_id, session.id, "turn"):
         yield _sse(event)
 
 
@@ -42,5 +42,6 @@ async def post_coach(
     이벤트: status(asking|reviewing) → question | error
     """
     record_usage(db, user, "opening")
-    async for event in handle_stage_open(db, llm, session):
+    events = handle_stage_open(db, llm, session)
+    async for event in metered(events, db, session.user_id, session.id, "opening"):
         yield _sse(event)

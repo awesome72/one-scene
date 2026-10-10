@@ -8,6 +8,7 @@ from app.db import DbDep
 from app.deps import LlmQuotaDep, OwnedSessionDep
 from app.engine import drafting
 from app.engine.llm import LLM, get_llm
+from app.engine.metering import metered, metered_call
 from app.models import Draft, WritingSession
 from app.schemas_draft import (
     AcceptSuggestion,
@@ -51,7 +52,8 @@ async def create_draft(
     session: OwnedSessionDep, db: DbDep, llm: LlmDep
 ) -> AsyncIterable[ServerSentEvent]:
     """초안 조립 → 진실성 검사 → 교정 점검. 이벤트: status(assembling|checking) → draft | error"""
-    async for event in drafting.handle_draft(db, llm, session):
+    events = drafting.handle_draft(db, llm, session)
+    async for event in metered(events, db, session.user_id, session.id, "draft"):
         yield ServerSentEvent(event=event["event"], data=event["data"])
 
 
@@ -98,8 +100,11 @@ async def answer_hit(
 ) -> HitAnswerOut:
     """교정 질문에 답하기. 답은 원문 재료가 되고, 다음 초안에 쓰인다."""
     try:
-        added, draft = await drafting.answer_hit(
-            db, llm, session, _draft(session, draft_id), hit_id, body.text, body.input_mode
+        added, draft = await metered_call(
+            drafting.answer_hit(
+                db, llm, session, _draft(session, draft_id), hit_id, body.text, body.input_mode
+            ),
+            db, session.user_id, session.id, "answer",
         )
     except KeyError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "교정 표시를 찾을 수 없습니다.") from None
