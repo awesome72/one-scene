@@ -108,7 +108,7 @@ export interface Draft {
   paragraphs: {
     position: number
     label: string | null
-    sentences: { index: number; text: string; is_blank: boolean; materials: Material[] }[]
+    sentences: { index: number; text: string; is_blank: boolean; edited: boolean; materials: Material[] }[]
   }[]
   hits: LintHit[]
   open_hits: number
@@ -270,6 +270,8 @@ export const api = {
   saveOutline: (id: string, pattern: PatternId) => request<Outline>('POST', `/sessions/${id}/outline`, { pattern }),
   makeDraft: (id: string, onEvent: (e: DraftEvent) => void) => stream(`/sessions/${id}/drafts`, {}, onEvent),
   latestDraft: (id: string) => request<Draft>('GET', `/sessions/${id}/drafts/latest`),
+  editDraft: (id: string, draftId: string, paragraphs: string[]) =>
+    request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/edit`, { paragraphs }),
   dismissHit: (id: string, draftId: string, hitId: string) =>
     request<Draft>('POST', `/sessions/${id}/drafts/${draftId}/hits/${encodeURIComponent(hitId)}/dismiss`),
   tags: (id: string) => request<TagSet>('GET', `/sessions/${id}/tags`),

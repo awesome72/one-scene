@@ -55,7 +55,14 @@ class DraftSentenceOut(BaseModel):
     index: int
     text: str
     is_blank: bool
+    # 사용자가 직접 고치거나 쓴 문장 (출처 재료 없음, 진실성 검사 대상 아님)
+    edited: bool = False
     materials: list[MaterialOut]
+
+
+class DraftEdit(BaseModel):
+    # 단락별 본문. 빈칸을 남기려면 "[빈칸: 질문]"을 그대로 둔다
+    paragraphs: list[str] = Field(min_length=1, max_length=60)
 
 
 class DraftParagraphOut(BaseModel):

@@ -644,3 +644,22 @@ input:focus-visible {
   flex: 1;
   padding: 8px;
 }
+
+/* 직접 고치기·꺼내기 */
+.toolbar {
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.toolbar .link {
+  color: var(--ink-2);
+  padding: 4px 0;
+}
+.edit-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sentence.edited {
+  text-decoration: underline dotted var(--muted-2);
+  text-underline-offset: 5px;
+}

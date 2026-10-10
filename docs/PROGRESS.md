@@ -45,6 +45,8 @@
 - [x] 배포 (D2): https://one-scene.vercel.app — GitHub `main` 푸시 시 자동 배포 (2026-10-09)
 - [x] Neon Postgres 연결 (`one-scene-db`, 풀링 `DATABASE_URL`) — 운영 대화가 Neon에 저장되는 것 확인 (2026-10-09)
 - [x] 실제 로그인 (B2): Neon Auth 이메일·비밀번호, 백엔드 JWT 검증 (2026-10-09). 하루 AI 사용량 상한은 유지
+- [ ] Neon Auth 신뢰 도메인에 `https://one-scene.vercel.app` 등록 (사용자, Neon 콘솔 Auth → Configuration → Domains) — 등록 전에는 운영 로그인이 `Invalid origin` 403
+- [x] 완성 글 직접 고치기(새 초안 버전, 고친 문장 표시)·복사·.txt/.md 저장 (2026-10-10, 브라우저 확인은 아직)
 - [ ] 글쓰기 모임 2곳, 30명
 - [ ] 1단계 → 완성률 35% 확인
 

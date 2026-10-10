@@ -9,7 +9,15 @@ from app.deps import LlmQuotaDep, OwnedSessionDep
 from app.engine import drafting
 from app.engine.llm import LLM, get_llm
 from app.models import Draft, WritingSession
-from app.schemas_draft import DraftOut, HitAnswer, HitAnswerOut, OutlineOut, OutlineSave, PatternId
+from app.schemas_draft import (
+    DraftEdit,
+    DraftOut,
+    HitAnswer,
+    HitAnswerOut,
+    OutlineOut,
+    OutlineSave,
+    PatternId,
+)
 from app.views import material_out
 
 router = APIRouter(prefix="/sessions/{session_id}", tags=["drafts"])
@@ -51,6 +59,12 @@ def latest_draft(session: OwnedSessionDep) -> DraftOut:
     if not session.drafts:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "아직 초안이 없습니다.")
     return drafting.draft_out(session.drafts[-1], session)
+
+
+@router.post("/drafts/{draft_id}/edit")
+def edit_draft(draft_id: str, body: DraftEdit, session: OwnedSessionDep, db: DbDep) -> DraftOut:
+    """사용자가 직접 고친 본문 → 새 초안 버전. LLM을 부르지 않는다."""
+    return drafting.edit_draft(db, session, _draft(session, draft_id), body.paragraphs)
 
 
 @router.post("/drafts/{draft_id}/hits/{hit_id}/dismiss")

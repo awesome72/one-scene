@@ -77,6 +77,7 @@ cd frontend && npm run lint                          # oxlint
 - `outline.plan`: 패턴 4개(linear/return/frame/cross) × 재료 → 단락 순서·분량(SKILL.md 6장 비율). LLM 없이 결정적. `arc_block`이 없는 재료는 개요에 들어가지 않는다.
 - `handle_draft`(SSE `status(assembling|checking)` → `draft`): **조립 전에 저장된 패턴으로 개요를 다시 계산한다** (교정 답으로 생긴 재료 반영). `assembler`(재료 번호로 출처 표시) → `fidelity.structural`(출처 없음·없는 재료 → 빈칸) → `fidelity.semantic`(재료 + 그 재료가 나온 사용자 발화 대비) → `cliche_linter`.
 - 초안의 원천은 `drafts.sentence_map`(`paragraph, text, material_ids, is_blank, note`)이고 `body`는 파생값. 교정 표시 id는 `"{문장}:{시작}:{종류}"`, `lint_result[].dismissed`가 '그대로 두기'(B5). 교정 질문에 답하면 질문·답이 대화 턴으로 남고 답에서 재료를 뽑는다 (초안에는 '다시 만들기' 때 반영).
+- 직접 고치기(`edit_draft`, `POST /drafts/{id}/edit`)는 LLM 없이 새 초안 버전을 만든다. 그대로 남은 문장은 출처를 유지하고, 고친 문장은 `source: "user"`(진실성 검사 대상 아님). '그대로 두기'는 (종류, 표시된 말)로 다음 버전에 이어진다.
 - 태그는 Haiku가 제안만 하고 사용자가 `PUT /tags`로 저장한다. 보관함의 다음 글감 = `gap` 태그 중 아직 새 글 첫 질문으로 쓰지 않은 것.
 
 ### 프롬프트와 데이터 (`backend/app/prompts`, `backend/app/data`)

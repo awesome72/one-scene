@@ -288,3 +288,72 @@ def test_redraft_includes_materials_added_after_outline(
     client.post(f"/sessions/{sid}/drafts")
     assemble_prompt = [c for c in fake.parse_calls if c["schema"] is AssembledDraft][-1]["user"]
     assert "볼펜으로 화이트보드를 두드렸어요" in assemble_prompt
+
+
+# ---------- 직접 고치기 ----------
+
+
+def test_split_sentences_keeps_blanks_and_quotes() -> None:
+    from app.engine.drafting import split_sentences
+
+    text = '팀장은 "이번 분기만 버티자."라고 했다. 나는 창밖을 봤다.[빈칸: 그때 손은요?] 그냥 하늘이었다…'
+    assert split_sentences(text) == [
+        '팀장은 "이번 분기만 버티자."라고 했다.',
+        "나는 창밖을 봤다.",
+        "[빈칸: 그때 손은요?]",
+        "그냥 하늘이었다…",
+    ]
+
+
+def test_edit_draft_keeps_sources_marks_user_sentences(
+    client: TestClient, db_session: Session, fake: FakeLLM
+) -> None:
+    sid = _seed(db_session, client)
+    client.post(f"/sessions/{sid}/outline", json={"pattern": "linear"})
+    fake.queue(AssembledDraft(paragraphs=[
+        DraftParagraph(outline_position=1, sentences=[
+            DraftSentence(text="나는 회의실 창밖만 보고 있었다.", material_ids=["m1"]),
+            DraftSentence(text="가슴이 먹먹했다.", material_ids=["m1"]),
+        ]),
+        DraftParagraph(outline_position=2, sentences=[
+            DraftSentence(text="그때 손은 무엇을 하고 있었나요?", is_blank=True),
+        ]),
+    ]))
+    fake.queue(FidelityResult(verdicts=[SentenceVerdict(index=i, ok=True) for i in (0, 1)]))
+    first = parse_sse(client.post(f"/sessions/{sid}/drafts").text)[-1][1]["draft"]
+    calls_before = len(fake.parse_calls)
+
+    res = client.post(f"/sessions/{sid}/drafts/{first['id']}/edit", json={"paragraphs": [
+        "나는 회의실 창밖만 보고 있었다. 볼펜 뚜껑을 계속 열었다 닫았다.",
+        "[빈칸: 그때 손은 무엇을 하고 있었나요?]",
+    ]})
+    assert res.status_code == 200
+    draft = res.json()
+    assert draft["version"] == 2
+    assert len(fake.parse_calls) == calls_before  # LLM을 부르지 않는다
+    s = [x for p in draft["paragraphs"] for x in p["sentences"]]
+    assert [x["text"] for x in s] == [
+        "나는 회의실 창밖만 보고 있었다.", "볼펜 뚜껑을 계속 열었다 닫았다.",
+        "[빈칸: 그때 손은 무엇을 하고 있었나요?]",
+    ]
+    assert s[0]["edited"] is False and s[0]["materials"][0]["text"] == "회의실 창밖만 보고 있었어요"
+    assert s[1]["edited"] is True and s[1]["materials"] == []
+    assert s[2]["is_blank"] is True
+    # '가슴이 먹먹했다'를 지웠으니 그 표시도 사라지고, 빈칸 표시는 남는다
+    assert {h["kind"] for h in draft["hits"]} == {"blank"}
+    assert client.get(f"/sessions/{sid}/drafts/latest").json()["version"] == 2
+
+
+def test_edit_draft_validation_and_ownership(
+    client: TestClient, db_session: Session, fake: FakeLLM
+) -> None:
+    sid = _seed(db_session, client)
+    client.post(f"/sessions/{sid}/outline", json={"pattern": "linear"})
+    fake.queue(AssembledDraft(paragraphs=[DraftParagraph(outline_position=1, sentences=[
+        DraftSentence(text="나는 회의실 창밖만 보고 있었다.", material_ids=["m1"])])]))
+    fake.queue(FidelityResult(verdicts=[SentenceVerdict(index=0, ok=True)]))
+    did = parse_sse(client.post(f"/sessions/{sid}/drafts").text)[-1][1]["draft"]["id"]
+    assert client.post(f"/sessions/{sid}/drafts/{did}/edit", json={"paragraphs": []}).status_code == 422
+    other = {"X-User-Id": "someone-else"}
+    res = client.post(f"/sessions/{sid}/drafts/{did}/edit", json={"paragraphs": ["x."]}, headers=other)
+    assert res.status_code == 404

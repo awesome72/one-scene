@@ -4,6 +4,7 @@ import { ListenButton } from '../components/ListenButton'
 import { Quoted } from '../components/Quoted'
 import { StageBar } from '../components/StageBar'
 import { VoiceSheet } from '../components/VoiceSheet'
+import { copyText, download, markdown, plainText, safeFilename } from '../lib/exportText'
 import { go } from '../lib/route'
 import { voiceSupported } from '../lib/speech'
 import { useStopSpeakingOnUnmount } from '../lib/tts'
@@ -72,6 +73,51 @@ export function Draft({ id }: { id: string }) {
       .then(setDraft)
       .catch((e) => (e instanceof ApiError && e.status === 404 ? setMissing(true) : setError(String(e.message))))
   }, [id])
+
+  // 직접 고치기·꺼내기
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState<string[]>([])
+  const [notice, setNotice] = useState<string | null>(null)
+  const hasEdited = draft?.paragraphs.some((p) => p.sentences.some((s) => s.edited)) ?? false
+  const title = session?.title || session?.topic_sentence || '한 장면'
+
+  const startEdit = () => {
+    if (!draft) return
+    setSelected(null)
+    setEditText(draft.paragraphs.map((p) => p.sentences.map((s) => s.text).join(' ')))
+    setEditing(true)
+  }
+
+  const saveEdit = async () => {
+    if (!draft) return
+    setError(null)
+    setStatus('고친 글을 저장하고 있어요')
+    try {
+      setDraft(await api.editDraft(id, draft.id, editText.filter((t) => t.trim())))
+      setEditing(false)
+      setNotice('고친 글을 새 초안으로 저장했어요.')
+    } catch (e) {
+      setError(String((e as Error).message))
+    } finally {
+      setStatus(null)
+    }
+  }
+
+  const blanksNote = () => (draft && draft.blank_count ? ` 비워 둔 자리 ${draft.blank_count}곳은 뺐어요.` : '')
+
+  const copy = async () => {
+    if (!draft) return
+    const ok = await copyText(plainText(draft))
+    setNotice(ok ? `글을 복사했어요.${blanksNote()}` : '복사하지 못했어요. 파일로 저장해 주세요.')
+  }
+
+  const save = (kind: 'txt' | 'md') => {
+    if (!draft) return
+    const name = `${safeFilename(title)}.${kind}`
+    if (kind === 'md') download(name, markdown(draft, title), 'text/markdown')
+    else download(name, `${title}\n\n${plainText(draft)}\n`)
+    setNotice(`${name}로 저장했어요.${blanksNote()}`)
+  }
 
   const redraft = async () => {
     setError(null)
@@ -155,6 +201,52 @@ export function Draft({ id }: { id: string }) {
               {open.length}곳 · {draft.char_count.toLocaleString('ko-KR')}자 · {draft.version}번째 초안
             </span>
           </p>
+          <div className="row toolbar">
+            <button type="button" className="link" disabled={status !== null} onClick={startEdit}>
+              {editing ? '고치는 중' : '직접 고치기'}
+            </button>
+            <button type="button" className="link" onClick={copy}>
+              복사
+            </button>
+            <button type="button" className="link" onClick={() => save('txt')}>
+              .txt 저장
+            </button>
+            <button type="button" className="link" onClick={() => save('md')}>
+              .md 저장
+            </button>
+          </div>
+          {notice && <p className="note">{notice}</p>}
+
+          {editing ? (
+            <form
+              className="edit-draft"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void saveEdit()
+              }}
+            >
+              <p className="hint">
+                당신의 글이에요. 마음대로 고쳐도 돼요. 빈칸을 남기려면 [빈칸: …]을 그대로 두세요.
+              </p>
+              {editText.map((t, i) => (
+                <textarea
+                  key={i}
+                  value={t}
+                  rows={Math.max(3, Math.ceil(t.length / 22))}
+                  onChange={(e) => setEditText((all) => all.map((x, j) => (j === i ? e.target.value : x)))}
+                  aria-label={`${i + 1}번째 단락`}
+                />
+              ))}
+              <div className="row">
+                <button type="button" className="secondary" onClick={() => setEditing(false)}>
+                  취소
+                </button>
+                <button type="submit" className="primary" disabled={status !== null}>
+                  고친 글 저장
+                </button>
+              </div>
+            </form>
+          ) : (
           <article className="draft-body">
             {draft.paragraphs.map((p) => (
               <p key={p.position}>
@@ -177,7 +269,7 @@ export function Draft({ id }: { id: string }) {
                         )
                       ) : (
                         <span
-                          className={`sentence ${source === s.index ? 'on' : ''}`}
+                          className={`sentence ${source === s.index ? 'on' : ''} ${s.edited ? 'edited' : ''}`}
                           onClick={() => setSource(source === s.index ? null : s.index)}
                         >
                           <Sentence
@@ -191,7 +283,9 @@ export function Draft({ id }: { id: string }) {
                       )}{' '}
                       {source === s.index && (
                         <span className="source">
-                          출처: {s.materials.map((m) => `“${m.text}”`).join(' · ')}
+                          {s.edited
+                            ? '직접 고친 문장이에요.'
+                            : `출처: ${s.materials.map((m) => `“${m.text}”`).join(' · ')}`}
                         </span>
                       )}
                     </span>
@@ -200,7 +294,12 @@ export function Draft({ id }: { id: string }) {
               </p>
             ))}
           </article>
-          <p className="hint">모든 문장은 대화에서 나온 당신의 말에 연결되어 있어요. 문장을 누르면 출처가 보여요.</p>
+          )}
+          <p className="hint">
+            {hasEdited
+              ? '점선 문장은 직접 고친 문장이에요. 나머지는 대화에서 나온 당신의 말에 연결되어 있어요.'
+              : '모든 문장은 대화에서 나온 당신의 말에 연결되어 있어요. 문장을 누르면 출처가 보여요.'}
+          </p>
           {answered > 0 && (
             <p className="note">답한 {answered}곳은 재료가 되었어요. 초안을 다시 만들면 반영돼요.</p>
           )}

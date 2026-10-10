@@ -1,6 +1,7 @@
 """3단계 개요 저장, 4단계 초안 조립·진실성 검사·교정 점검, 교정 질문에 대한 답 기록."""
 
 import logging
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -110,11 +111,12 @@ def _lint(sentence_map: list[dict[str, Any]], previous: list[dict] | None) -> li
     hits = cliche_linter.lint_sentences(
         [s["text"] for s in sentence_map], [s["is_blank"] for s in sentence_map]
     )
-    dismissed = {h["id"] for h in previous or [] if h.get("dismissed")}
+    # 문장 번호는 다시 만들거나 고치면 바뀌므로 (종류, 표시된 말)로 이어받는다
+    dismissed = {(h["kind"], h["text"]) for h in previous or [] if h.get("dismissed")}
     out = []
     for h in hits:
         d = h.to_dict()
-        d["dismissed"] = h.id in dismissed
+        d["dismissed"] = (h.kind, h.text) in dismissed
         out.append(d)
     return out
 
@@ -134,6 +136,7 @@ def draft_out(draft: Draft, session: WritingSession) -> DraftOut:
                 index=index,
                 text=s["text"],
                 is_blank=s["is_blank"],
+                edited=s.get("source") == "user",
                 materials=[material_out(by_id[m]) for m in s["material_ids"] if m in by_id],
             )
         )
@@ -236,3 +239,57 @@ async def answer_hit(
     draft.lint_result = result
     db.commit()
     return added, draft_out(draft, session)
+
+
+# ---------- 4단계: 직접 고치기 ----------
+
+# 문장 끝(마침표·물음표·느낌표·말줄임표, 닫는 따옴표 포함) 뒤의 공백에서 자른다
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?…])\s+|(?<=[.!?…][\"'”’)])\s+")
+
+
+def split_sentences(paragraph: str) -> list[str]:
+    parts = re.split(r"(\[빈칸:[^\]]*\])", paragraph.strip())
+    out: list[str] = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if cliche_linter.BLANK.match(part):
+            out.append(part)
+        else:
+            out += [s.strip() for s in _SENTENCE_SPLIT.split(part) if s.strip()]
+    return out
+
+
+def edit_draft(
+    db: Session, session: WritingSession, draft: Draft, paragraphs: list[str]
+) -> DraftOut:
+    """사용자가 직접 고친 본문을 새 초안 버전으로 저장한다.
+
+    글의 주인은 사용자다. 그대로 남은 문장은 출처 재료 연결을 유지하고, 고치거나 새로 쓴 문장은
+    source="user"로 표시한다 (진실성 검사는 AI가 조립한 문장에만 적용한다). 교정 점검은 다시 돈다.
+    """
+    old = {s["text"]: s for s in draft.sentence_map}
+    old_positions = sorted({s["paragraph"] for s in draft.sentence_map})
+    sentence_map: list[dict[str, Any]] = []
+    for i, paragraph in enumerate(p for p in paragraphs if p.strip()):
+        position = old_positions[i] if i < len(old_positions) else max(old_positions or [0]) + i
+        for text in split_sentences(paragraph):
+            kept = old.get(text)
+            if kept is not None:
+                sentence_map.append({**kept, "paragraph": position})
+            elif cliche_linter.BLANK.match(text):
+                sentence_map.append({"paragraph": position, "text": text, "material_ids": [],
+                                     "is_blank": True, "note": "사용자가 남긴 빈칸"})
+            else:
+                sentence_map.append({"paragraph": position, "text": text, "material_ids": [],
+                                     "is_blank": False, "note": None, "source": "user"})
+    new = Draft(
+        version=session.drafts[-1].version + 1,
+        body=_body(sentence_map),
+        sentence_map=sentence_map,
+        lint_result=_lint(sentence_map, draft.lint_result),
+    )
+    session.drafts.append(new)
+    db.commit()
+    return draft_out(new, session)
