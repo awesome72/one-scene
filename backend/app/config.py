@@ -29,9 +29,13 @@ class Settings(BaseSettings):
         else f"sqlite:///{BACKEND_DIR / 'one_scene.db'}"
     )
 
-    stt_provider: str = ""
-    stt_api_key: str = ""
-    voice_keep_original: bool = False
+    # 음성 (Phase 5, open-questions D1: OpenAI). 키가 없으면 프론트가 브라우저 내장 음성으로 대비한다
+    openai_api_key: str = ""
+    model_stt: str = "gpt-4o-transcribe"
+    model_tts: str = "gpt-4o-mini-tts"
+    tts_voice: str = "marin"
+    # 녹음 원본은 받아쓰기 뒤 버린다 (기획안 12장). 4.5MB는 Vercel 함수 요청 본문 한도
+    max_audio_bytes: int = 4_000_000
 
     # Neon Auth 주소 (Vercel Marketplace 연결이 넣어 준다). 있으면 로그인 필수 (app/auth.py)
     neon_auth_base_url: str = ""

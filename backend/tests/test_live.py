@@ -10,6 +10,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
+from app.config import get_settings
 from app.engine import extractor, reviewer
 from app.engine.llm import AnthropicLLM, get_llm
 from app.main import app
@@ -111,3 +112,22 @@ def test_assemble_real_draft(client: TestClient, db_session) -> None:
     for p in draft["paragraphs"]:
         for s in p["sentences"]:
             assert s["is_blank"] or s["materials"], f"출처 없는 문장: {s['text']}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not get_settings().openai_api_key, reason="OPENAI_API_KEY 없음")
+async def test_voice_round_trip_live() -> None:
+    """질문을 합성(TTS)한 mp3를 다시 받아쓰기(STT)해 원문과 비교한다."""
+    from difflib import SequenceMatcher
+
+    from app.voice.openai_voice import OpenAIVoice
+
+    text = "‘창밖만 보고 있었어요’라고 하셨어요. 그때 창밖에는 무엇이 보였어요?"
+    voice = OpenAIVoice()
+    mp3 = await voice.speak(text)
+    assert mp3[:3] == b"ID3" or mp3[:2] == b"\xff\xfb" or len(mp3) > 1000
+    heard = await voice.transcribe(mp3, filename="q.mp3", content_type="audio/mpeg",
+                                   hint="창밖 회의실")
+    print("\n받아쓴 글:", heard)
+    plain = lambda s: "".join(ch for ch in s if ch.isalnum())
+    assert SequenceMatcher(None, plain(text), plain(heard)).ratio() > 0.8

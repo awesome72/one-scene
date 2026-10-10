@@ -7,7 +7,7 @@ import { Quoted } from '../components/Quoted'
 import { StageBar } from '../components/StageBar'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { go } from '../lib/route'
-import { voiceSupported } from '../lib/speech'
+import { useVoiceInput } from '../lib/recorder'
 import { speak, stopSpeaking, ttsSupported, useReadAloud, useStopSpeakingOnUnmount } from '../lib/tts'
 
 const STEP_TEXT = {
@@ -36,6 +36,12 @@ export function Chat({ id }: { id: string }) {
     readAloudRef.current = readAloud
   }, [readAloud])
   useStopSpeakingOnUnmount()
+  // 말로 답하기: 서버 받아쓰기 > 브라우저 인식 > 없음
+  const voiceMode = useVoiceInput()
+  const voiceModeRef = useRef(voiceMode)
+  useEffect(() => {
+    voiceModeRef.current = voiceMode
+  }, [voiceMode])
 
   useEffect(() => {
     Promise.all([api.getSession(id), api.turns(id)])
@@ -67,8 +73,8 @@ export function Chat({ id }: { id: string }) {
         setStatus(null)
         if (readAloudRef.current) {
           // 말로 답하던 중이면, 다 읽은 뒤 바로 말하기 화면을 연다 (손 안 쓰는 대화)
-          const handsFree = lastInputRef.current === 'voice' && voiceSupported()
-          speak(e.data.turn.text, handsFree ? () => setMode('voice') : undefined)
+          const handsFree = lastInputRef.current === 'voice' && voiceModeRef.current !== 'none'
+          speak(e.data.turn.text, { sessionId: id, onEnd: handsFree ? () => setMode('voice') : undefined })
         }
         break
       case 'error':
@@ -76,7 +82,7 @@ export function Chat({ id }: { id: string }) {
         setStatus(null)
         break
     }
-  }, [])
+  }, [id])
 
   const busy = status !== null
 
@@ -173,7 +179,7 @@ export function Chat({ id }: { id: string }) {
       {lastCoach && (
         <section className="now" aria-live="polite">
           <p className="eyebrow row between">
-            지금 질문 <ListenButton key={lastCoach.id} text={lastCoach.text} />
+            지금 질문 <ListenButton key={lastCoach.id} text={lastCoach.text} sessionId={id} />
           </p>
           <p className="question">
             <Quoted text={lastCoach.text} />
@@ -230,7 +236,7 @@ export function Chat({ id }: { id: string }) {
           </form>
         ) : (
           <div className="row">
-            {voiceSupported() && (
+            {voiceMode !== 'none' && (
               <button
                 type="button"
                 className="primary grow"
@@ -253,8 +259,10 @@ export function Chat({ id }: { id: string }) {
         </button>
       </footer>
 
-      {mode === 'voice' && lastCoach && (
+      {mode === 'voice' && lastCoach && voiceMode !== 'none' && (
         <VoiceSheet
+          sessionId={id}
+          mode={voiceMode}
           question={lastCoach.text}
           repeated={session.repeated.map((r) => r.value)}
           onClose={() => setMode('idle')}

@@ -6,7 +6,7 @@ import { StageBar } from '../components/StageBar'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { copyText, download, markdown, plainText, safeFilename } from '../lib/exportText'
 import { go } from '../lib/route'
-import { voiceSupported } from '../lib/speech'
+import { useVoiceInput } from '../lib/recorder'
 import { useStopSpeakingOnUnmount } from '../lib/tts'
 
 const STEP_TEXT = { assembling: '초안을 다시 짜고 있어요', checking: '문장마다 출처를 확인하고 있어요' } as const
@@ -65,6 +65,7 @@ export function Draft({ id }: { id: string }) {
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   useStopSpeakingOnUnmount()
+  const voiceMode = useVoiceInput()
 
   useEffect(() => {
     api.getSession(id).then(setSession).catch((e) => setError(String(e.message ?? e)))
@@ -348,7 +349,7 @@ export function Draft({ id }: { id: string }) {
             <p className="question">
               <Quoted text={hit.question} />
             </p>
-            <ListenButton key={hit.id} text={hit.question} />
+            <ListenButton key={hit.id} text={hit.question} sessionId={id} />
             {answering === 'text' ? (
               <form
                 onSubmit={(e) => {
@@ -369,7 +370,7 @@ export function Draft({ id }: { id: string }) {
             ) : (
               <>
                 <div className="row">
-                  {voiceSupported() && (
+                  {voiceMode !== 'none' && (
                     <button type="button" className="primary" onClick={() => setAnswering('voice')}>
                       말로 답하기
                     </button>
@@ -386,8 +387,10 @@ export function Draft({ id }: { id: string }) {
           </div>
         </div>
       )}
-      {hit && answering === 'voice' && (
+      {hit && answering === 'voice' && voiceMode !== 'none' && (
         <VoiceSheet
+          sessionId={id}
+          mode={voiceMode}
           question={hit.question}
           repeated={[]}
           onClose={() => setAnswering(null)}

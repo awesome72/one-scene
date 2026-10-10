@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { speak, stopSpeaking, ttsSupported } from '../lib/tts'
 
 // 질문 다시 듣기 버튼
-export function ListenButton({ text }: { text: string }) {
+export function ListenButton({ text, sessionId }: { text: string; sessionId: string }) {
   const [playing, setPlaying] = useState(false)
   if (!ttsSupported()) return null
   return (
@@ -16,7 +16,7 @@ export function ListenButton({ text }: { text: string }) {
           setPlaying(false)
         } else {
           setPlaying(true)
-          speak(text, () => setPlaying(false))
+          speak(text, { sessionId, onEnd: () => setPlaying(false) })
         }
       }}
     >

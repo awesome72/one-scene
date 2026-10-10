@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from app import models  # noqa: F401  테이블 등록
 from app.db import Base, engine
-from app.routers import drafts, library, sessions, turns
+from app.routers import drafts, library, sessions, turns, voice
 
 
 @asynccontextmanager
@@ -20,6 +20,7 @@ app.include_router(sessions.router)
 app.include_router(turns.router)
 app.include_router(drafts.router)
 app.include_router(library.router)
+app.include_router(voice.router)
 
 
 @app.get("/health", tags=["system"])

@@ -92,7 +92,7 @@ cd frontend && npm run lint                          # oxlint
 ### 프론트엔드 (`frontend/src`)
 - 해시 라우팅(`lib/route.ts`): `#/`, `#/library`, `#/s/{id}`(대화), `#/s/{id}/outline`, `/draft`, `/finish`.
 - `api/client.ts`가 모든 API 호출과 타입을 가진다. POST SSE는 EventSource 대신 fetch 스트림을 직접 파싱한다. 상태의 원천은 서버다.
-- 음성: `lib/speech.ts`(받아쓰기)와 `lib/tts.ts`(읽어 주기)는 브라우저 Web Speech API 임시 구현이다. 서버 STT/TTS(Phase 5)로 바꿀 때는 이 두 파일만 교체한다. 마이크를 켜기 전에 `stopSpeaking()`.
+- 음성(Phase 5): 서버 우선, 브라우저 대비. 말로 답하기는 `lib/recorder.ts`(MediaRecorder) → `POST /sessions/{id}/voice/transcribe` → 확인 화면(자동 전송 없음), 서버를 못 쓰면 `lib/speech.ts`(Web Speech). 읽어 주기는 `lib/tts.ts`가 `POST /sessions/{id}/voice/speech`(그 글의 코치·교정 질문만 허용) mp3를 재생하고, 실패하면 브라우저 음성. 백엔드는 `app/voice/`의 어댑터(OpenAI). `OPENAI_API_KEY`가 없으면 `/voice/*`가 501. 마이크를 켜기 전에 `stopSpeaking()`.
 - 모바일 우선(최대 430px). 디자인 토큰은 `index.css`의 CSS 변수(design-spec.md 2절). 사람의 말·글은 세리프(`--serif`), UI는 산세리프. 조사는 `lib/josa.ts`로 받침에 맞춘다. 문구는 목업 말투(존댓말, 짧게, 평가·칭찬 없음).
 
 ## 이 환경(Windows)에서 겪은 함정

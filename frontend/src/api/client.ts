@@ -168,8 +168,8 @@ export class ApiError extends Error {
 }
 
 // 운영: 로그인 JWT, 로컬: 브라우저별 임시 ID
-async function headers(): Promise<Record<string, string>> {
-  const h: Record<string, string> = { 'Content-Type': 'application/json' }
+async function headers(json = true): Promise<Record<string, string>> {
+  const h: Record<string, string> = json ? { 'Content-Type': 'application/json' } : {}
   if (authEnabled) {
     const token = await getToken()
     if (token) h.Authorization = `Bearer ${token}`
@@ -243,6 +243,42 @@ async function stream<E extends { event: string }>(
       if (event && data.length) onEvent({ event, data: JSON.parse(data.join('\n')) } as unknown as E)
     }
   }
+}
+
+async function errorMessage(res: Response): Promise<string> {
+  try {
+    const data = await res.json()
+    if (typeof data.detail === 'string') return data.detail
+  } catch {
+    /* 본문 없음 */
+  }
+  return `요청이 실패했어요 (${res.status})`
+}
+
+// 음성 (Phase 5). 서버에 업체 키가 없으면 501 → 화면이 브라우저 음성으로 대비한다
+export const voiceApi = {
+  config: () => request<{ stt: boolean; tts: boolean }>('GET', '/voice/config'),
+  transcribe: async (id: string, audio: Blob): Promise<string> => {
+    const ext = audio.type.includes('mp4') ? 'm4a' : audio.type.includes('ogg') ? 'ogg' : 'webm'
+    const form = new FormData()
+    form.append('audio', audio, `answer.${ext}`)
+    const res = await fetch(`/api/sessions/${id}/voice/transcribe`, {
+      method: 'POST',
+      headers: await headers(false),
+      body: form,
+    })
+    if (!res.ok) throw failed(res.status, await errorMessage(res))
+    return ((await res.json()) as { text: string }).text
+  },
+  speech: async (id: string, text: string): Promise<Blob> => {
+    const res = await fetch(`/api/sessions/${id}/voice/speech`, {
+      method: 'POST',
+      headers: await headers(),
+      body: JSON.stringify({ text }),
+    })
+    if (!res.ok) throw failed(res.status, await errorMessage(res))
+    return res.blob()
+  },
 }
 
 export const api = {
