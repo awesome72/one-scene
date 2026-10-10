@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from app.auth import AuthError, BannedUser, auth_mode, verify
 from app.config import get_settings
 from app.db import DbDep
-from app.models import Draft, Turn, UsageEvent, User, WritingSession
+from app.models import Draft, JourneyEvent, Turn, UsageEvent, User, WritingSession
 
 DEV_USER_ID = "dev-user"
 
@@ -130,3 +130,9 @@ def require_llm_quota(db: DbDep, user: CurrentUserDep) -> None:
 
 
 LlmQuotaDep = Depends(require_llm_quota)
+
+
+def record_journey(db: DbDep, session: WritingSession, kind: str) -> None:
+    """단계별 이탈 측정용 기록. 호출하는 쪽이 commit한다."""
+    db.add(JourneyEvent(user_id=session.user_id, session_id=session.id, kind=kind,
+                        stage=session.stage))

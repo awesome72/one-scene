@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.db import DbDep
-from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep, record_usage
+from app.deps import CurrentUserDep, LlmQuotaDep, OwnedSessionDep, record_journey, record_usage
 from app.engine import stage_machine, tagging
 from app.engine.llm import LLM, get_llm
 from app.engine.metering import metered_call
@@ -69,6 +69,7 @@ def finish(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> SessionDeta
     if not session.drafts:
         raise HTTPException(status.HTTP_409_CONFLICT, "아직 초안이 없습니다.")
     session.status = "done"
+    record_journey(db, session, "finish")
     db.commit()
     return session_detail(session)
 
@@ -76,6 +77,7 @@ def finish(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> SessionDeta
 @router.post("/sessions/{session_id}/reopen")
 def reopen(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> SessionDetail:
     session.status = "active"
+    record_journey(db, session, "reopen")
     db.commit()
     return session_detail(session)
 

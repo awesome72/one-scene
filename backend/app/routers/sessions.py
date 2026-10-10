@@ -3,14 +3,16 @@ from pathlib import Path
 
 import yaml
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 from app.db import DbDep
-from app.deps import CurrentUserDep, OwnedSessionDep
+from app.deps import CurrentUserDep, OwnedSessionDep, record_journey
 from app.models import (
     MAX_STAGE,
     MIN_STAGE,
     Draft,
+    JourneyEvent,
+    LlmUsage,
     Material,
     OutlineItem,
     Signal,
@@ -54,6 +56,8 @@ def create_session(body: SessionCreate, db: DbDep, user: CurrentUserDep) -> Sess
     session = WritingSession(user_id=user.id)
     session.turns.append(Turn(idx=0, role="coach", text=question, stage=MIN_STAGE))
     db.add(session)
+    db.flush()
+    record_journey(db, session, "start")
     db.commit()
     return session_detail(session)
 
@@ -111,6 +115,7 @@ def advance_stage(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> Sess
     if session.stage >= MAX_STAGE:
         raise HTTPException(status.HTTP_409_CONFLICT, "이미 마지막 단계입니다.")
     session.stage += 1
+    record_journey(db, session, "advance")
     db.commit()
     return session_detail(session)
 
@@ -120,6 +125,7 @@ def back_stage(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> Session
     if session.stage <= MIN_STAGE:
         raise HTTPException(status.HTTP_409_CONFLICT, "이미 첫 단계입니다.")
     session.stage -= 1
+    record_journey(db, session, "back")
     db.commit()
     return session_detail(session)
 
@@ -147,3 +153,8 @@ def delete_my_data(db: DbDep, user: CurrentUserDep) -> None:
     """내 글을 모두 지운다. 로그인 계정 자체는 Neon Auth에 남는다."""
     ids = list(db.scalars(select(WritingSession.id).where(WritingSession.user_id == user.id)))
     _delete_sessions(db, ids)
+    # 측정 기록도 지운다. 비용 기록은 운영 합계를 위해 남기되 누구의 것인지는 지운다
+    db.execute(delete(JourneyEvent).where(JourneyEvent.user_id == user.id))
+    db.execute(update(LlmUsage).where(LlmUsage.user_id == user.id)
+               .values(user_id="deleted", session_id=None))
+    db.commit()

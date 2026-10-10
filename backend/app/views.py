@@ -2,7 +2,7 @@
 
 from collections import Counter
 
-from app.engine import stage_machine
+from app.engine import progress, stage_machine
 from app.models import ARC_BLOCKS, Material, WritingSession
 from app.schemas import (
     STAGE_NAMES,
@@ -80,6 +80,7 @@ def session_detail(session: WritingSession) -> SessionDetail:
         arc={block: arc_counts.get(block, 0) for block in ARC_BLOCKS},
         repeated=_repeated(session),
         gaps=_gaps(session),
+        progress=progress.build(session),
     )
 
 

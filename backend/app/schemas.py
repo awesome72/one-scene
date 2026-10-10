@@ -41,6 +41,31 @@ class SessionSummary(BaseModel):
     updated_at: UtcDatetime
 
 
+class ConditionOut(BaseModel):
+    key: str
+    label: str
+    have: int
+    need: int
+    done: bool
+    block: ArcBlock | None = None
+    hint: str | None = None
+
+
+class Progress(BaseModel):
+    """진행 신호 (engine/progress.py). 이동은 늘 사용자 승인으로만, ready는 '넘어갈 수 있다'는 뜻."""
+
+    journey: float  # 0~5: 주제·단락·순서·교정 4단계 + 완성
+    stage_fraction: float  # 지금 단계 안 진행 0~1
+    conditions: list[ConditionOut]
+    next_need: str | None
+    next_block: ArcBlock | None
+    turns_in_stage: int
+    expected_turns: tuple[int, int]
+    expected_minutes: tuple[int, int]  # 지금 단계 하나의 보통 시간
+    remaining_minutes: tuple[int, int]
+    ready: bool
+
+
 class SessionDetail(SessionSummary):
     topic_sentence: str | None
     target_length: str | None
@@ -49,6 +74,7 @@ class SessionDetail(SessionSummary):
     arc: dict[ArcBlock, int]
     repeated: list[RepeatedWord]
     gaps: list[str]
+    progress: Progress
 
 
 class TurnOut(BaseModel):

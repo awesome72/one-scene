@@ -265,3 +265,16 @@ class LlmUsage(Base):
     cache_write_tokens: Mapped[int] = mapped_column(Integer, default=0)
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class JourneyEvent(Base):
+    """여정 이벤트: 글 시작, 단계 이동, 완성 (단계별 이탈 측정, 기획안 '1단계 후 완성률')."""
+
+    __tablename__ = "journey_events"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    session_id: Mapped[str] = mapped_column(String(32), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # start|advance|back|finish|reopen
+    stage: Mapped[int] = mapped_column(Integer)  # 이벤트 뒤의 단계
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
