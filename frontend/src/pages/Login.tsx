@@ -74,6 +74,10 @@ export function Login({ onDone }: { onDone: () => void }) {
         </button>
       </form>
       <p className="footnote">한 장면은 당신의 말로 글을 짓고, AI는 빈 곳에 제안만 합니다. 쓴 글과 대화는 당신만 볼 수 있어요.</p>
+      <p className="footnote">
+        대화는 질문을 만들기 위해 AI 서비스로 보내집니다. 무엇을 어디로 보내는지는{' '}
+        <a href="#/privacy">개인정보 처리방침</a>에 있어요.
+      </p>
     </div>
   )
 }

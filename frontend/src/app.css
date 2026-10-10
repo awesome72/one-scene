@@ -1121,3 +1121,36 @@ input:focus-visible {
 html.large-text #root {
   zoom: 1.18;
 }
+
+/* 개인정보 처리방침 */
+.privacy p {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+.privacy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.privacy-section h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+}
+.privacy-section ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+.footnote a,
+.privacy a {
+  color: var(--ink-2);
+  text-underline-offset: 3px;
+}
