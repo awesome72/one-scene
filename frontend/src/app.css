@@ -128,65 +128,266 @@ mark {
   margin: 0;
 }
 
-/* 아크 5블록 */
-.arc-dots {
-  display: flex;
-  gap: 6px;
+/* 진행 신호 1층: 여정 막대 (주제 → 단락 → 순서 → 교정 → 완성) */
+.journey-button,
+.arc-button {
   background: none;
   border: 0;
   padding: 0;
   width: 100%;
+  text-align: left;
+  color: inherit;
 }
-.arc-dot {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--muted-2);
-}
-.arc-dot i {
-  display: block;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--line);
-}
-.arc-dot.filled {
-  color: var(--ink-2);
-}
-.arc-dot.filled i {
-  background: var(--ink);
-}
-
-/* 단계 바 */
-.stage-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--ink-2);
-}
-.stage-bar ol {
-  display: flex;
+.journey {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.stage-bar li {
-  width: 18px;
+.journey li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted-2);
+}
+.journey i {
+  display: block;
   height: 4px;
   border-radius: 2px;
+  background: linear-gradient(90deg, var(--ink) var(--fill, 0%), var(--line-2) var(--fill, 0%));
+}
+.journey li.done {
+  color: var(--muted);
+}
+.journey li.current {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* 서사 아크 곡선: 블록별 재료 수, 아직 필요한 블록은 점선 고리 */
+.arc-curve {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.arc-curve .curve {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+}
+.arc-curve .node {
+  fill: var(--surface);
+  stroke: var(--muted-2);
+  stroke-width: 1.5;
+  transition: fill 0.4s;
+}
+.arc-curve .filled .node {
+  fill: var(--ink);
+  stroke: var(--ink);
+}
+.arc-curve .ring {
+  fill: none;
+  stroke: var(--mark);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.arc-curve text {
+  font-family: var(--sans);
+  font-size: 11px;
+  fill: var(--muted);
+}
+.arc-curve .next text {
+  fill: var(--ink);
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-curve .node {
+    transition: none;
+  }
+}
+
+/* 진행 신호 2층: 단계 체크리스트 */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.checklist li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  font-size: 14px;
+}
+.checklist li > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.checklist small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.checklist .box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid var(--muted-2);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  margin-top: 2px;
+}
+.checklist li.done .box {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+.checklist li.done > span:nth-child(2) {
+  color: var(--muted);
+}
+.checklist em {
+  font-style: normal;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pace {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pace .track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.pace .range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
   background: var(--line-2);
 }
-.stage-bar li.done {
-  background: var(--muted);
-}
-.stage-bar li.current {
+.pace .dot {
+  position: absolute;
+  top: -3px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
   background: var(--ink);
-  width: 28px;
+}
+
+/* 진행 신호 3층: 내 대답의 밑줄과 방금 생긴 재료 */
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.answer u {
+  text-decoration-color: var(--mark);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.receipt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0 16px;
+  font-size: 12px;
+  color: var(--ok);
+}
+.chip.ok {
+  border-color: transparent;
+  background: var(--ok-bg);
+  color: var(--ok);
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+/* 단계 전환 */
+.collected {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+.collected div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 2px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.collected b {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.collected small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.nextstep {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.nextstep .eyebrow {
+  margin: 0;
+}
+.nextstep b {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+/* 홈 카드: 다음 할 일, 남은 분량 */
+.need {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.need b {
+  flex: none;
+  font-weight: 500;
+  color: var(--mark);
+}
+.remain {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 /* 대화 */
@@ -221,7 +422,8 @@ mark {
   padding-left: 14px;
   border-left: 2px solid var(--line);
 }
-.past.user.mine {
+.past.user.mine,
+.answer.mine .past.user {
   color: var(--ink-2);
   border-left-color: var(--ink-2);
 }

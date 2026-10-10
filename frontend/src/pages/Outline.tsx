@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Outline as OutlineData, type PatternId, type SessionDetail } from '../api/client'
-import { StageBar } from '../components/StageBar'
+import { Journey } from '../components/Journey'
 import { josa } from '../lib/josa'
 import { go } from '../lib/route'
 
@@ -59,7 +59,7 @@ export function Outline({ id }: { id: string }) {
           ← 대화
         </button>
         <h1 className="title">{session.title || session.topic_sentence || '새 글'}</h1>
-        <StageBar stage={session.stage} />
+        <Journey stage={session.stage} progress={session.progress} />
       </header>
 
       <p className="question">모은 장면을 어떤 순서로 놓을까요?</p>

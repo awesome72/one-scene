@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type SessionDetail, type TagKind, type TagSet } from '../api/client'
-import { StageBar } from '../components/StageBar'
+import { Journey } from '../components/Journey'
 import { go } from '../lib/route'
 
 const KIND_LABEL: Record<TagKind, string> = {
@@ -75,7 +75,7 @@ export function Finish({ id }: { id: string }) {
           ← 초안
         </button>
         <h1 className="title">마무리하기</h1>
-        {session && <StageBar stage={session.stage} />}
+        {session && <Journey stage={session.stage} progress={session.progress} />}
       </header>
 
       <label className="field">

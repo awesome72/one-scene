@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
 import { api, type SessionDetail } from '../api/client'
-import { ArcDots } from '../components/ArcDots'
+import { Journey } from '../components/Journey'
 import { Quoted } from '../components/Quoted'
 import { type AuthUser, signOut } from '../lib/auth'
 import { DeleteButton } from '../components/DeleteButton'
 import { go } from '../lib/route'
+
+// '3일 전'처럼 짧게 (홈 카드의 마지막으로 쓴 때)
+function since(iso: string): string {
+  const minutes = (Date.now() - new Date(iso).getTime()) / 60000
+  if (minutes < 60) return '방금'
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}시간 전`
+  return `${Math.floor(minutes / (60 * 24))}일 전`
+}
 
 // 홈 (목업 ①): 쓰는 중인 글 + 새 글을 여는 질문
 export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: () => void }) {
@@ -62,9 +70,20 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
 
       {current.map((s) => (
         <section key={s.id} className="panel">
+          <Journey stage={s.stage} progress={s.progress} />
           <p className="eyebrow">쓰는 중인 글 · {s.stage}단계 {s.stage_name}</p>
           <h2 className="title">{s.title || s.topic_sentence || '제목 없는 글'}</h2>
-          <ArcDots arc={s.arc} />
+          {s.progress.next_need ? (
+            <p className="need">
+              <b>다음 할 일</b> {s.progress.next_need}
+            </p>
+          ) : (
+            s.progress.ready && (
+              <p className="need">
+                <b>다음 할 일</b> 이 단계를 마칠 수 있어요
+              </p>
+            )
+          )}
           {s.last_question && (
             <>
               <p className="eyebrow">마지막 질문</p>
@@ -73,6 +92,12 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
               </p>
             </>
           )}
+          <p className="remain">
+            <span>마지막으로 쓴 때 · {since(s.updated_at)}</span>
+            <span>
+              남은 대화 약 {s.progress.remaining_minutes[0]}~{s.progress.remaining_minutes[1]}분
+            </span>
+          </p>
           <button type="button" className="primary wide" onClick={() => go({ name: 'chat', id: s.id })}>
             이어서 답하기
           </button>

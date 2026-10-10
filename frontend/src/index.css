@@ -11,6 +11,9 @@
   --line-2: #d5d8de;
   --mark: #b5372b;
   --mark-bg: #f4e4e1;
+  /* 조건 충족(체크)에만 쓰는 색 */
+  --ok: #2f6b4f;
+  --ok-bg: #e3efe8;
 
   --serif: 'Noto Serif KR', 'Nanum Myeongjo', 'AppleMyungjo', serif;
   --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;

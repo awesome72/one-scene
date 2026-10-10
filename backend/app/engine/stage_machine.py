@@ -51,19 +51,19 @@ def conditions(session: WritingSession) -> list[Condition]:
         return [
             Condition("topic", "한 문장 주제", int(bool(session.topic_sentence)),
                       hint="이 글이 무엇에 관한 이야기인지 한 문장으로"),
-            Condition("opening_scene", "오프닝 장면", min(len(_in_block(session, "scene")), 1),
+            Condition("opening_scene", "오프닝 장면", len(_in_block(session, "scene")),
                       block="scene", hint="글이 시작될 한 순간"),
             Condition("length", "목표 길이", int(bool(session.target_length)),
                       hint="짧은 글, 보통 글, 긴 글 중 하나"),
         ]
     if session.stage == 2:
         out = [
-            Condition(f"block_{b}", f"{BLOCK_NAMES[b]} 재료", min(len(_in_block(session, b)), 1),
+            Condition(f"block_{b}", f"{BLOCK_NAMES[b]} 재료", len(_in_block(session, b)),
                       block=b, hint=BLOCK_HINTS[b])
             for b in ARC_BLOCKS
         ]
         senses = [m for m in _in_block(session, "scene") if m.type in ("sense", "object")]
-        out.append(Condition("scene_senses", "장면 블록의 감각·사물 재료 2개", min(len(senses), 2),
+        out.append(Condition("scene_senses", "장면 블록의 감각·사물 재료 2개", len(senses),
                              need=2, block="scene",
                              hint="그 순간 보이고 들리던 것, 손에 있던 것"))
         own = any(m.type == "interpretation" for m in _in_block(session, "meaning"))

@@ -1,0 +1,483 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>한 장면 UX 개선안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400;500;600&display=swap">
+<style>
+/* 레이아웃: 읽는 문서(최대 760px) 안에 실제 서비스 토큰으로 그린 휴대폰 화면 목업을 끼워 넣는다 */
+:root {
+  --ink: #16213a;
+  --ink-2: #34405e;
+  --muted: #5b6272;
+  --muted-2: #8a91a0;
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --line: #e1e2dc;
+  --line-2: #d5d8de;
+  --mark: #b5372b;
+  --mark-bg: #f4e4e1;
+  --fill: #16213a;
+  --fill-soft: #dfe3ec;
+  --ok: #2f6b4f;
+  --ok-bg: #e3efe8;
+  --phone: #ffffff;
+  --serif: 'Noto Serif KR', 'Nanum Myeongjo', 'AppleMyungjo', serif;
+  --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e8ebf2; --ink-2: #c3c9d6; --muted: #9aa1b0; --muted-2: #767d8c;
+    --bg: #111522; --surface: #1a1f2e; --line: #2a3142; --line-2: #343c50;
+    --mark: #e07a6e; --mark-bg: #3a2326; --fill: #e8ebf2; --fill-soft: #2c3447;
+    --ok: #7cc4a0; --ok-bg: #1d3329; --phone: #161b28; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #e8ebf2; --ink-2: #c3c9d6; --muted: #9aa1b0; --muted-2: #767d8c;
+  --bg: #111522; --surface: #1a1f2e; --line: #2a3142; --line-2: #343c50;
+  --mark: #e07a6e; --mark-bg: #3a2326; --fill: #e8ebf2; --fill-soft: #2c3447;
+  --ok: #7cc4a0; --ok-bg: #1d3329; --phone: #161b28; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans);
+  font-size: 15px; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere;
+  padding-inline: 16px; padding-block: 40px 80px;
+}
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 64px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.35; }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(28px, 6vw, 40px); }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 24px; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+.lede { font-size: 17px; color: var(--ink-2); max-width: 62ch; }
+section { display: grid; gap: 20px; }
+.prose { display: grid; gap: 12px; max-width: 65ch; color: var(--ink-2); }
+.hero { display: grid; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 40px; }
+.hero .q { font-family: var(--serif); font-size: 19px; color: var(--ink-2); }
+.hero .q u { text-decoration-color: var(--mark); text-underline-offset: 4px; }
+
+/* 표 */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+.gap { color: var(--mark); font-weight: 500; }
+.have { color: var(--ok); }
+
+/* 세 층 */
+.layers { display: grid; gap: 0; border-left: 2px solid var(--ink); }
+.layer { display: grid; grid-template-columns: 92px 1fr; gap: 16px; padding: 14px 0 14px 18px; }
+.layer + .layer { border-top: 1px dashed var(--line-2); }
+.layer b { font-family: var(--serif); font-weight: 500; font-size: 17px; }
+.layer small { display: block; color: var(--muted); font-size: 12px; }
+@media (max-width: 480px) { .layer { grid-template-columns: 1fr; gap: 4px; } }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 4px; }
+.rule p { font-size: 14px; color: var(--muted); }
+
+/* 목업 */
+.screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 28px; align-items: start; }
+.screen { display: grid; gap: 12px; min-width: 0; }
+.screen > .cap { font-size: 14px; color: var(--ink-2); }
+.screen > .cap b { color: var(--ink); }
+.phone {
+  background: var(--phone); border: 1px solid var(--line-2); border-radius: 28px;
+  padding: 18px 16px 20px; display: grid; gap: 14px; max-width: 360px; width: 100%;
+  box-shadow: 0 1px 0 var(--line);
+}
+.ph-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
+.ph-title { font-family: var(--serif); font-size: 17px; font-weight: 500; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface); }
+.chip.ok { border-color: transparent; background: var(--ok-bg); color: var(--ok); }
+.chip.mark { border-color: transparent; background: var(--mark-bg); color: var(--mark); }
+
+/* 여정 바 */
+.journey { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.journey span { display: grid; gap: 4px; font-size: 11px; color: var(--muted-2); }
+.journey i { height: 4px; border-radius: 2px; background: var(--fill-soft); }
+.journey .done i { background: var(--fill); }
+.journey .done { color: var(--muted); }
+.journey .cur i { background: linear-gradient(90deg, var(--fill) var(--p, 50%), var(--fill-soft) var(--p, 50%)); }
+.journey .cur { color: var(--ink); font-weight: 600; }
+
+/* 아크 곡선 */
+.arc svg { width: 100%; height: auto; display: block; }
+.arc text { font-family: var(--sans); font-size: 10px; fill: var(--muted); }
+.arc .lbl-cur { fill: var(--ink); font-weight: 600; }
+.arc .curve { fill: none; stroke: var(--line-2); stroke-width: 1.5; }
+.arc .node-empty { fill: var(--surface); stroke: var(--muted-2); stroke-width: 1.5; }
+.arc .node-part { fill: var(--fill-soft); stroke: var(--ink); stroke-width: 1.5; }
+.arc .node-full { fill: var(--ink); stroke: var(--ink); stroke-width: 1.5; }
+.arc .ring { fill: none; stroke: var(--mark); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.arc .cnt { font-size: 9px; fill: var(--muted); }
+
+.need { display: flex; gap: 8px; align-items: baseline; font-size: 13px; color: var(--ink-2); background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+.need b { color: var(--mark); font-weight: 500; white-space: nowrap; }
+.past { font-family: var(--serif); font-size: 14px; color: var(--muted); }
+.past.user { color: var(--ink-2); padding-left: 10px; border-left: 2px solid var(--line-2); }
+.past u { text-decoration-color: var(--mark); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.receipt { font-size: 12px; color: var(--ok); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.qbox { display: grid; gap: 6px; }
+.question { font-family: var(--serif); font-size: 18px; line-height: 1.6; }
+.question q { quotes: "‘" "’"; color: var(--mark); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn { border-radius: 10px; padding: 10px; text-align: center; font-size: 14px; font-weight: 500; border: 1px solid var(--line-2); color: var(--ink); background: var(--surface); }
+.btn.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.btn.wide { grid-column: 1 / -1; }
+.link { font-size: 13px; color: var(--muted); text-align: center; }
+
+/* 체크리스트 */
+.sheet { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 10px; }
+.check { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.check li { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.check .box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--muted-2); display: grid; place-items: center; font-size: 11px; line-height: 1; }
+.check .on .box { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.check .on span:nth-child(2) { color: var(--muted); }
+.check em { font-style: normal; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pace { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+.pace .track { position: relative; height: 6px; background: var(--fill-soft); border-radius: 3px; }
+.pace .range { position: absolute; top: 0; bottom: 0; left: 40%; width: 60%; background: var(--line-2); border-radius: 3px; }
+.pace .dot { position: absolute; top: -3px; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); left: calc(46% - 6px); }
+.pace .row { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+
+/* 단계 전환 */
+.collected { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; }
+.collected div { background: var(--bg); border-radius: 8px; padding: 8px 2px; display: grid; gap: 2px; }
+.collected b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.collected small { font-size: 11px; color: var(--muted); }
+.nextstep { display: grid; gap: 4px; background: var(--bg); border-radius: 10px; padding: 12px; font-size: 13px; color: var(--ink-2); }
+.nextstep b { font-family: var(--serif); font-weight: 500; font-size: 15px; color: var(--ink); }
+
+/* 초안 미터 */
+.meter { display: grid; gap: 6px; }
+.meter .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.meter .bar i { display: block; }
+.meter .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.meter .legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; background: var(--c); vertical-align: 0; }
+.draft { font-family: var(--serif); font-size: 14px; line-height: 1.9; color: var(--ink-2); }
+.draft .src { background: var(--fill-soft); border-radius: 3px; padding: 0 2px; }
+.draft .blank { color: var(--mark); border-bottom: 1px dashed var(--mark); }
+.draft .hit { text-decoration: underline wavy var(--mark); text-underline-offset: 4px; }
+.source-pop { border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--muted); display: grid; gap: 4px; background: var(--bg); }
+.source-pop p { font-family: var(--serif); font-size: 13px; color: var(--ink-2); }
+
+/* 홈 카드 */
+.card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; background: var(--surface); }
+.remain { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+/* 개선점 목록 */
+.groups { display: grid; gap: 28px; }
+.group { display: grid; grid-template-columns: 140px 1fr; gap: 16px; }
+.group h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; }
+.group ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.group li { display: grid; gap: 2px; min-width: 0; }
+.group li b { font-weight: 600; font-size: 15px; }
+.group li span { color: var(--muted); font-size: 14px; }
+.tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px; margin-left: 6px; font-weight: 400; white-space: nowrap; }
+.tag.p1 { color: var(--mark); border-color: var(--mark); }
+@media (max-width: 560px) { .group { grid-template-columns: 1fr; gap: 8px; } }
+
+/* 로드맵 */
+.phases { display: grid; gap: 0; counter-reset: ph; }
+.phase { display: grid; grid-template-columns: 44px 1fr; gap: 14px; padding: 16px 0; border-top: 1px solid var(--line); }
+.phase:last-child { border-bottom: 1px solid var(--line); }
+.phase .n { font-family: var(--serif); font-size: 26px; color: var(--muted-2); line-height: 1; }
+.phase h3 { margin-bottom: 4px; }
+.phase p { font-size: 14px; color: var(--ink-2); }
+.phase code { font-size: 12.5px; background: var(--fill-soft); border-radius: 4px; padding: 1px 5px; }
+pre { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; color: var(--ink-2); }
+.decide { display: grid; gap: 10px; counter-reset: d; padding: 0; margin: 0; list-style: none; }
+.decide li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 14px; color: var(--ink-2); }
+.decide li b { color: var(--ink); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 20px; }
+</style>
+
+<main>
+  <header class="hero">
+    <p class="eyebrow">한 장면 · 서비스 개선안 · 2026년 10월 10일</p>
+    <h1>지금 어디쯤인지 보이는 대화</h1>
+    <p class="lede">기획안 2.0의 일곱 화면과 지금 배포된 서비스를 나란히 놓고 비교했습니다. 질문의 품질과 진실성 장치는 갖춰졌지만, 사용자는 글이 얼마나 되었는지, 이 단계를 끝내려면 무엇이 더 필요한지, 방금 한 대답이 어디에 쓰였는지 알기 어렵습니다. 이 개선안은 진행 신호를 세 층으로 나눠 모든 화면에 넣고, 그 밖의 경험을 함께 다듬는 방법을 제안합니다.</p>
+    <p class="q">기획안의 약속: “지금 몇 단계인지, 재료가 몇 개 모였는지 <u>늘 보입니다</u>.”</p>
+  </header>
+
+  <section>
+    <p class="eyebrow">1 · 진단</p>
+    <h2>기획안이 약속한 신호와 지금 화면</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>기획안의 신호</th><th>지금 서비스</th><th>빠진 것</th></tr></thead>
+        <tbody>
+          <tr><td>홈: 다섯 블록 중 어디까지 채웠는지 <b>곡선 위에서</b> 한눈에</td><td class="have">다섯 점, 재료가 있으면 칠함</td><td class="gap">얼마나 찼는지, 무엇이 남았는지가 없음</td></tr>
+          <tr><td>대화: <b>지금 채우는 블록</b> 표시</td><td>없음</td><td class="gap">질문이 왜 이것인지 알 수 없음</td></tr>
+          <tr><td>대화: 대답 속 <b>밑줄 친 구절</b></td><td>질문 안의 인용만 붉게</td><td class="gap">내 대답의 어느 말이 이어졌는지 안 보임</td></tr>
+          <tr><td>단계: 8~12턴, 10~15분 같은 <b>단계별 분량</b></td><td>없음</td><td class="gap">끝이 보이지 않아 중도 이탈 위험</td></tr>
+          <tr><td>단계 마감 조건 표 (주제·장면·길이 등)</td><td>재료 카드를 열어야 일부 보임</td><td class="gap">대화 중에는 남은 조건이 안 보임</td></tr>
+          <tr><td>교정: 일곱 가지 점검 순서, ‘4곳’ 같은 남은 수</td><td class="have">표시 수와 AI 제안 수</td><td class="gap">완성까지 남은 일을 한 줄로 못 봄</td></tr>
+          <tr><td>보관함: 쓰지 않은 장면이 다음 글감으로</td><td class="have">구현됨</td><td>글이 쌓이는 흐름(몇 편째, 최근 주제)이 약함</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>지금 화면에는 4칸짜리 단계 바, 다섯 개의 점, 재료 수가 있습니다. 모두 “어디에 있는가”만 알려 주고 “얼마나 남았는가”와 “방금 무엇이 생겼는가”는 알려 주지 않습니다. 기획안의 핵심 지표인 <b>1단계를 마친 뒤 글을 완성하는 비율 35%</b>를 지키려면 이 두 신호가 필요합니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">2 · 진행 신호 체계</p>
+    <h2>세 층의 신호: 여정, 단계, 한 번의 대답</h2>
+    <div class="layers">
+      <div class="layer"><div><b>여정</b><small>글 한 편 전체</small></div><p>주제 → 단락 → 순서 → 교정 → 완성. 다섯 칸의 막대가 모든 화면 맨 위에 있고, 지금 칸은 단계 안 진행만큼 차오릅니다. 홈과 보관함에서도 같은 막대를 씁니다.</p></div>
+      <div class="layer"><div><b>단계</b><small>지금 단계를 마치는 조건</small></div><p>마감 조건을 체크리스트로 보여 줍니다(“장면 블록의 감각·사물 2개 중 1개”). 대답 수는 기획안의 단계별 범위(2단계 12~20번) 위에 점으로 표시합니다. 조건이 다 차면 ‘다음 단계로’ 버튼이 나타나고, 이동은 지금처럼 사용자가 누를 때만 일어납니다.</p></div>
+      <div class="layer"><div><b>한 번의 대답</b><small>방금 무엇이 남았는지</small></div><p>대답을 보내면 “재료 2개 · 장면, 사건과 배경”이 대답 아래에 남고, 아크 곡선의 해당 블록이 한 칸 차오릅니다. 다음 질문이 이어받은 구절은 내 대답 안에 밑줄로 표시합니다.</p></div>
+    </div>
+    <div class="rules">
+      <div class="rule"><h3>사실만 보여 줍니다</h3><p>“잘하고 있어요” 같은 평가나 칭찬은 쓰지 않습니다. 개수, 조건, 범위만 씁니다 (목업 말투 원칙).</p></div>
+      <div class="rule"><h3>재촉하지 않습니다</h3><p>남은 시간은 범위로만 보여 줍니다. 범위를 넘겨도 경고하지 않고, 아픈 기억을 말하는 중에는 숫자를 줄입니다.</p></div>
+      <div class="rule"><h3>결정은 사용자가</h3><p>조건이 다 차도 자동으로 넘어가지 않습니다. 신호는 “넘어갈 수 있어요”까지만 말합니다.</p></div>
+      <div class="rule"><h3>서버가 원천</h3><p>진행 값은 서버가 계산해 세션 응답에 담습니다. 화면마다 따로 세지 않아 숫자가 서로 어긋나지 않습니다.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">3 · 화면 제안</p>
+    <h2>진행 신호가 들어간 다섯 화면</h2>
+    <div class="screens">
+
+      <div class="screen">
+        <div class="phone" aria-label="대화 화면 목업">
+          <div class="ph-top"><span>← 홈</span><span class="chip">재료 9</span></div>
+          <div class="journey" style="--p: 60%">
+            <span class="done"><i></i>주제</span><span class="cur"><i></i>단락</span><span><i></i>순서</span><span><i></i>교정</span><span><i></i>완성</span>
+          </div>
+          <p class="ph-title">회사를 그만둔 날</p>
+          <div class="arc">
+            <svg viewBox="0 0 300 92" role="img" aria-label="서사 아크: 장면 3, 사건과 배경 2, 의미 0, 현재의 나 2, 여운 1">
+              <path class="curve" d="M20 70 C 70 70, 90 22, 150 22 S 230 70, 280 70"/>
+              <circle class="node-full" cx="20" cy="70" r="7"/>
+              <circle class="node-full" cx="85" cy="40" r="7"/>
+              <circle class="node-empty" cx="150" cy="22" r="7"/>
+              <circle class="ring" cx="150" cy="22" r="11"/>
+              <circle class="node-full" cx="215" cy="40" r="7"/>
+              <circle class="node-part" cx="280" cy="70" r="7"/>
+              <text x="20" y="90" text-anchor="middle">장면 3</text>
+              <text x="85" y="62" text-anchor="middle">사건 2</text>
+              <text x="150" y="10" text-anchor="middle" class="lbl-cur">의미 0</text>
+              <text x="215" y="62" text-anchor="middle">현재 2</text>
+              <text x="280" y="90" text-anchor="middle">여운 1</text>
+            </svg>
+          </div>
+          <p class="need"><b>아직 필요해요</b> 의미: 그 일이 나에게 무엇이었는지, 내 말로</p>
+          <p class="past user">요즘은 회의 때 창밖을 안 봐요. 할 말이 있으면 <u>그 자리에서 바로</u> 해요.</p>
+          <p class="receipt">✓ 재료 2개 <span class="chip ok">현재의 나</span><span class="chip ok">여운</span></p>
+          <div class="qbox">
+            <p class="eyebrow">지금 질문</p>
+            <p class="question"><q>그 자리에서 바로</q>라고 하셨어요. 처음 그렇게 말하지 못했던 날, 무엇이 당신을 붙잡았어요?</p>
+          </div>
+          <div class="btns"><span class="btn primary">누르고 말하기</span><span class="btn">답 쓰기</span></div>
+          <p class="link">이 질문은 넘어가기 · 막혔어요</p>
+        </div>
+        <p class="cap"><b>대화.</b> 맨 위 여정 막대, 그 아래 아크 곡선(블록별 개수, 빈 블록은 점선 고리), ‘아직 필요해요’ 한 줄. 내 대답에는 질문이 이어받은 구절에 밑줄, 아래에는 방금 생긴 재료.</p>
+      </div>
+
+      <div class="screen">
+        <div class="phone" aria-label="단계 체크리스트 목업">
+          <div class="ph-top"><span>2단계 단락 구성</span><span class="chip">닫기</span></div>
+          <p class="ph-title">이 단계를 마치려면</p>
+          <ul class="check">
+            <li class="on"><span class="box">✓</span><span>장면 재료</span><em>3</em></li>
+            <li class="on"><span class="box">✓</span><span>사건과 배경 재료</span><em>2</em></li>
+            <li><span class="box"></span><span>의미: 내 말로 한 해석</span><em>0 / 1</em></li>
+            <li class="on"><span class="box">✓</span><span>현재의 나 재료</span><em>2</em></li>
+            <li class="on"><span class="box">✓</span><span>여운 재료</span><em>1</em></li>
+            <li><span class="box"></span><span>장면의 감각·사물</span><em>1 / 2</em></li>
+          </ul>
+          <div class="sheet">
+            <div class="pace">
+              <div class="row"><span>이 단계의 대답</span><span>14번째 · 보통 12~20번</span></div>
+              <div class="track"><div class="range"></div><div class="dot"></div></div>
+              <div class="row"><span>0</span><span>20+</span></div>
+            </div>
+            <p class="need"><b>남은 조건 2개</b> 다음 질문들이 이 둘을 향해요</p>
+          </div>
+          <div class="btns"><span class="btn wide">조금 더 이야기하기</span></div>
+          <p class="link">조건이 다 차면 ‘다음 단계로’ 버튼이 생겨요</p>
+        </div>
+        <p class="cap"><b>단계 체크리스트.</b> 여정 막대나 아크를 누르면 열립니다. <code>stage_machine.missing()</code>의 조건을 개수와 함께 보여 주고, 기획안의 단계별 대답 범위 위에 지금 위치를 점으로 찍습니다.</p>
+      </div>
+
+      <div class="screen">
+        <div class="phone" aria-label="단계 전환 화면 목업">
+          <div class="journey" style="--p: 0%">
+            <span class="done"><i></i>주제</span><span class="done"><i></i>단락</span><span class="cur"><i></i>순서</span><span><i></i>교정</span><span><i></i>완성</span>
+          </div>
+          <p class="eyebrow">2단계 단락 구성을 마쳤어요</p>
+          <p class="ph-title">이번 단계에서 모은 재료</p>
+          <div class="collected">
+            <div><b>3</b><small>장면</small></div>
+            <div><b>2</b><small>사건</small></div>
+            <div><b>1</b><small>의미</small></div>
+            <div><b>2</b><small>현재</small></div>
+            <div><b>1</b><small>여운</small></div>
+          </div>
+          <p class="past">반복된 말 <b>창밖 3회</b> · 열린 틈 <b>그 말을 처음 들은 날</b></p>
+          <div class="nextstep">
+            <span class="eyebrow">다음: 3단계 계열 짜기</span>
+            <b>모은 장면을 어떤 순서로 놓을지 고릅니다</b>
+            <span>보통 5~8번 대답 · 5~10분</span>
+          </div>
+          <div class="btns"><span class="btn primary wide">순서 정하러 가기</span></div>
+          <p class="link">2단계로 돌아가기</p>
+        </div>
+        <p class="cap"><b>단계 전환.</b> 승인 직후 한 장. 평가 없이 모은 것과 다음에 할 일, 예상 분량만 보여 줍니다. 오래 쉬었다 돌아온 사용자도 이 화면에서 흐름을 다시 잡습니다.</p>
+      </div>
+
+      <div class="screen">
+        <div class="phone" aria-label="초안 화면 목업">
+          <div class="journey" style="--p: 55%">
+            <span class="done"><i></i>주제</span><span class="done"><i></i>단락</span><span class="done"><i></i>순서</span><span class="cur"><i></i>교정</span><span><i></i>완성</span>
+          </div>
+          <p class="ph-title">완성까지 남은 일</p>
+          <div class="meter">
+            <div class="bar">
+              <i style="flex: 13; background: var(--ink)"></i>
+              <i style="flex: 2; background: var(--mark)"></i>
+              <i style="flex: 3; background: var(--muted-2)"></i>
+              <i style="flex: 1; background: var(--line-2)"></i>
+            </div>
+            <div class="legend">
+              <span style="--c: var(--ink)">내 말 13문장</span>
+              <span style="--c: var(--mark)">빈칸 2</span>
+              <span style="--c: var(--muted-2)">AI 제안 3</span>
+              <span style="--c: var(--line-2)">태그 저장 전</span>
+            </div>
+          </div>
+          <p class="draft"><span class="src">그날 회의실 창밖으로 주차장이 보였다.</span> 팀장은 “이번 분기만 버티자”고 했다. <span class="hit">가슴이 먹먹했다.</span> <span class="blank">[빈칸: 그때 손은 무엇을 하고 있었어요?]</span></p>
+          <div class="source-pop">
+            <span>이 문장의 출처 · 1단계 3번째 대답</span>
+            <p>“회의실이었어요. 창밖만 보고 있었어요.”</p>
+          </div>
+          <div class="btns"><span class="btn primary">빈칸부터 채우기</span><span class="btn">다시 만들기</span></div>
+        </div>
+        <p class="cap"><b>초안과 교정.</b> 한 줄 막대로 “내 말 / 빈칸 / AI 제안 / 태그”를 보여 줍니다. 문장을 누르면 그 문장이 나온 내 대답 원문을 띄워, 기획안의 ‘문장별 출처’를 눈으로 확인하게 합니다.</p>
+      </div>
+
+      <div class="screen">
+        <div class="phone" aria-label="홈 화면 목업">
+          <div class="ph-top"><span class="ph-title">한 장면</span><span>보관함</span></div>
+          <div class="card">
+            <div class="journey" style="--p: 60%">
+              <span class="done"><i></i>주제</span><span class="cur"><i></i>단락</span><span><i></i>순서</span><span><i></i>교정</span><span><i></i>완성</span>
+            </div>
+            <p class="ph-title">회사를 그만둔 날</p>
+            <p class="need"><b>다음 할 일</b> 의미 블록에 내 말 하나</p>
+            <p class="eyebrow">멈췄던 질문</p>
+            <p class="question" style="font-size:15px"><q>그 자리에서 바로</q>라고 하셨어요. 처음 그렇게 말하지 못했던 날, 무엇이 당신을 붙잡았어요?</p>
+            <div class="remain"><span>마지막으로 쓴 날 · 3일 전</span><span>남은 대화 약 20~40분</span></div>
+            <div class="btns"><span class="btn primary">말로 이어서</span><span class="btn">글로 이어서</span></div>
+          </div>
+          <p class="link">보관함 2편 · 다음 글감 3개</p>
+        </div>
+        <p class="cap"><b>홈.</b> 쓰는 중인 글마다 여정 막대, 다음 할 일 한 줄, 멈췄던 질문, 남은 분량을 보여 줍니다. 기획안대로 첫 화면에서 한 번 누르면 바로 말하기가 시작됩니다.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">4 · 그 밖의 개선점</p>
+    <h2>시작부터 다음 글까지</h2>
+    <div class="groups">
+      <div class="group"><h3>처음 시작</h3><ul>
+        <li><b>세 장짜리 첫 안내 <span class="tag p1">우선</span></b><span>“AI는 묻기만 합니다 · 말로 답해도 됩니다 · 당신이 한 말만 씁니다.” 그리고 글 한 편이 보통 40~70분, 나눠 써도 된다는 것.</span></li>
+        <li><b>마이크 권한을 미리 설명</b><span>권한 창이 뜨기 전에 왜 필요한지와 녹음 원본은 받아 적은 뒤 지운다는 것을 한 줄로.</span></li>
+        <li><b>여는 질문 고르기 개선</b><span>‘다른 질문’을 한 장씩 넘기는 대신 세 개를 한 번에 보여 주고, 보관함의 다음 글감을 함께 섞습니다.</span></li>
+      </ul></div>
+      <div class="group"><h3>대화</h3><ul>
+        <li><b>“막혔어요” <span class="tag p1">우선</span></b><span>같은 장면을 더 작고 쉬운 질문으로 바꿔 줍니다 (예: 무엇을 느꼈어요? → 그때 손에 뭘 들고 있었어요?). 글을 대신 쓰지는 않습니다.</span></li>
+        <li><b>지난 대화 접기</b><span>질문이 화면의 주인공이 되도록 지난 대화는 최근 두 턴만 펼치고 나머지는 단계별로 접습니다.</span></li>
+        <li><b>답이 길어질 때의 안내</b><span>한 번에 여러 장면을 말하면 “두 장면이 나왔어요. 하나씩 물을게요” 정도의 신호로 다음 질문의 방향을 예고합니다.</span></li>
+        <li><b>고친 주제·길이 바로 보기</b><span>1단계에서 정해진 주제 문장과 목표 길이를 헤더에서 누르면 고칠 수 있게 합니다 (지금은 PATCH API만 있음).</span></li>
+      </ul></div>
+      <div class="group"><h3>음성</h3><ul>
+        <li><b>말하는 동안 소리 크기 표시</b><span>‘듣고 있어요 0:21’ 옆에 파형을 두어 마이크가 실제로 듣고 있는지 확인하게 합니다.</span></li>
+        <li><b>반복된 말 알림</b><span>확인 화면에서 “‘창밖’이 이 글에서 세 번째로 나왔어요” (기획안 화면 그대로).</span></li>
+        <li><b>읽어 주기 → 바로 말하기</b><span>질문을 다 읽어 주면 말하기 버튼이 은은하게 강조되어, 손을 덜 쓰고 대화가 이어지게 합니다.</span></li>
+      </ul></div>
+      <div class="group"><h3>초안과 완성</h3><ul>
+        <li><b>문장별 출처 보기 <span class="tag p1">우선</span></b><span>문장을 누르면 그 재료가 나온 대답 원문. ‘지어내지 않는다’는 약속을 사용자가 직접 확인합니다.</span></li>
+        <li><b>순서 바꾸기</b><span>기획안 문구 “초안을 만든 뒤에도 순서는 바꿀 수 있어요”를 실제 기능으로: 단락을 끌어 옮기면 개요만 바꾸고 다시 만들기.</span></li>
+        <li><b>소리 내어 읽기 점검</b><span>교정 일곱 순서의 마지막 단계. 완성 글을 읽어 주고, 걸리는 문장을 누르면 그 문장에 표시가 남습니다.</span></li>
+        <li><b>완성 글 카드 내보내기</b><span>제목·첫 문장·분량을 담은 이미지 카드와 깔끔한 텍스트 복사. 가족에게 남기는 영수 님 사례에 맞춘 인쇄용 보기.</span></li>
+      </ul></div>
+      <div class="group"><h3>다시 돌아오기</h3><ul>
+        <li><b>“지난번 여기까지” 요약</b><span>사흘 이상 쉬었다 오면 첫 화면에 재료 몇 개와 마지막 질문만 다시 보여 줍니다. LLM 없이 저장된 재료로 만듭니다.</span></li>
+        <li><b>이어 쓰기 알림 (선택)</b><span>사용자가 켠 경우에만, 멈췄던 질문 하나를 메일로 보냅니다. 수아 님처럼 매주 쓰는 사람에게 맞춥니다.</span></li>
+        <li><b>보관함의 흐름</b><span>완성한 글 수, 최근 태그(인물·장소·사물)로 내 글들이 어떤 기억에 모여 있는지 보여 줍니다.</span></li>
+      </ul></div>
+      <div class="group"><h3>읽기 쉬움</h3><ul>
+        <li><b>큰 글자 보기</b><span>63세 영수 님 페르소나. 질문 22px, 버튼 52px 이상으로 바뀌는 설정 하나.</span></li>
+        <li><b>어두운 화면</b><span>밤에 쓰는 사용자를 위해. 디자인 토큰이 이미 CSS 변수라 비용이 작습니다.</span></li>
+        <li><b>화면 읽기 프로그램</b><span>여정 막대와 아크에 “2단계 단락 구성, 남은 조건 2개” 같은 대체 문구.</span></li>
+      </ul></div>
+      <div class="group"><h3>신뢰와 측정</h3><ul>
+        <li><b>단계별 이탈 측정 <span class="tag p1">우선</span></b><span>단계 시작·마감·완성 이벤트를 남겨 ‘1단계 후 완성률 35%’를 실제로 잽니다. 진행 신호의 효과도 여기서 확인합니다.</span></li>
+        <li><b>‘내 이야기 같다’ 한 번 묻기</b><span>완성 화면에서 5점 척도 하나. 기획안의 만족도 4.3 지표.</span></li>
+        <li><b>개인정보 처리방침과 데이터 지우기 안내</b><span>‘모든 데이터 지우기’ 기능은 있으니, 어디서 찾는지 설정 화면에 모읍니다.</span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">5 · 디자인 방향</p>
+    <h2>지금의 차분한 결을 지키며 바꿀 것</h2>
+    <div class="prose">
+      <p><b>질문이 화면의 주인공.</b> 세리프로 쓴 지금 질문이 가장 크고, 진행 신호는 그 위에서 작고 조용하게 움직입니다. 신호가 질문보다 눈에 띄면 대화가 과제처럼 느껴집니다.</p>
+      <p><b>아크 곡선을 이 서비스의 표식으로.</b> 다섯 점을 기획안의 곡선으로 바꿔 홈, 대화, 재료 카드, 단계 전환, 보관함에 같은 모양으로 씁니다. 채움은 세 단계(없음 · 일부 · 조건 충족)만 둡니다.</p>
+      <p><b>색의 뜻을 하나씩.</b> 붉은색은 지금처럼 ‘다시 볼 곳’(인용·교정·빈칸)에만, 진행은 잉크색 채움으로, 초록은 ‘조건 충족’ 체크에만 씁니다. 새 강조색을 늘리지 않습니다.</p>
+      <p><b>움직임은 한 곳에만.</b> 대답을 보낸 뒤 재료가 아크의 해당 블록으로 내려앉는 0.4초 정도의 움직임 하나. 움직임 줄이기 설정을 켠 사용자에게는 숫자만 바뀝니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">6 · 진행 순서</p>
+    <h2>네 묶음으로 나눠 진행합니다</h2>
+    <div class="phases">
+      <div class="phase"><span class="n">1</span><div><h3>진행 신호의 바탕 (서버)</h3><p>세션 응답에 <code>progress</code>를 더하고, 턴 SSE 끝에 같은 값을 보냅니다. <code>stage_machine.missing()</code>을 개수 있는 조건 목록으로 바꾸는 것이 핵심입니다. LLM 호출은 늘지 않습니다.</p></div></div>
+      <div class="phase"><span class="n">2</span><div><h3>대화·홈의 신호 (화면)</h3><p>여정 막대, 아크 곡선, ‘아직 필요해요’, 대답 영수증과 밑줄, 단계 체크리스트 시트, 단계 전환 화면, 홈 카드. 단계별 이탈 이벤트 기록도 이 묶음에 넣습니다.</p></div></div>
+      <div class="phase"><span class="n">3</span><div><h3>초안의 신호와 출처 보기</h3><p>완성 미터, 문장별 출처 팝업, 빈칸부터 채우기 순서 안내, 순서 바꾸기.</p></div></div>
+      <div class="phase"><span class="n">4</span><div><h3>경험 다듬기</h3><p>첫 안내, 막혔어요, 큰 글자 보기와 어두운 화면, 지난번 요약, 음성 파형, 만족도 질문, 완성 글 카드.</p></div></div>
+    </div>
+    <pre>// 세션 응답에 더할 진행 값 (제안)
+"progress": {
+  "journey": 2.6,                       // 여정 막대: 2단계의 60%
+  "conditions": [                       // stage_machine이 계산
+    {"key": "meaning_own_words", "label": "의미: 내 말로 한 해석", "have": 0, "need": 1},
+    {"key": "scene_senses",      "label": "장면의 감각·사물",      "have": 1, "need": 2}
+  ],
+  "next_need": "의미: 그 일이 나에게 무엇이었는지, 내 말로",
+  "turns_in_stage": 14, "expected_turns": [12, 20],
+  "remaining_minutes": [20, 40],
+  "ready": false                        // true여도 이동은 사용자 승인으로만
+}</pre>
+  </section>
+
+  <section>
+    <p class="eyebrow">7 · 정해 주실 것</p>
+    <h2>시작 전에 정할 세 가지</h2>
+    <ol class="decide">
+      <li><b>남은 시간을 보여 줄까요?</b> 범위(“약 20~40분”)로 보여 주는 안과, 대답 수만 보여 주는 안. 시간은 동기를 주지만 부담이 될 수도 있습니다.</li>
+      <li><b>‘다음으로 필요한 것’을 질문 위에 둘까요?</b> 질문이 왜 이것인지 이해하게 해 주지만, 사용자가 조건을 채우려고 답을 맞추기 시작할 위험이 있습니다. 체크리스트 시트 안에만 두는 안도 가능합니다.</li>
+      <li><b>먼저 할 묶음.</b> 추천은 1과 2를 먼저 하고, 단계별 이탈 측정으로 효과를 본 뒤 3과 4를 진행하는 순서입니다.</li>
+    </ol>
+  </section>
+
+  <footer>
+    근거: 기획안 2.0(docs/one-scene-presentation-1.html), 배포 중인 서비스 코드(frontend/src, backend/app/engine/stage_machine.py), 질문 품질 평가 기록(docs/PROGRESS.md). 화면 목업의 글과 숫자는 기획안의 ‘회사를 그만둔 날’ 예시입니다.
+  </footer>
+</main>
+
+</body></html>

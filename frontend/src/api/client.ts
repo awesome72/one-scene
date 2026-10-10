@@ -42,6 +42,42 @@ export interface SessionDetail extends SessionSummary {
   arc: Record<ArcBlock, number>
   repeated: RepeatedWord[]
   gaps: string[]
+  progress: Progress
+}
+
+// 단계 마감 조건 하나 (backend engine/stage_machine.py)
+export interface Condition {
+  key: string
+  label: string
+  have: number
+  need: number
+  done: boolean
+  block: ArcBlock | null
+  hint: string | null
+}
+
+// 진행 신호 (backend engine/progress.py). ready는 '넘어갈 수 있다'일 뿐, 이동은 사용자가 정한다
+export interface Progress {
+  journey: number // 0~5: 주제·단락·순서·교정 + 완성
+  stage_fraction: number
+  conditions: Condition[]
+  next_need: string | null
+  next_block: ArcBlock | null
+  turns_in_stage: number
+  expected_turns: [number, number]
+  expected_minutes: [number, number]
+  remaining_minutes: [number, number]
+  ready: boolean
+}
+
+export const JOURNEY_STEPS = ['주제', '단락', '순서', '교정', '완성'] as const
+
+// 단계 전환 화면의 한 줄 설명 (기획안 '네 단계의 대화')
+export const STAGE_GOALS: Record<number, string> = {
+  1: '어떤 순간에 관한 글인지 정합니다',
+  2: '그 순간의 앞뒤와 지금의 나를 모읍니다',
+  3: '모은 장면을 어떤 순서로 놓을지 고릅니다',
+  4: '초안을 만들고, 표시된 곳을 다시 묻습니다',
 }
 
 export interface Turn {

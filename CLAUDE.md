@@ -39,7 +39,7 @@ cd backend && PYTHONUTF8=1 uv run pytest tests/test_turns.py::test_turn_happy_pa
 cd backend && RUN_LIVE=1 PYTHONUTF8=1 uv run pytest tests/test_live.py -v -s        # 실제 API (비용)
 cd backend && PYTHONUTF8=1 uv run python -m evals.eval_questions --label 메모        # 질문 품질 평가 (~$0.5, 채점은 Batch API로 몇 분 대기, --no-batch는 바로) → experiments/eval/
 cd backend && PYTHONUTF8=1 uv run python -m evals.bench_cost                        # 턴당 호출 수·비용 (~$0.1, 두 번째 실행이 캐시 따뜻한 값)
-cd backend && PYTHONUTF8=1 uv run python -m evals.usage_report --days 7             # 운영 비용 보고 (llm_usage, DATABASE_URL을 Neon으로)
+cd backend && PYTHONUTF8=1 uv run python -m evals.usage_report --days 7             # 운영 비용·단계별 이탈 보고 (llm_usage, journey_events, DATABASE_URL을 Neon으로)
 cd backend && uv run python -m app.prompt_sync       # SKILL.md → prompts/core.md, stage*.md 재생성
 cd backend && uv run ruff check .                    # 린트 (--fix 가능)
 cd backend && uv add <패키지>
@@ -94,6 +94,7 @@ cd frontend && npm run lint                          # oxlint
 - `tests/golden/quit_job.yaml`(SKILL.md 10장 예시), `tests/golden/scenarios.yaml`(평가용 10개). `test_live.py`는 `RUN_LIVE=1`일 때만 돈다.
 
 ### 프론트엔드 (`frontend/src`)
+- 진행 신호 세 층 (2026-10-10 개선안): 서버 `engine/progress.py`가 세션 응답의 `progress`(여정 0~5, 마감 조건 `stage_machine.conditions` 개수, 다음 할 일, 단계 대답 수·보통 범위, 남은 시간 범위, ready)를 계산하고 화면은 그대로 그린다. 여정 막대 `Journey`(모든 화면 위), 아크 곡선 `ArcCurve`(아직 필요한 블록에 점선 고리), 체크리스트 `ProgressSheet`, 승인 직후 `StageTransition`, 대답의 밑줄·방금 생긴 재료 `Answer`. 평가·칭찬 없이 개수·조건·범위만, '다음 할 일'은 질문 위에 두지 않는다(답을 조건에 맞추지 않게). 남은 시간은 홈·전환 화면에만.
 - 해시 라우팅(`lib/route.ts`): `#/`, `#/library`, `#/s/{id}`(대화), `#/s/{id}/outline`, `/draft`, `/finish`.
 - `api/client.ts`가 모든 API 호출과 타입을 가진다. POST SSE는 EventSource 대신 fetch 스트림을 직접 파싱한다. 상태의 원천은 서버다.
 - 음성(Phase 5): 서버 우선, 브라우저 대비. 말로 답하기는 `lib/recorder.ts`(MediaRecorder) → `POST /sessions/{id}/voice/transcribe` → 확인 화면(자동 전송 없음), 서버를 못 쓰면 `lib/speech.ts`(Web Speech). 읽어 주기는 `lib/tts.ts`가 `POST /sessions/{id}/voice/speech`(그 글의 코치·교정 질문만 허용) mp3를 재생하고, 실패하면 브라우저 음성. 백엔드는 `app/voice/`의 어댑터(OpenAI). `OPENAI_API_KEY`가 없으면 `/voice/*`가 501. 마이크를 켜기 전에 `stopSpeaking()`.

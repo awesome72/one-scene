@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type SessionDetail, type Turn, type TurnEvent } from '../api/client'
-import { ArcDots } from '../components/ArcDots'
+import { api, type Material, type SessionDetail, type Turn, type TurnEvent } from '../api/client'
+import { Answer } from '../components/Answer'
+import { ArcCurve } from '../components/ArcCurve'
+import { Journey } from '../components/Journey'
 import { ListenButton } from '../components/ListenButton'
 import { MaterialCard } from '../components/MaterialCard'
 import { Quoted } from '../components/Quoted'
-import { StageBar } from '../components/StageBar'
+import { ProgressSheet } from '../components/ProgressSheet'
+import { StageTransition } from '../components/StageTransition'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { go } from '../lib/route'
 import { useVoiceInput } from '../lib/recorder'
@@ -27,6 +30,12 @@ export function Chat({ id }: { id: string }) {
   const [mode, setMode] = useState<'idle' | 'typing' | 'voice'>('idle')
   const [draft, setDraft] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
+  const [progressOpen, setProgressOpen] = useState(false)
+  // 단계를 넘긴 직후의 전환 화면 (넘기기 전 단계)
+  const [transitionFrom, setTransitionFrom] = useState<number | null>(null)
+  // 대답마다 방금 생긴 재료 (진행 신호 3층). 이 화면에 있는 동안만 보인다
+  const [receipts, setReceipts] = useState<Record<string, Material[]>>({})
+  const lastUserIdRef = useRef<string | null>(null)
   // 만들어지는 중인 질문 (question_delta를 이어 붙인 것). null이면 없음
   const [streaming, setStreaming] = useState<string | null>(null)
   const historyEnd = useRef<HTMLDivElement>(null)
@@ -65,9 +74,12 @@ export function Chat({ id }: { id: string }) {
       case 'status':
         setStatus(STEP_TEXT[e.data.step])
         break
-      case 'materials':
+      case 'materials': {
         setSession(e.data.session)
+        const userId = lastUserIdRef.current
+        if (userId) setReceipts((r) => ({ ...r, [userId]: e.data.added }))
         break
+      }
       case 'card':
         setCardOpen(true)
         break
@@ -117,6 +129,7 @@ export function Chat({ id }: { id: string }) {
       created_at: new Date().toISOString(),
     }
     setTurns((t) => [...t, optimistic])
+    lastUserIdRef.current = optimistic.id
     setStatus(STEP_TEXT.asking)
     try {
       await api.sendTurn(id, { text, input_mode, skip }, onEvent)
@@ -127,12 +140,33 @@ export function Chat({ id }: { id: string }) {
     }
   }
 
+  // 새 단계의 여는 질문 (단계를 넘기거나 되돌린 뒤)
+  const openStage = async () => {
+    setTransitionFrom(null)
+    setStatus(STEP_TEXT.asking)
+    try {
+      await api.openStage(id, onEvent)
+    } catch (e) {
+      setError(String((e as Error).message))
+    } finally {
+      setStatus(null)
+    }
+  }
+
   const moveStage = async (direction: 'advance' | 'back') => {
     setCardOpen(false)
+    setProgressOpen(false)
+    setTransitionFrom(null)
     setError(null)
     try {
+      const from = session?.stage ?? 1
       const s = direction === 'advance' ? await api.advance(id) : await api.back(id)
       setSession(s)
+      // 넘긴 뒤에는 전환 화면에서 모은 것과 다음 할 일을 먼저 보여 주고, 사용자가 시작을 누르면 묻는다
+      if (direction === 'advance') {
+        setTransitionFrom(from)
+        return
+      }
       setStatus(STEP_TEXT.asking)
       await api.openStage(id, onEvent)
     } catch (e) {
@@ -174,8 +208,14 @@ export function Chat({ id }: { id: string }) {
           </div>
         </div>
         <h1 className="title">{session.title || session.topic_sentence || '새 글'}</h1>
-        <StageBar stage={session.stage} />
-        <ArcDots arc={session.arc} onClick={() => setCardOpen(true)} />
+        <Journey stage={session.stage} progress={session.progress} onClick={() => setProgressOpen(true)} />
+        {session.stage <= 2 && (
+          <ArcCurve
+            arc={session.arc}
+            next={session.progress.next_block}
+            onClick={() => setProgressOpen(true)}
+          />
+        )}
         {session.repeated.length > 0 && (
           <p className="repeated">
             반복된 말 {session.repeated.map((r) => `${r.value} ${r.count}회`).join(' · ')}
@@ -184,11 +224,15 @@ export function Chat({ id }: { id: string }) {
       </header>
 
       <div className="history" aria-label="지난 대화">
-        {past.map((t) => (
-          <p key={t.id} className={`past ${t.role}`}>
-            {t.text}
-          </p>
-        ))}
+        {past.map((t, i) =>
+          t.role === 'user' ? (
+            <Answer key={t.id} text={t.text} next={past[i + 1]?.text ?? lastCoach?.text} added={receipts[t.id]} />
+          ) : (
+            <p key={t.id} className="past coach">
+              {t.text}
+            </p>
+          ),
+        )}
       </div>
 
       {lastCoach && (
@@ -202,9 +246,7 @@ export function Chat({ id }: { id: string }) {
         </section>
       )}
       {after.map((t) => (
-        <p key={t.id} className="past user mine">
-          {t.text}
-        </p>
+        <Answer key={t.id} text={t.text} added={receipts[t.id]} mine />
       ))}
       {streaming !== null && (
         <section className="now streaming" aria-live="polite">
@@ -291,6 +333,25 @@ export function Chat({ id }: { id: string }) {
           repeated={session.repeated.map((r) => r.value)}
           onClose={() => setMode('idle')}
           onSend={(text) => send(text, 'voice')}
+        />
+      )}
+      {progressOpen && (
+        <ProgressSheet
+          session={session}
+          onClose={() => setProgressOpen(false)}
+          onAdvance={() => moveStage('advance')}
+          onCard={() => {
+            setProgressOpen(false)
+            setCardOpen(true)
+          }}
+        />
+      )}
+      {transitionFrom !== null && (
+        <StageTransition
+          from={transitionFrom}
+          session={session}
+          onContinue={openStage}
+          onBack={() => moveStage('back')}
         />
       )}
       {cardOpen && (

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api, type Draft as DraftData, type LintHit, type SessionDetail } from '../api/client'
 import { ListenButton } from '../components/ListenButton'
 import { Quoted } from '../components/Quoted'
-import { StageBar } from '../components/StageBar'
+import { Journey } from '../components/Journey'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { copyText, download, markdown, plainText, safeFilename } from '../lib/exportText'
 import { go } from '../lib/route'
@@ -220,7 +220,7 @@ export function Draft({ id }: { id: string }) {
           </button>
         </div>
         <h1 className="title">{session.title || session.topic_sentence || '새 글'}</h1>
-        <StageBar stage={session.stage} />
+        <Journey stage={session.stage} progress={session.progress} />
       </header>
 
       {missing && !draft && (
