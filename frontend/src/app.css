@@ -663,3 +663,27 @@ input:focus-visible {
   text-decoration: underline dotted var(--muted-2);
   text-underline-offset: 5px;
 }
+
+/* 지우기 */
+.link.danger {
+  color: var(--mark);
+}
+.confirm-delete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.danger-zone {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+.essay {
+  background: none;
+  border: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

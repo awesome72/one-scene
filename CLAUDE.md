@@ -52,7 +52,7 @@ cd frontend && npm run lint                          # oxlint
 - Vercel 프로젝트 `one-scene` (https://one-scene.vercel.app), GitHub `awesome72/one-scene`(공개)의 `main`에 푸시하면 production 자동 배포. PR·다른 브랜치는 preview.
 - `vercel.json`의 Services: `frontend`(Vite, SPA 폴백)와 `backend`(FastAPI `app/main.py`). 공개 `/api/*`는 백엔드로 가고, 백엔드 쪽 rewrite가 `/api` 접두어를 떼므로 FastAPI 라우트에는 `/api`가 없다.
 - 운영 DB는 `DATABASE_URL`(Neon, `postgres://`를 `config.sqlalchemy_url`이 psycopg 3 주소로 바꿈). 없으면 Vercel에서는 `/tmp` SQLite (유지 안 됨). 스키마는 `create_all`뿐이라 컬럼을 바꾸면 운영 DB도 직접 손봐야 한다 (Alembic 도입 전).
-- 환경 변수는 `vercel env`로 관리 (`ANTHROPIC_API_KEY`, `MODEL_*`, `DAILY_LLM_LIMIT`). 로그인(B2) 전까지 공개 접속이므로 `DAILY_LLM_LIMIT`(하루 전체 AI 작업 상한, 기본 300)이 비용 안전장치다.
+- 환경 변수는 `vercel env`로 관리 (`ANTHROPIC_API_KEY`, `MODEL_*`, `OPENAI_API_KEY`, `DAILY_LLM_LIMIT`, `DAILY_LLM_LIMIT_PER_USER`). 비용 안전장치는 하루 AI 작업 상한 두 겹: 사용자별(기본 80)과 전체(기본 300). 보안 헤더는 `vercel.json`의 `headers` (CSP는 브라우저 확인 뒤 추가할 것).
 - CLI 배포(`vercel deploy`)는 로컬 파일을 올린다. 비밀·개인 글은 `.vercelignore`로 막는다. Windows Git Bash의 curl은 한글 JSON 본문을 깨뜨리므로 운영 API 확인은 httpx로 한다.
 
 ## 아키텍처

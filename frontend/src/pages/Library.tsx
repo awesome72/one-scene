@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Library as LibraryData } from '../api/client'
+import { DeleteButton } from '../components/DeleteButton'
 import { go } from '../lib/route'
 
 const KIND_LABEL = { period: '시기', person: '인물', place: '장소', object: '핵심 사물' } as const
@@ -13,6 +14,8 @@ export function Library() {
   useEffect(() => {
     api.library().then(setData).catch((e) => setError(String(e.message ?? e)))
   }, [])
+
+  const reload = async () => setData(await api.library())
 
   const startFrom = async (question: string) => {
     setBusy(true)
@@ -42,7 +45,8 @@ export function Library() {
           <p className="eyebrow">완성한 글 {data.done.length}편</p>
           {data.done.length === 0 && <p className="hint">아직 완성한 글이 없어요.</p>}
           {data.done.map((d) => (
-            <button type="button" key={d.id} className="panel essay" onClick={() => go({ name: 'draft', id: d.id })}>
+            <section key={d.id} className="panel">
+            <button type="button" className="essay" onClick={() => go({ name: 'draft', id: d.id })}>
               <p className="eyebrow">
                 {new Date(d.finished_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} 완성 ·{' '}
                 {d.paragraphs}단락, {d.chars.toLocaleString('ko-KR')}자
@@ -60,6 +64,15 @@ export function Library() {
                   ))}
               </dl>
             </button>
+              <DeleteButton
+                label="이 글 지우기"
+                confirmLabel="대화·재료·초안까지 모두 지워져요."
+                onDelete={async () => {
+                  await api.deleteSession(d.id)
+                  await reload()
+                }}
+              />
+            </section>
           ))}
 
           {data.next_topics.length > 0 && (
@@ -80,6 +93,17 @@ export function Library() {
               ))}
             </section>
           )}
+
+          <section className="danger-zone">
+            <DeleteButton
+              label="내 글 모두 지우기"
+              confirmLabel="쓰는 중인 글까지 모두 지워지고 되돌릴 수 없어요."
+              onDelete={async () => {
+                await api.deleteMyData()
+                await reload()
+              }}
+            />
+          </section>
         </>
       )}
     </div>

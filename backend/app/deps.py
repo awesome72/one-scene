@@ -62,22 +62,37 @@ def get_owned_session(session_id: str, db: DbDep, user: CurrentUserDep) -> Writi
 OwnedSessionDep = Annotated[WritingSession, Depends(get_owned_session)]
 
 
-def require_llm_quota(db: DbDep) -> None:
-    """하루 전체 AI 작업 상한 (config.daily_llm_limit). 로그인 없이 공개 배포하는 동안의 비용 안전장치.
-
-    사용자 발화(추출+질문)와 초안 조립을 한 건씩 센다. UTC 자정에 초기화된다.
-    """
-    limit = get_settings().daily_llm_limit
-    if limit <= 0:
-        return
+def _jobs_today(db: DbDep, user_id: str | None = None) -> int:
+    """오늘(UTC) AI 작업 수: 사용자 발화(추출+질문)와 초안 조립을 한 건씩 센다."""
     today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    used = (
-        db.scalar(select(func.count()).where(Turn.role == "user", Turn.created_at >= today)) or 0
-    ) + (db.scalar(select(func.count()).where(Draft.created_at >= today)) or 0)
-    if used >= limit:
+    turns = select(func.count()).select_from(Turn).where(
+        Turn.role == "user", Turn.created_at >= today
+    )
+    drafts = select(func.count()).select_from(Draft).where(Draft.created_at >= today)
+    if user_id is not None:
+        turns = turns.join(WritingSession).where(WritingSession.user_id == user_id)
+        drafts = drafts.join(WritingSession).where(WritingSession.user_id == user_id)
+    return (db.scalar(turns) or 0) + (db.scalar(drafts) or 0)
+
+
+def require_llm_quota(db: DbDep, user: CurrentUserDep) -> None:
+    """하루 AI 작업 상한 — 비용 안전장치. 0이면 끈다. UTC 자정에 초기화된다.
+
+    사용자별 상한(daily_llm_limit_per_user)이 한 사람이 전체 상한을 다 써 버리는 것을 막고,
+    전체 상한(daily_llm_limit)이 가입을 여러 번 해서 우회하는 것을 막는다.
+    """
+    settings = get_settings()
+    per_user = settings.daily_llm_limit_per_user
+    if per_user > 0 and _jobs_today(db, user.id) >= per_user:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            "오늘 쓸 수 있는 양을 다 썼어요. 내일 다시 이어서 써 주세요.",
+            "오늘은 여기까지 쓸 수 있어요. 내일 다시 이어서 써 주세요.",
+        )
+    total = settings.daily_llm_limit
+    if total > 0 and _jobs_today(db) >= total:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "오늘 서비스 사용량이 가득 찼어요. 내일 다시 이어서 써 주세요.",
         )
 
 

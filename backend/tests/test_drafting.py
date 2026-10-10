@@ -357,3 +357,17 @@ def test_edit_draft_validation_and_ownership(
     other = {"X-User-Id": "someone-else"}
     res = client.post(f"/sessions/{sid}/drafts/{did}/edit", json={"paragraphs": ["x."]}, headers=other)
     assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_missing_fidelity_verdict_becomes_blank() -> None:
+    """판정이 빠진 문장은 확인 못 한 문장 → 빈칸 (제품 규칙 2)."""
+    llm = FakeLLM()
+    llm.queue(FidelityResult(verdicts=[SentenceVerdict(index=0, ok=True)]))  # 1번 판정 누락
+    draft = AssembledDraft(paragraphs=[DraftParagraph(outline_position=1, sentences=[
+        DraftSentence(text="나는 회의실 창밖만 보고 있었다.", material_ids=["m1"]),
+        DraftSentence(text="팀장은 웃으며 버티자고 했다.", material_ids=["m2"]),
+    ])])
+    out = await fidelity.check(llm, draft, _materials())
+    assert [s.is_blank for s in out] == [False, True]
+    assert "판정 누락" in out[1].note

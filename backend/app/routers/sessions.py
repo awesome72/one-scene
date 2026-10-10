@@ -3,11 +3,21 @@ from pathlib import Path
 
 import yaml
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.db import DbDep
 from app.deps import CurrentUserDep, OwnedSessionDep
-from app.models import MAX_STAGE, MIN_STAGE, Material, Turn, WritingSession
+from app.models import (
+    MAX_STAGE,
+    MIN_STAGE,
+    Draft,
+    Material,
+    OutlineItem,
+    Signal,
+    Tag,
+    Turn,
+    WritingSession,
+)
 from app.schemas import (
     MaterialCard,
     MaterialOut,
@@ -112,3 +122,28 @@ def back_stage(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> Session
     session.stage -= 1
     db.commit()
     return session_detail(session)
+
+
+def _delete_sessions(db: DbDep, session_ids: list[str]) -> None:
+    """글을 흔적 없이 지운다. 재료가 턴을 참조하므로 참조하는 쪽부터 지운다."""
+    if not session_ids:
+        return
+    for model in (Material, Signal, OutlineItem, Draft, Tag, Turn):
+        db.execute(delete(model).where(model.session_id.in_(session_ids)))
+    db.execute(delete(WritingSession).where(WritingSession.id.in_(session_ids)))
+    db.commit()
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_session(session: OwnedSessionDep, db: DbDep) -> None:
+    """글 하나와 그 대화·재료·초안·태그를 모두 지운다 (되돌릴 수 없음, 기획안 12장 개인정보)."""
+    session_id = session.id
+    db.expunge(session)
+    _delete_sessions(db, [session_id])
+
+
+@router.delete("/me/data", status_code=status.HTTP_204_NO_CONTENT)
+def delete_my_data(db: DbDep, user: CurrentUserDep) -> None:
+    """내 글을 모두 지운다. 로그인 계정 자체는 Neon Auth에 남는다."""
+    ids = list(db.scalars(select(WritingSession.id).where(WritingSession.user_id == user.id)))
+    _delete_sessions(db, ids)

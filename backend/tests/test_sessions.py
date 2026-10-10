@@ -107,3 +107,49 @@ def test_timestamps_are_utc_aware(client: TestClient, db_session: Session) -> No
     listed = client.get("/sessions").json()[0]["updated_at"]
     assert listed.endswith(("Z", "+00:00")), listed
     assert client.get(f"/sessions/{sid}").status_code == 200
+
+
+def _full_session(client: TestClient, db_session: Session, user: str = "alice") -> str:
+    from app.models import Draft, OutlineItem, Tag
+
+    sid = client.post("/sessions", json={}, headers={"X-User-Id": user}).json()["id"]
+    s = db_session.get(WritingSession, sid)
+    turn = s.turns[0]
+    s.materials.append(Material(seq=1, turn_id=turn.id, text="회의실", type="place",
+                                arc_block="scene"))
+    s.signals.append(Signal(kind="gap", value="그날 밤"))
+    s.outline_items.append(OutlineItem(position=1, arc_block="scene", material_ids=[]))
+    s.drafts.append(Draft(version=1, body="x", sentence_map=[], lint_result=[]))
+    s.tags.append(Tag(kind="place", value="회의실"))
+    db_session.commit()
+    return sid
+
+
+def test_delete_session_removes_everything(client: TestClient, db_session: Session) -> None:
+    from sqlalchemy import func, select
+
+    from app.models import Draft, OutlineItem, Tag, Turn
+
+    sid = _full_session(client, db_session)
+    keep = _full_session(client, db_session)
+    other = {"X-User-Id": "bob"}
+    assert client.delete(f"/sessions/{sid}", headers=other).status_code == 404
+    assert client.delete(f"/sessions/{sid}", headers={"X-User-Id": "alice"}).status_code == 204
+    db_session.expire_all()
+    for model in (WritingSession, Turn, Material, Signal, OutlineItem, Draft, Tag):
+        n = db_session.scalar(
+            select(func.count()).select_from(model).where(
+                (model.id if model is WritingSession else model.session_id) == sid
+            )
+        )
+        assert n == 0, model.__name__
+    assert client.get(f"/sessions/{keep}", headers={"X-User-Id": "alice"}).status_code == 200
+
+
+def test_delete_my_data_only_mine(client: TestClient, db_session: Session) -> None:
+    _full_session(client, db_session, "alice")
+    _full_session(client, db_session, "alice")
+    bobs = _full_session(client, db_session, "bob")
+    assert client.delete("/me/data", headers={"X-User-Id": "alice"}).status_code == 204
+    assert client.get("/sessions", headers={"X-User-Id": "alice"}).json() == []
+    assert client.get(f"/sessions/{bobs}", headers={"X-User-Id": "bob"}).status_code == 200

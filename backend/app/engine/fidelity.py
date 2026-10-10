@@ -109,11 +109,15 @@ async def semantic(
     out: list[CheckedSentence] = []
     for i, s in enumerate(sentences):
         v = verdicts.get(i)
-        if s.is_blank or v is None or v.ok:
-            if not s.is_blank and v is None:
-                # 판정이 빠진 문장: 구조 검사는 통과했으므로 남기되 기록한다
-                log.warning("진실성 판정 누락: 문장 %d", i)
+        if s.is_blank or (v is not None and v.ok):
             out.append(s)
+        elif v is None:
+            # 판정이 빠진 문장은 확인하지 못한 문장이다. 지어냈을 수 있으니 남기지 않는다 (제품 규칙 2)
+            log.warning("진실성 판정 누락 → 빈칸: 문장 %d", i)
+            out.append(CheckedSentence(
+                s.paragraph, blank(DEFAULT_QUESTION), [], True,
+                f"진실성 판정 누락 / 원래 문장: {s.text}",
+            ))
         else:
             out.append(CheckedSentence(
                 s.paragraph, blank(v.question or DEFAULT_QUESTION), [], True,

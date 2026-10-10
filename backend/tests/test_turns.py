@@ -259,3 +259,16 @@ def test_daily_llm_limit(client: TestClient, fake: FakeLLM, monkeypatch: pytest.
     assert res.status_code == 429
     assert "내일" in res.json()["detail"]
     assert client.get(f"/sessions/{sid}").status_code == 200  # 읽기는 막지 않는다
+
+
+def test_per_user_daily_limit(client: TestClient, fake: FakeLLM, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "daily_llm_limit_per_user", 1)
+    a = client.post("/sessions", json={}, headers={"X-User-Id": "alice"}).json()["id"]
+    b = client.post("/sessions", json={}, headers={"X-User-Id": "bob"}).json()["id"]
+    assert client.post(f"/sessions/{a}/turns", json={"text": "첫 답"}, headers={"X-User-Id": "alice"}).status_code == 200
+    res = client.post(f"/sessions/{a}/turns", json={"text": "둘째"}, headers={"X-User-Id": "alice"})
+    assert res.status_code == 429 and "오늘은 여기까지" in res.json()["detail"]
+    # 다른 사람은 영향을 받지 않는다
+    assert client.post(f"/sessions/{b}/turns", json={"text": "첫 답"}, headers={"X-User-Id": "bob"}).status_code == 200

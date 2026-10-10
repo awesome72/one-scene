@@ -42,6 +42,8 @@ class Settings(BaseSettings):
 
     # 로그인 없이 공개 배포하는 동안 API 비용을 지키는 하루 전체 AI 작업 상한 (0이면 끔)
     daily_llm_limit: int = 300
+    # 한 사람의 하루 AI 작업 상한 (글 한 편 ≈ 40~70턴이라 하루 한 편 남짓)
+    daily_llm_limit_per_user: int = 80
 
     @property
     def sqlalchemy_url(self) -> str:

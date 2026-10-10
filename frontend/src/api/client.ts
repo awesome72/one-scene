@@ -200,6 +200,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     }
     throw failed(res.status, message)
   }
+  if (res.status === 204) return undefined as T // 지우기 등 본문 없는 응답
   return res.json() as Promise<T>
 }
 
@@ -287,6 +288,8 @@ export const api = {
   createSession: (opening_question?: string) =>
     request<SessionDetail>('POST', '/sessions', { opening_question }),
   getSession: (id: string) => request<SessionDetail>('GET', `/sessions/${id}`),
+  deleteSession: (id: string) => request<void>('DELETE', `/sessions/${id}`),
+  deleteMyData: () => request<void>('DELETE', '/me/data'),
   updateSession: (id: string, body: Partial<Pick<SessionDetail, 'title' | 'topic_sentence' | 'target_length'>>) =>
     request<SessionDetail>('PATCH', `/sessions/${id}`, body),
   turns: (id: string) => request<Turn[]>('GET', `/sessions/${id}/turns`),

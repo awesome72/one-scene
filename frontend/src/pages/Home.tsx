@@ -3,6 +3,7 @@ import { api, type SessionDetail } from '../api/client'
 import { ArcDots } from '../components/ArcDots'
 import { Quoted } from '../components/Quoted'
 import { type AuthUser, signOut } from '../lib/auth'
+import { DeleteButton } from '../components/DeleteButton'
 import { go } from '../lib/route'
 
 // 홈 (목업 ①): 쓰는 중인 글 + 새 글을 여는 질문
@@ -75,6 +76,14 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
           <button type="button" className="primary wide" onClick={() => go({ name: 'chat', id: s.id })}>
             이어서 답하기
           </button>
+          <DeleteButton
+            label="이 글 지우기"
+            confirmLabel="대화와 재료까지 모두 지워져요."
+            onDelete={async () => {
+              await api.deleteSession(s.id)
+              setCurrent((list) => list.filter((x) => x.id !== s.id))
+            }}
+          />
         </section>
       ))}
 
