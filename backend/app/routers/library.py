@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.db import DbDep
@@ -10,7 +10,7 @@ from app.engine import stage_machine, tagging
 from app.engine.llm import LLM, get_llm
 from app.engine.metering import metered_call
 from app.engine.tagging import TagSet, TagSuggestion
-from app.models import WritingSession
+from app.models import StoryFeedback, WritingSession
 from app.schemas import SessionDetail, StageApproval, UtcDatetime
 from app.views import session_detail
 
@@ -86,6 +86,33 @@ def reopen(_: StageApproval, session: OwnedSessionDep, db: DbDep) -> SessionDeta
 def finish_check(session: OwnedSessionDep) -> list[str]:
     """보관하기 전에 남은 것 (빈칸, 태그). 비어 있으면 모두 채워진 상태."""
     return stage_machine.missing(session) if session.stage == 4 else ["4단계 태그와 교정"]
+
+
+class FeedbackIn(BaseModel):
+    score: int = Field(ge=1, le=5)
+
+
+class FeedbackOut(BaseModel):
+    score: int | None
+
+
+@router.get("/sessions/{session_id}/feedback")
+def get_feedback(session: OwnedSessionDep, db: DbDep) -> FeedbackOut:
+    row = db.get(StoryFeedback, session.id)
+    return FeedbackOut(score=row.score if row else None)
+
+
+@router.put("/sessions/{session_id}/feedback")
+def put_feedback(body: FeedbackIn, session: OwnedSessionDep, db: DbDep) -> FeedbackOut:
+    """'이 글이 내 이야기 같나요?' 1~5. 다시 고르면 바꾼다."""
+    row = db.get(StoryFeedback, session.id)
+    if row is None:
+        row = StoryFeedback(session_id=session.id, user_id=session.user_id, score=body.score)
+        db.add(row)
+    else:
+        row.score = body.score
+    db.commit()
+    return FeedbackOut(score=row.score)
 
 
 @router.get("/library")

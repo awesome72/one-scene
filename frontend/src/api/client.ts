@@ -98,6 +98,7 @@ export interface Material {
   arc_block: ArcBlock | null
   emotion_word: boolean
   excluded: boolean
+  turn_id: string
 }
 
 export interface MaterialCardData {
@@ -137,6 +138,16 @@ export interface LintHit {
   dismissed: boolean
 }
 
+export interface DraftSentence {
+  index: number
+  text: string
+  is_blank: boolean
+  edited: boolean
+  accepted: boolean
+  suggestion: string | null
+  materials: Material[]
+}
+
 export interface Draft {
   id: string
   version: number
@@ -144,15 +155,7 @@ export interface Draft {
   paragraphs: {
     position: number
     label: string | null
-    sentences: {
-      index: number
-      text: string
-      is_blank: boolean
-      edited: boolean
-      accepted: boolean
-      suggestion: string | null
-      materials: Material[]
-    }[]
+    sentences: DraftSentence[]
   }[]
   hits: LintHit[]
   open_hits: number
@@ -347,7 +350,7 @@ export const api = {
   back: (id: string) => request<SessionDetail>('POST', `/sessions/${id}/back`, { approved: true }),
   sendTurn: (
     id: string,
-    body: { text: string; input_mode: 'voice' | 'text'; skip?: boolean },
+    body: { text: string; input_mode: 'voice' | 'text'; skip?: boolean; stuck?: boolean },
     onEvent: (e: TurnEvent) => void,
   ) => stream(`/sessions/${id}/turns`, body, onEvent),
   openStage: (id: string, onEvent: (e: TurnEvent) => void) => stream(`/sessions/${id}/coach`, {}, onEvent),
@@ -368,6 +371,9 @@ export const api = {
   saveTags: (id: string, tags: TagSet) => request<TagSet>('PUT', `/sessions/${id}/tags`, tags),
   finishCheck: (id: string) => request<string[]>('GET', `/sessions/${id}/finish-check`),
   finish: (id: string) => request<SessionDetail>('POST', `/sessions/${id}/finish`, { approved: true }),
+  feedback: (id: string) => request<{ score: number | null }>('GET', `/sessions/${id}/feedback`),
+  saveFeedback: (id: string, score: number) =>
+    request<{ score: number | null }>('PUT', `/sessions/${id}/feedback`, { score }),
   library: () => request<Library>('GET', '/library'),
   answerHit: (id: string, draftId: string, hitId: string, text: string, input_mode: 'voice' | 'text') =>
     request<{ added: Material[]; draft: Draft }>(

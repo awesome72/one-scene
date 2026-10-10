@@ -89,3 +89,21 @@ def test_delete_my_data_removes_journey_and_anonymizes_cost(
     assert db_session.scalars(select(JourneyEvent)).all() == []
     usage = db_session.scalars(select(LlmUsage)).one()
     assert usage.user_id == "deleted" and usage.session_id is None
+
+
+def test_story_feedback_upsert_and_validation(client: TestClient, db_session: Session) -> None:
+    from app.models import StoryFeedback
+
+    sid = _start(client)["id"]
+    assert client.get(f"/sessions/{sid}/feedback").json() == {"score": None}
+    assert client.put(f"/sessions/{sid}/feedback", json={"score": 6}).status_code == 422
+    assert client.put(f"/sessions/{sid}/feedback", json={"score": 4}).json() == {"score": 4}
+    assert client.put(f"/sessions/{sid}/feedback", json={"score": 5}).json() == {"score": 5}
+    assert db_session.get(StoryFeedback, sid).score == 5
+    # 남의 글에는 남길 수 없다
+    res = client.put(f"/sessions/{sid}/feedback", json={"score": 1}, headers={"X-User-Id": "other"})
+    assert res.status_code == 404
+    # 글을 지우면 함께 지워진다
+    assert client.delete(f"/sessions/{sid}").status_code == 204
+    db_session.expire_all()
+    assert db_session.get(StoryFeedback, sid) is None

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { voiceApi } from '../api/client'
 import { josa } from '../lib/josa'
 import { type InputMode, Recorder } from '../lib/recorder'
 import { type Recognition, recognitionCtor } from '../lib/speech'
 import { stopSpeaking } from '../lib/tts'
+import { LevelMeter } from './LevelMeter'
 import { Quoted } from './Quoted'
 
 // 말로 답하기 (목업 ③). 말하기 → 받아쓰기 → 확인·수정 → 보내기. 자동 전송하지 않는다.
@@ -34,6 +35,7 @@ export function VoiceSheet({
   const [error, setError] = useState<string | null>(null)
   const rec = useRef<Recognition | null>(null)
   const recorder = useRef<Recorder | null>(null)
+  const recorderLevel = useCallback(() => recorder.current?.level() ?? 0, [])
 
   const reset = () => {
     stopSpeaking() // 읽어 주던 목소리가 녹음에 섞이지 않게
@@ -160,7 +162,12 @@ export function VoiceSheet({
               {mode === 'server' ? '편하게 말씀하세요. 다 말하면 받아 적어 드릴게요.' : heard || '말씀하시면 여기에 적혀요.'}
             </p>
             <p className="listening">
-              <span className="pulse" /> 듣고 있어요 {time}
+              {mode === 'server' ? (
+                <LevelMeter level={recorderLevel} />
+              ) : (
+                <span className="pulse" />
+              )}{' '}
+              듣고 있어요 {time}
             </p>
             {error && <p className="error">{error}</p>}
             <button type="button" className="primary wide" onClick={finish}>

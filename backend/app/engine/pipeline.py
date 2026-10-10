@@ -102,7 +102,7 @@ async def _extract(
 
 
 async def _ask(
-    llm: LLM, session: WritingSession, opening: bool = False
+    llm: LLM, session: WritingSession, opening: bool = False, hint: str | None = None
 ) -> AsyncIterator[Event]:
     """질문을 글자 단위로 내보내고(question_delta), 규칙 검사에 걸리면 다시 만든다(question_reset).
 
@@ -110,7 +110,8 @@ async def _ask(
     직전 질문 되풀이). LLM 검수는 질문을 보낸 뒤 품질 기록용으로 돈다 (_review_later).
     마지막에 ('_final', question, meta)를 낸다.
     """
-    feedback: str | None = None
+    # hint: 이번 질문에만 붙는 안내 ('막혔어요' 등). 재시도 피드백 앞에 늘 둔다
+    feedback: str | None = hint
     attempts: list[dict[str, Any]] = []
     user_texts = [t.text for t in session.turns if t.role == "user"]
     previous_question = _last_question(session)
@@ -128,6 +129,8 @@ async def _ask(
         if not reasons:
             break
         feedback = prompt_builder.feedback_text(reasons, question)
+        if hint:
+            feedback = hint + "\n\n" + feedback
     passed = attempts[-1]["passed"]
     if not question:
         question = resources.data("fixed_replies")["fallback_question"]
@@ -203,6 +206,7 @@ async def _ask_and_save(
     opening: bool = False,
     queue: asyncio.Queue | None = None,
     held: list[Event] | None = None,
+    hint: str | None = None,
 ) -> AsyncIterator[Event]:
     """질문 이벤트를 내보내고 코치 턴을 저장한다.
 
@@ -210,7 +214,7 @@ async def _ask_and_save(
     """
     if queue is None:
         queue = asyncio.Queue()
-        asyncio.create_task(_pump(_ask(llm, session, opening), queue))
+        asyncio.create_task(_pump(_ask(llm, session, opening, hint), queue))
     reply, meta = "", {}
 
     async def events() -> AsyncIterator[Event | None]:
@@ -243,6 +247,7 @@ async def handle_user_turn(
     text: str,
     input_mode: str,
     skip: bool = False,
+    stuck: bool = False,
 ) -> AsyncIterator[Event]:
     last_question = _last_question(session)
     user_turn = Turn(
@@ -258,6 +263,15 @@ async def handle_user_turn(
         yield _event("materials", added=[], session=session_detail(session).model_dump(mode="json"))
         yield _event("status", step="asking")
         async for event in _ask_and_save(db, llm, session, None):
+            yield event
+        return
+
+    if stuck:
+        # '막혔어요' 버튼: 추출 없이 같은 장면을 더 작고 쉬운 질문으로 다시 묻는다 (글을 대신 쓰지 않는다)
+        yield _event("materials", added=[], session=session_detail(session).model_dump(mode="json"))
+        yield _event("status", step="asking")
+        hint = resources.prompt("questioner_stuck")
+        async for event in _ask_and_save(db, llm, session, None, hint=hint):
             yield event
         return
 

@@ -7,6 +7,7 @@ import { ListenButton } from '../components/ListenButton'
 import { MaterialCard } from '../components/MaterialCard'
 import { Quoted } from '../components/Quoted'
 import { ProgressSheet } from '../components/ProgressSheet'
+import { Resume } from '../components/Resume'
 import { StageTransition } from '../components/StageTransition'
 import { VoiceSheet } from '../components/VoiceSheet'
 import { go } from '../lib/route'
@@ -20,6 +21,7 @@ const STEP_TEXT = {
 } as const
 
 const SKIP_TEXT = '이 질문은 넘어갈게요.'
+const STUCK_TEXT = '잘 떠오르지 않아요.'
 
 // 대화 (목업 ②): 지금 질문 하나를 크게, 지난 대화는 흐리게, 넘어가기는 늘 보이게
 export function Chat({ id }: { id: string }) {
@@ -31,6 +33,7 @@ export function Chat({ id }: { id: string }) {
   const [draft, setDraft] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
   const [progressOpen, setProgressOpen] = useState(false)
+  const [resumeOpen, setResumeOpen] = useState(true)
   // 단계를 넘긴 직후의 전환 화면 (넘기기 전 단계)
   const [transitionFrom, setTransitionFrom] = useState<number | null>(null)
   // 대답마다 방금 생긴 재료 (진행 신호 3층). 이 화면에 있는 동안만 보인다
@@ -113,7 +116,7 @@ export function Chat({ id }: { id: string }) {
 
   const busy = status !== null
 
-  const send = async (text: string, input_mode: 'voice' | 'text', skip = false) => {
+  const send = async (text: string, input_mode: 'voice' | 'text', skip = false, stuck = false) => {
     if (!text.trim() || busy) return
     setError(null)
     setMode('idle')
@@ -132,7 +135,7 @@ export function Chat({ id }: { id: string }) {
     lastUserIdRef.current = optimistic.id
     setStatus(STEP_TEXT.asking)
     try {
-      await api.sendTurn(id, { text, input_mode, skip }, onEvent)
+      await api.sendTurn(id, { text, input_mode, skip, stuck }, onEvent)
     } catch (e) {
       setError(String((e as Error).message))
     } finally {
@@ -222,6 +225,8 @@ export function Chat({ id }: { id: string }) {
           </p>
         )}
       </header>
+
+      {resumeOpen && <Resume session={session} turns={turns} onClose={() => setResumeOpen(false)} />}
 
       <div className="history" aria-label="지난 대화">
         {past.map((t, i) =>
@@ -320,9 +325,15 @@ export function Chat({ id }: { id: string }) {
             </button>
           </div>
         )}
-        <button type="button" className="link skip" disabled={busy} onClick={() => send(SKIP_TEXT, 'text', true)}>
-          이 질문은 넘어가기
-        </button>
+        <div className="row center">
+          <button type="button" className="link skip" disabled={busy} onClick={() => send(STUCK_TEXT, 'text', false, true)}>
+            막혔어요
+          </button>
+          <span className="sep" aria-hidden>·</span>
+          <button type="button" className="link skip" disabled={busy} onClick={() => send(SKIP_TEXT, 'text', true)}>
+            이 질문은 넘어가기
+          </button>
+        </div>
       </footer>
 
       {mode === 'voice' && lastCoach && voiceMode !== 'none' && (

@@ -99,6 +99,8 @@ class TurnCreate(BaseModel):
     input_mode: InputMode = "text"
     # '이 질문은 넘어가기' 버튼으로 보낸 턴. 재료를 뽑지 않고 직전 질문을 넘어간 주제로 기록
     skip: bool = False
+    # '막혔어요' 버튼으로 보낸 턴. 재료를 뽑지 않고 같은 장면을 더 쉬운 질문으로 다시 묻는다
+    stuck: bool = False
 
 
 class MaterialOut(BaseModel):
@@ -109,6 +111,7 @@ class MaterialOut(BaseModel):
     arc_block: ArcBlock | None
     emotion_word: bool
     excluded: bool
+    turn_id: str  # 이 재료가 나온 사용자 발화 (초안의 문장별 출처 보기)
 
 
 class MaterialUpdate(BaseModel):

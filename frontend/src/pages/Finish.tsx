@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type SessionDetail, type TagKind, type TagSet } from '../api/client'
 import { Journey } from '../components/Journey'
+import { StoryScore } from '../components/StoryScore'
 import { go } from '../lib/route'
 
 const KIND_LABEL: Record<TagKind, string> = {
@@ -122,6 +123,8 @@ export function Finish({ id }: { id: string }) {
           </form>
         </section>
       ))}
+
+      <StoryScore sessionId={id} />
 
       {missing.length > 0 && (
         <p className="note">아직 남은 것: {missing.join(', ')}. 이대로 보관해도 괜찮아요.</p>

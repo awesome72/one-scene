@@ -344,3 +344,19 @@ def test_turn_records_llm_usage(client: TestClient, fake: FakeLLM, db_session: S
     assert len(rows) >= 2  # 추출 + 질문 (사후 검수는 저장 뒤에 끝날 수 있다)
     assert {r.kind for r in rows} == {"turn"} and {r.session_id for r in rows} == {sid}
     assert all(r.user_id == "dev-user" and r.input_tokens == 100 for r in rows)
+
+
+def test_stuck_button_asks_easier_question_without_extraction(
+    client: TestClient, fake: FakeLLM
+) -> None:
+    """'막혔어요': 추출 없이, 같은 장면을 더 작은 질문으로 다시 묻게 하는 안내가 질문자에게 간다."""
+    fake.questions.append("그때 손에 무엇을 들고 있었어요?")
+    sid = _start(client)
+    events = _send(client, sid, text="잘 떠오르지 않아요.", stuck=True)
+    assert [c for c in fake.parse_calls if c["schema"] is Extraction] == []
+    assert events[-1][0] == "question"
+    assert "막혔어요" in state_text(fake.text_calls[0])
+    turns = client.get(f"/sessions/{sid}/turns").json()
+    assert [t["role"] for t in turns] == ["coach", "user", "coach"]
+    # 넘어가기와 달리 넘어간 주제로 기록하지 않는다
+    assert client.get(f"/sessions/{sid}/material-card").json()["missing"]

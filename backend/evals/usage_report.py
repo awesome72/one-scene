@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
 
 from app.db import engine
-from app.models import JourneyEvent, LlmUsage
+from app.models import JourneyEvent, LlmUsage, StoryFeedback
 
 
 def main() -> None:
@@ -72,6 +72,11 @@ def main() -> None:
             print(f"  1단계 마친 뒤 완성률 {rate:.0%} (기획안 목표 35%)")
     else:
         print("  기록 없음")
+
+    avg, n = db.execute(select(func.avg(StoryFeedback.score), func.count())
+                        .where(StoryFeedback.created_at >= since)).one()
+    if n:
+        print(f"\n'내 이야기 같다' 평균 {avg:.2f} / 5 ({n}편, 기획안 목표 4.3)")
 
     print("\n비용 상위 사용자")
     for user, c in db.execute(

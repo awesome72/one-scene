@@ -28,7 +28,9 @@ async def post_turn(
 
     이벤트: status(extracting|asking|reviewing) → materials → card(선택) → question | error
     """
-    events = handle_user_turn(db, llm, session, body.text, body.input_mode, skip=body.skip)
+    events = handle_user_turn(
+        db, llm, session, body.text, body.input_mode, skip=body.skip, stuck=body.stuck
+    )
     async for event in metered(events, db, session.user_id, session.id, "turn"):
         yield _sse(event)
 

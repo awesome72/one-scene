@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ApiError, api, type Draft as DraftData, type LintHit, type SessionDetail } from '../api/client'
+import { ApiError, api, type Draft as DraftData, type LintHit, type SessionDetail, type Turn } from '../api/client'
+import { DraftMeter } from '../components/DraftMeter'
+import { SourceNote } from '../components/SourceNote'
 import { ListenButton } from '../components/ListenButton'
 import { Quoted } from '../components/Quoted'
 import { Journey } from '../components/Journey'
@@ -56,6 +58,8 @@ function Sentence({
 export function Draft({ id }: { id: string }) {
   const [session, setSession] = useState<SessionDetail | null>(null)
   const [draft, setDraft] = useState<DraftData | null>(null)
+  // 문장별 출처 보기에 쓰는 대화 원문
+  const [turns, setTurns] = useState<Turn[]>([])
   const [missing, setMissing] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [source, setSource] = useState<number | null>(null)
@@ -69,6 +73,7 @@ export function Draft({ id }: { id: string }) {
 
   useEffect(() => {
     api.getSession(id).then(setSession).catch((e) => setError(String(e.message ?? e)))
+    api.turns(id).then(setTurns).catch(() => setTurns([]))
     api
       .latestDraft(id)
       .then(setDraft)
@@ -260,6 +265,14 @@ export function Draft({ id }: { id: string }) {
             </button>
           </div>
           {notice && <p className="note">{notice}</p>}
+          <DraftMeter
+            draft={draft}
+            session={session}
+            onFirstBlank={() => {
+              const first = draft.hits.find((h) => h.kind === 'blank' && !h.dismissed)
+              if (first) setSelected(first.id)
+            }}
+          />
 
           {editing ? (
             <form
@@ -336,15 +349,7 @@ export function Draft({ id }: { id: string }) {
                           />
                         </span>
                       )}{' '}
-                      {source === s.index && (
-                        <span className="source">
-                          {s.accepted
-                            ? '받아들인 AI 제안이에요.'
-                            : s.edited
-                            ? '직접 고친 문장이에요.'
-                            : `출처: ${s.materials.map((m) => `“${m.text}”`).join(' · ')}`}
-                        </span>
-                      )}
+                      {source === s.index && <SourceNote sentence={s} turns={turns} />}
                     </span>
                   )
                 })}

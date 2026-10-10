@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, type SessionDetail } from '../api/client'
 import { Journey } from '../components/Journey'
+import { Onboarding } from '../components/Onboarding'
+import { applyLargeText, largeText, markOnboarded, onboarded } from '../lib/display'
 import { Quoted } from '../components/Quoted'
 import { type AuthUser, signOut } from '../lib/auth'
 import { DeleteButton } from '../components/DeleteButton'
@@ -21,6 +23,8 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
   const [qi, setQi] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showIntro, setShowIntro] = useState(() => !onboarded())
+  const [large, setLarge] = useState(largeText)
 
   useEffect(() => {
     api.openingQuestions().then(setQuestions).catch(() => setQuestions([]))
@@ -50,6 +54,17 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
           <button type="button" className="link" onClick={() => go({ name: 'library' })}>
             보관함
           </button>
+          <button
+            type="button"
+            className="link"
+            aria-pressed={large}
+            onClick={() => {
+              applyLargeText(!large)
+              setLarge(!large)
+            }}
+          >
+            {large ? '보통 글자' : '큰 글자'}
+          </button>
           {user && (
             <button
               type="button"
@@ -67,6 +82,14 @@ export function Home({ user, onSignOut }: { user: AuthUser | null; onSignOut: ()
       </header>
 
       {error && <p className="error">{error}</p>}
+      {showIntro && (
+        <Onboarding
+          onDone={() => {
+            markOnboarded()
+            setShowIntro(false)
+          }}
+        />
+      )}
 
       {current.map((s) => (
         <section key={s.id} className="panel">

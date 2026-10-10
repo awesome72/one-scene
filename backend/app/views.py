@@ -52,6 +52,7 @@ def material_out(material: Material) -> MaterialOut:
         arc_block=material.arc_block,  # type: ignore[arg-type]
         emotion_word=material.emotion_word,
         excluded=material.excluded,
+        turn_id=material.turn_id,
     )
 
 

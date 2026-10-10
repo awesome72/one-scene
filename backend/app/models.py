@@ -278,3 +278,14 @@ class JourneyEvent(Base):
     kind: Mapped[str] = mapped_column(String(20))  # start|advance|back|finish|reopen
     stage: Mapped[int] = mapped_column(Integer)  # 이벤트 뒤의 단계
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class StoryFeedback(Base):
+    """완성 화면의 한 질문: '내 이야기 같다' 1~5 (기획안 만족도 4.3 지표). 글 하나에 하나."""
+
+    __tablename__ = "story_feedback"
+
+    session_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(64), index=True)
+    score: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)

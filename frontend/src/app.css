@@ -942,3 +942,182 @@ input:focus-visible {
   padding: 10px 12px;
   margin: 0;
 }
+
+/* 문장별 출처: 내 대답 원문, 재료 부분 밑줄 */
+.source-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.source-turn + .source-turn {
+  margin-top: 6px;
+}
+.source-turn q {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--ink-2);
+  quotes: '“' '”';
+}
+.source-turn u {
+  text-decoration-color: var(--ink-2);
+  text-underline-offset: 3px;
+}
+
+/* 초안 완성 미터 (진행 신호, 4단계) */
+.draft-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.draft-meter p {
+  margin: 0;
+  font-size: 14px;
+}
+.draft-meter b {
+  font-weight: 500;
+}
+.meter-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--line);
+}
+.meter-bar i {
+  display: block;
+}
+.meter-bar .own,
+.meter-legend .own::before {
+  background: var(--ink);
+}
+.meter-bar .edited,
+.meter-legend .edited::before {
+  background: var(--ink-2);
+  opacity: 0.55;
+}
+.meter-bar .suggested,
+.meter-legend .suggested::before {
+  background: var(--muted-2);
+}
+.meter-bar .blank,
+.meter-legend .blank::before {
+  background: var(--mark);
+}
+.meter-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px !important;
+  color: var(--muted);
+}
+.meter-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+.meter-legend .plain::before {
+  display: none;
+}
+
+/* 막혔어요 · 넘어가기 */
+.row.center {
+  justify-content: center;
+  gap: 8px;
+}
+.sep {
+  color: var(--muted-2);
+}
+
+/* 말하는 동안 소리 크기 */
+.level-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  vertical-align: middle;
+}
+.level-meter i {
+  display: block;
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--mark);
+  transform-origin: center;
+  transition: transform 0.08s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .level-meter i {
+    transition: none;
+  }
+}
+
+/* 첫 안내 */
+.onboarding {
+  gap: 14px;
+  padding-top: 28px;
+}
+.onboarding-body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+.dots {
+  display: flex;
+  gap: 6px;
+}
+.dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+.dots i.on {
+  background: var(--ink);
+}
+
+/* 지난번 여기까지 */
+.resume p {
+  margin: 0;
+}
+
+/* 내 이야기 같다 (만족도) */
+.story-score {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.story-score .hint {
+  font-size: 12px;
+}
+.score-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.score-row button {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+}
+.score-row button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* 큰 글자 보기 (lib/display.ts) */
+html.large-text #root {
+  zoom: 1.18;
+}

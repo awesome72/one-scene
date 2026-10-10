@@ -16,6 +16,7 @@ from app.models import (
     Material,
     OutlineItem,
     Signal,
+    StoryFeedback,
     Tag,
     Turn,
     WritingSession,
@@ -134,7 +135,7 @@ def _delete_sessions(db: DbDep, session_ids: list[str]) -> None:
     """글을 흔적 없이 지운다. 재료가 턴을 참조하므로 참조하는 쪽부터 지운다."""
     if not session_ids:
         return
-    for model in (Material, Signal, OutlineItem, Draft, Tag, Turn):
+    for model in (Material, Signal, OutlineItem, Draft, Tag, Turn, StoryFeedback):
         db.execute(delete(model).where(model.session_id.in_(session_ids)))
     db.execute(delete(WritingSession).where(WritingSession.id.in_(session_ids)))
     db.commit()

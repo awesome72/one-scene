@@ -73,7 +73,7 @@ cd frontend && npm run lint                          # oxlint
 2. `apply_extraction`: 재료(`seq`, 프롬프트에서는 `m{seq}`), 신호(`repeated`는 사용자 발화 전체에서 매번 다시 셈, `gap`, `skipped`, `hesitation`). 주제 문장·목표 길이는 비어 있을 때만 채운다 (이후는 사용자가 PATCH).
 3. `distress`면 질문 대신 `data/fixed_replies.yaml` 고정 응답. 단계 마감 조건(`stage_machine.missing`)이 처음 채워지면 `card` 이벤트를 단계당 한 번(`card_offered_stage`).
 4. 속도 설계: 추출과 질문 생성(`questioner.stream`)을 **동시에** 시작하고, 질문은 `question_delta`로 글자가 생기는 대로 보낸다. 실시간 경로에는 `reviewer.rule_check`(물음표 1개, 두 질문 잇기, 문장 수, 상투어, 인용 원문, 직전 질문 되풀이)만 두고, 걸리면 `question_reset` 후 피드백을 넣어 최대 3회 다시 만든다. 코치 턴 저장은 추출(고통 신호 판정)이 끝난 뒤에 한다. `data/fixed_replies.yaml`의 `distress_markers`가 보이는 답은 추출이 끝날 때까지 질문을 보내지 않고, 그 밖의 답에서 뒤늦게 고통 신호가 잡히면 `question_reset` 후 고정 응답. LLM 검수는 질문을 보낸 뒤 `meta.review`에 기록만 한다(`_review_later`).
-- SSE 이벤트: `status(asking)` → `question_delta`* (→ `question_reset` → `question_delta`*)… · `materials` · `card`? → `question` | `error`. `materials`는 질문 조각 사이에 끼어 올 수 있다. `POST /sessions/{id}/coach`는 사용자 발화 없이 새 단계의 여는 질문을 만들고, `TurnCreate.skip=true`는 추출 없이 직전 질문을 넘어간 주제로 기록한다.
+- SSE 이벤트: `status(asking)` → `question_delta`* (→ `question_reset` → `question_delta`*)… · `materials` · `card`? → `question` | `error`. `materials`는 질문 조각 사이에 끼어 올 수 있다. `POST /sessions/{id}/coach`는 사용자 발화 없이 새 단계의 여는 질문을 만들고, `TurnCreate.skip=true`는 추출 없이 직전 질문을 넘어간 주제로 기록한다. `TurnCreate.stuck=true`('막혔어요')는 추출 없이 `questioner_stuck.md`를 이번 질문에만 붙여(`_ask`의 `hint`) 같은 장면을 더 작은 질문으로 다시 묻는다.
 - 프롬프트 조립(`prompt_builder.py`, 비용 설계): system = [core + 단계 모듈 + questioner.md (1시간 캐시 — 단계마다 모든 사용자가 같은 앞부분)], messages = 대화 기록(마지막 사용자 말에 5분 캐시) + **끝에 세션 상태 YAML을 `role: system` 메시지로** — 지난 대화 기록까지 캐시된다. 대화 중간 system 메시지를 못 받는 모델(`MID_CONVERSATION_SYSTEM` 밖, Haiku 등)은 상태를 마지막 사용자 말의 캐시 표시 뒤 블록으로. 질문자는 생각 끄기(`thinking: between_tools`, Sonnet 5.5)·effort low. 사후 LLM 검수는 `REVIEW_SAMPLE_RATE`(기본 10%)만, "네" 같은 6자 이하 짧은 답은 추출 생략(`_trivial`). **messages는 user로 시작하고 대화 기록은 user로 끝나야 한다** (Sonnet 5.5는 prefill 불가). 코치 턴이 연달아 있으면 사이에 `stage_opened.md`를, 맨 앞에는 `session_start.md`를 끼운다.
 
 ### 개요·초안·교정 (`engine/drafting.py`)
@@ -86,7 +86,7 @@ cd frontend && npm run lint                          # oxlint
 
 ### 프롬프트와 데이터 (`backend/app/prompts`, `backend/app/data`)
 - `core.md`, `stage1_topic.md` ~ `stage4_revise.md`는 **SKILL.md에서 자동 생성**된다. 직접 고치지 말고 SKILL.md를 고친 뒤 `app.prompt_sync`를 실행한다. `tests/test_prompt_sync.py`가 동기화와 원문 보존을 검사한다.
-- 나머지(`questioner`, `extractor`, `reviewer`, `assembler`, `fidelity`, `tagger`, `questioner_feedback`, `session_start`, `stage_opened`)는 직접 쓴 파일이다. 코드 안에 프롬프트 문자열을 두지 않는다. 평가 채점자 프롬프트만 `backend/evals/judge.md`.
+- 나머지(`questioner`, `questioner_stuck`, `extractor`, `reviewer`, `assembler`, `fidelity`, `tagger`, `questioner_feedback`, `session_start`, `stage_opened`)는 직접 쓴 파일이다. 코드 안에 프롬프트 문자열을 두지 않는다. 평가 채점자 프롬프트만 `backend/evals/judge.md`.
 - `data/cliches.yaml`은 SKILL.md 7장 사전(`examples`·`source`를 테스트가 검사). 그 밖에 `reviewer_rules.yaml`, `fixed_replies.yaml`, `opening_questions.yaml`.
 
 ### 테스트
@@ -94,7 +94,8 @@ cd frontend && npm run lint                          # oxlint
 - `tests/golden/quit_job.yaml`(SKILL.md 10장 예시), `tests/golden/scenarios.yaml`(평가용 10개). `test_live.py`는 `RUN_LIVE=1`일 때만 돈다.
 
 ### 프론트엔드 (`frontend/src`)
-- 진행 신호 세 층 (2026-10-10 개선안): 서버 `engine/progress.py`가 세션 응답의 `progress`(여정 0~5, 마감 조건 `stage_machine.conditions` 개수, 다음 할 일, 단계 대답 수·보통 범위, 남은 시간 범위, ready)를 계산하고 화면은 그대로 그린다. 여정 막대 `Journey`(모든 화면 위), 아크 곡선 `ArcCurve`(아직 필요한 블록에 점선 고리), 체크리스트 `ProgressSheet`, 승인 직후 `StageTransition`, 대답의 밑줄·방금 생긴 재료 `Answer`. 평가·칭찬 없이 개수·조건·범위만, '다음 할 일'은 질문 위에 두지 않는다(답을 조건에 맞추지 않게). 남은 시간은 홈·전환 화면에만.
+- 진행 신호 세 층 (2026-10-10 개선안): 서버 `engine/progress.py`가 세션 응답의 `progress`(여정 0~5, 마감 조건 `stage_machine.conditions` 개수, 다음 할 일, 단계 대답 수·보통 범위, 남은 시간 범위, ready)를 계산하고 화면은 그대로 그린다. 여정 막대 `Journey`(모든 화면 위), 아크 곡선 `ArcCurve`(아직 필요한 블록에 점선 고리), 체크리스트 `ProgressSheet`, 승인 직후 `StageTransition`, 대답의 밑줄·방금 생긴 재료 `Answer`. 평가·칭찬 없이 개수·조건·범위만, '다음 할 일'은 질문 위에 두지 않는다(답을 조건에 맞추지 않게). 남은 시간은 홈·전환 화면에만. 초안 화면은 `DraftMeter`(내 말·고친 문장·AI 제안·빈칸)와 `SourceNote`(문장을 누르면 재료가 나온 대답 원문, `MaterialOut.turn_id`).
+- 그 밖의 경험: 첫 안내 세 장 `Onboarding`과 큰 글자 보기(`lib/display.ts`, 이 브라우저에만 저장), 사흘 이상 쉬면 `Resume`('지난번 여기까지'), 서버 받아쓰기 중 소리 크기 `LevelMeter`(`Recorder.level()`), 완성 화면의 '내 이야기 같다' 1~5 `StoryScore`(`story_feedback`, `PUT /sessions/{id}/feedback`).
 - 해시 라우팅(`lib/route.ts`): `#/`, `#/library`, `#/s/{id}`(대화), `#/s/{id}/outline`, `/draft`, `/finish`.
 - `api/client.ts`가 모든 API 호출과 타입을 가진다. POST SSE는 EventSource 대신 fetch 스트림을 직접 파싱한다. 상태의 원천은 서버다.
 - 음성(Phase 5): 서버 우선, 브라우저 대비. 말로 답하기는 `lib/recorder.ts`(MediaRecorder) → `POST /sessions/{id}/voice/transcribe` → 확인 화면(자동 전송 없음), 서버를 못 쓰면 `lib/speech.ts`(Web Speech). 읽어 주기는 `lib/tts.ts`가 `POST /sessions/{id}/voice/speech`(그 글의 코치·교정 질문만 허용) mp3를 재생하고, 실패하면 브라우저 음성. 백엔드는 `app/voice/`의 어댑터(OpenAI). `OPENAI_API_KEY`가 없으면 `/voice/*`가 501. 마이크를 켜기 전에 `stopSpeaking()`.
