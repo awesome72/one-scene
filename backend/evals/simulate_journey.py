@@ -21,7 +21,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config import REPO_DIR, get_settings
 from app.db import Base, make_engine
-from app.engine import drafting, metering, progress
+from app.engine import drafting, metering, metrics, progress
 from app.engine.llm import AnthropicLLM
 from app.engine.pipeline import handle_stage_open, handle_user_turn
 from app.models import Turn, User, WritingSession
@@ -161,7 +161,10 @@ async def simulate(
         # 빈칸에 답하면 그 자리가 바로 채워진다 (다시 만들지 않은 지금 초안)
         now = drafting.draft_out(session.drafts[-1], session).model_dump(mode="json")
         after = summarize(now, 0.0)
-        draft_info = {"pattern": pattern, "first": first, "second": after, "answered": answered}
+        q = metrics.draft_quality(session.drafts[-1], {m.id: m for m in session.materials})
+        draft_info = {"pattern": pattern, "first": first, "second": after, "answered": answered,
+                      "quality": {"source_rate": q.source_rate, "cliches_per_1000": q.cliches_per_1000,
+                                  "first_is_scene": q.first_is_scene}}
 
     return {"key": key, "name": p["name"], "stages": stages, "seconds": seconds, "phases": phases,
             "transcript": transcript, "draft": draft_info,
@@ -234,6 +237,10 @@ def report(results: list[dict], spent: float) -> str:
                              f"빈칸 {x['blanks']} (AI 제안 {x['suggestions']}) · {x['chars']}자")
                 lines.append("\n> " + x["body"].replace("\n\n", "\n>\n> "))
             lines.append(f"\n교정 답 {d['answered']}개")
+            qq = d["quality"]
+            lines.append(f"글 품질 (기획안 목표): 출처 연결 {qq['source_rate']:.0%} (100%) · "
+                         f"1,000자당 상투어 {qq['cliches_per_1000']:.2f} (0.5 이하) · "
+                         f"첫 문장 장면 {qq['first_is_scene']}")
         lines += ["", "<details><summary>대화 전문</summary>", ""]
         lines += [f"- **{'코치' if role == 'coach' else '나'}**: {text}" for role, text in r["transcript"]]
         lines += ["", "</details>", ""]

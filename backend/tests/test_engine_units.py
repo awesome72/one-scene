@@ -252,3 +252,12 @@ def test_draft_and_fill_share_cached_revise_prefix() -> None:
     assert a[0] == f[0] and a[0]["cache_control"] == {"type": "ephemeral"}
     assert "다섯 가지 철칙" in a[0]["text"] and "초안 조립기" in a[1]["text"]
     assert "빈칸 채우기" in f[1]["text"] and "cache_control" not in f[1]
+
+
+def test_distress_reply_points_to_crisis_lines() -> None:
+    """고통 신호 고정 응답: 상담 전화를 알리고, 질문은 하나만 (기획안 12장 리스크 대응)."""
+    from app.engine import resources
+
+    reply = resources.data("fixed_replies")["distress"]
+    assert "109" in reply and "1577-0199" in reply
+    assert reply.count("?") == 1 and reply.endswith("?")

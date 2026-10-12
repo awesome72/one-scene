@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
@@ -62,8 +62,26 @@ def get_owned_session(session_id: str, db: DbDep, user: CurrentUserDep) -> Writi
 OwnedSessionDep = Annotated[WritingSession, Depends(get_owned_session)]
 
 
-def _jobs_today(db: DbDep, user_id: str | None = None) -> int:
-    """오늘(UTC) AI 작업 수: 사용자 발화(추출+질문), 초안 조립, 그 밖의 AI·음성 요청을 한 건씩 센다."""
+NEW_ACCOUNT_HOURS = 24
+
+
+def _new_since() -> datetime:
+    return datetime.now(UTC) - timedelta(hours=NEW_ACCOUNT_HOURS)
+
+
+def is_new_account(user: User) -> bool:
+    created = user.created_at
+    if created is None:
+        return False
+    if created.tzinfo is None:  # SQLite는 시간대를 잃는다 (저장은 UTC)
+        created = created.replace(tzinfo=UTC)
+    return created >= _new_since()
+
+
+def _jobs_today(db: DbDep, user_id: str | None = None, new_accounts: bool = False) -> int:
+    """오늘(UTC) AI 작업 수: 사용자 발화(추출+질문), 초안 조립, 그 밖의 AI·음성 요청을 한 건씩 센다.
+
+    user_id를 주면 그 사람만, new_accounts면 가입 24시간 안의 계정들 것만 센다."""
     today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     turns = select(func.count()).select_from(Turn).where(
         Turn.role == "user", Turn.created_at >= today
@@ -76,6 +94,11 @@ def _jobs_today(db: DbDep, user_id: str | None = None) -> int:
         turns = turns.join(WritingSession).where(WritingSession.user_id == user_id)
         drafts = drafts.join(WritingSession).where(WritingSession.user_id == user_id)
         others = others.where(UsageEvent.user_id == user_id)
+    if new_accounts:
+        new_ids = select(User.id).where(User.created_at >= _new_since())
+        turns = turns.join(WritingSession).where(WritingSession.user_id.in_(new_ids))
+        drafts = drafts.join(WritingSession).where(WritingSession.user_id.in_(new_ids))
+        others = others.where(UsageEvent.user_id.in_(new_ids))
     return (db.scalar(turns) or 0) + (db.scalar(drafts) or 0) + (db.scalar(others) or 0)
 
 
@@ -112,16 +135,29 @@ def require_llm_quota(db: DbDep, user: CurrentUserDep) -> None:
     """하루 AI 작업 상한 — 비용 안전장치. 0이면 끈다. UTC 자정에 초기화된다.
 
     사용자별 상한(daily_llm_limit_per_user)이 한 사람이 전체 상한을 다 써 버리는 것을 막고,
-    전체 상한(daily_llm_limit)이 가입을 여러 번 해서 우회하는 것을 막는다.
+    전체 상한(daily_llm_limit)이 비용 전체를 막는다. 이메일 인증 없이 가입할 수 있으므로,
+    가입 24시간 안의 계정은 상한을 낮추고 새 계정들의 몫을 전체의 일부로 묶어
+    계정을 여러 개 만들어도 기존 사용자의 몫을 다 쓰지 못하게 한다.
     """
     settings = get_settings()
+    new = is_new_account(user)
     per_user = settings.daily_llm_limit_per_user
+    if new and settings.new_account_limit_per_user > 0:
+        cap = settings.new_account_limit_per_user
+        per_user = min(per_user, cap) if per_user > 0 else cap
     if per_user > 0 and _jobs_today(db, user.id) >= per_user:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             "오늘은 여기까지 쓸 수 있어요. 내일 다시 이어서 써 주세요.",
         )
     total = settings.daily_llm_limit
+    if new and total > 0 and settings.new_accounts_share > 0:
+        pool = max(1, int(total * settings.new_accounts_share))
+        if _jobs_today(db, new_accounts=True) >= pool:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "오늘 새로 가입한 분들이 쓸 수 있는 양이 다 찼어요. 내일 다시 이어서 써 주세요.",
+            )
     if total > 0 and _jobs_today(db) >= total:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,

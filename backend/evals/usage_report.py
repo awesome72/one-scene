@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
 
 from app.db import engine
+from app.engine import metrics
 from app.models import JourneyEvent, LlmUsage, StoryFeedback
 
 
@@ -77,6 +78,26 @@ def main() -> None:
                         .where(StoryFeedback.created_at >= since)).one()
     if n:
         print(f"\n'내 이야기 같다' 평균 {avg:.2f} / 5 ({n}편, 기획안 목표 4.3)")
+
+    # 기획안 10장 성공 지표 (app/engine/metrics.py)
+    print("\n사용자 행동 (기획안 목표)")
+    labels = {"first_session_stage1_rate": "첫 세션 → 1단계 완료",
+              "two_pieces_month_rate": "기간 안 2편 이상 완성", "voice_rate": "음성 입력"}
+    for key, (num, den) in metrics.behaviour(db, since).items():
+        rate = f"{num / den:.0%}" if den else "-"
+        print(f"  {labels[key]:16} {rate:>5} ({num}/{den}, 목표 {metrics.TARGETS[key]:.0%})")
+    quality = metrics.finished_quality(db, since)
+    print(f"\n글 품질 (이 기간에 완성한 글 {len(quality)}편)")
+    if quality:
+        sentences = sum(q.sentences for q in quality)
+        sourced = sum(q.sourced for q in quality)
+        chars = sum(q.chars for q in quality)
+        hits = sum(q.dictionary_hits for q in quality)
+        judged = [q.first_is_scene for q in quality if q.first_is_scene is not None]
+        print(f"  출처 연결률       {sourced / sentences if sentences else 1:.0%} (목표 100%)")
+        print(f"  1,000자당 상투어  {hits / chars * 1000 if chars else 0:.2f}개 (목표 0.5개 이하)")
+        if judged:
+            print(f"  첫 문장이 장면    {sum(judged) / len(judged):.0%} ({len(judged)}편, 목표 90%)")
 
     print("\n비용 상위 사용자")
     for user, c in db.execute(

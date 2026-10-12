@@ -1,4 +1,5 @@
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -16,8 +17,12 @@ from app.routers import drafts, library, sessions, turns, voice
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # DB 스키마를 최신으로 (Alembic, app/migrate.py). create_all 시절 DB는 기준선으로 표시한다
-    migrate.upgrade(engine)
+    # DB 스키마를 최신으로 (Alembic, app/migrate.py). create_all 시절 DB는 기준선으로 표시한다.
+    # 미리보기 배포는 운영 DB를 같이 쓰므로 건드리지 않는다 (migrate.should_run)
+    if migrate.should_run():
+        migrate.upgrade(engine)
+    else:
+        log.warning("미리보기 배포: DB 마이그레이션을 건너뜀 (VERCEL_ENV=%s)", os.environ.get("VERCEL_ENV"))
     yield
 
 

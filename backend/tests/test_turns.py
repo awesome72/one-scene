@@ -377,3 +377,50 @@ def test_extractor_gets_first_scene_for_resonance(client: TestClient, fake: Fake
     _send(client, sid, text="요즘도 회의 때 볼펜을 딸깍거려요.")
     user = [c for c in fake.parse_calls if c["schema"] is Extraction][-1]["user"]
     assert "첫 장면의 재료" in user and "- 볼펜 뚜껑을 딸깍거렸어요" in user
+
+
+def _age(db_session: Session, user_id: str, days: int) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from app.models import User
+
+    db_session.get(User, user_id).created_at = datetime.now(UTC) - timedelta(days=days)
+    db_session.commit()
+
+
+def _turn(client: TestClient, sid: str, user: str) -> int:
+    return client.post(f"/sessions/{sid}/turns", json={"text": "답이에요"},
+                       headers={"X-User-Id": user}).status_code
+
+
+def test_new_accounts_get_a_smaller_daily_limit(
+    client: TestClient, fake: FakeLLM, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """가입 남용 막기: 가입 24시간 안의 계정은 상한이 낮다. 오래된 계정은 그대로."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "new_account_limit_per_user", 1)
+    new = client.post("/sessions", json={}, headers={"X-User-Id": "new"}).json()["id"]
+    old = client.post("/sessions", json={}, headers={"X-User-Id": "old"}).json()["id"]
+    _age(db_session, "old", days=2)
+    assert _turn(client, new, "new") == 200
+    assert _turn(client, new, "new") == 429
+    assert _turn(client, old, "old") == 200 and _turn(client, old, "old") == 200
+
+
+def test_new_accounts_share_only_part_of_the_global_limit(
+    client: TestClient, fake: FakeLLM, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """계정을 여러 개 만들어도 새 계정들은 전체 상한의 일부만 쓴다. 기존 사용자의 몫은 남는다."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "daily_llm_limit", 10)
+    monkeypatch.setattr(get_settings(), "new_accounts_share", 0.2)  # 새 계정 몫 2
+    sids = {u: client.post("/sessions", json={}, headers={"X-User-Id": u}).json()["id"]
+            for u in ("n1", "n2", "n3", "veteran")}
+    _age(db_session, "veteran", days=30)
+    assert _turn(client, sids["n1"], "n1") == 200
+    assert _turn(client, sids["n2"], "n2") == 200
+    res = client.post(f"/sessions/{sids['n3']}/turns", json={"text": "답"}, headers={"X-User-Id": "n3"})
+    assert res.status_code == 429 and "새로 가입한" in res.json()["detail"]
+    assert _turn(client, sids["veteran"], "veteran") == 200

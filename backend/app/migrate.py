@@ -7,6 +7,7 @@
 """
 
 import logging
+import os
 from pathlib import Path
 
 from alembic import command
@@ -25,6 +26,16 @@ def _config() -> Config:
     cfg = Config(str(BACKEND_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(BACKEND_DIR / "migrations"))
     return cfg
+
+
+def should_run(vercel_env: str | None = None) -> bool:
+    """스키마를 바꿔도 되는 배포인가: 운영(production)과 로컬(VERCEL_ENV 없음)만.
+
+    미리보기(preview)·개발 배포는 지금 운영과 같은 DATABASE_URL을 쓴다 (Vercel 환경 변수 공유).
+    PR 미리보기가 마이그레이션을 돌리면 아직 합치지 않은 스키마가 운영 DB에 들어간다.
+    """
+    env = os.environ.get("VERCEL_ENV") if vercel_env is None else vercel_env
+    return env in (None, "", "production")
 
 
 def upgrade(engine: Engine) -> None:

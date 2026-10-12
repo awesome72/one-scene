@@ -46,3 +46,9 @@ def test_create_all_db_is_stamped_without_changes(tmp_path: Path) -> None:
     assert _diff(engine) == []
     with engine.connect() as conn:
         assert conn.execute(text("SELECT count(*) FROM users")).scalar_one() == 1  # 데이터는 그대로
+
+
+def test_migrations_run_only_in_production_or_locally() -> None:
+    """미리보기 배포는 운영과 같은 DB를 쓰므로 스키마를 바꾸지 않는다."""
+    assert migrate.should_run("production") and migrate.should_run("")
+    assert not migrate.should_run("preview") and not migrate.should_run("development")
